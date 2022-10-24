@@ -10,3 +10,5 @@ clap = { version = "4.0.18", features = ["derive", "env"] }
 tokio = { version = "1.21.2", default-features = false, features = ["full"] }
 toml = "0.5.9"
 anyhow = "1.0.66"
+envy = "0.4"
+serde = { version = "1.0.147", features = ["derive"] }
