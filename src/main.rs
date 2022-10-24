@@ -1,8 +1,10 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+mod cmd;
+mod config;
 
-/// Simple program to greet a person
+/// Cloudfare DDNS CLI arguments
 #[derive(Parser, Debug)]
 #[clap(about, author, version, name = "cfddns")]
 struct Args {
@@ -19,22 +21,16 @@ struct Args {
 impl Args {
     pub async fn run(self) -> Result<()> {
         match self.action {
-            Subcommands::Show => {
-                if let Some(config_path) = self.config.as_deref() {
-                    println!("Config overwritten: {}", config_path.display());
-                }
-
-                // TODO parse TOML
-                // TODO show config
-                Ok(())
-            }
+            Subcommands::Config(inner) => inner.run(self.config).await,
+            Subcommands::Check(inner) => inner.run(self.config).await,
         }
     }
 }
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Show,
+    Config(cmd::config::Config),
+    Check(cmd::check::Check),
 }
 
 #[tokio::main]
