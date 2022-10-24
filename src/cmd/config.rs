@@ -27,6 +27,6 @@ impl Config {
 
 #[derive(Clone, Debug, Subcommand)]
 enum ConfigSubcommands {
-    /// Show CFDDNS's current config pre-CLI.
+    /// Show the current config pre-CLI.
     Show,
 }

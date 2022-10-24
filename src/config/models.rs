@@ -1,9 +1,8 @@
-use std::path::PathBuf;
-
+use crate::config::CONFIG_PATH;
 use anyhow::{Context, Result};
+use clap::Args;
 use serde::Deserialize;
-
-use super::CONFIG_PATH;
+use std::path::PathBuf;
 
 /// A model of all potential configuration options for the CFDDNS CLI system.
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -65,9 +64,15 @@ impl ConfigOpts {
     }
 }
 
-/// Config options for the check command.
-#[derive(Clone, Debug, Deserialize)]
+/// Config options for the check system.
+#[derive(Clone, Debug, Default, Deserialize, Args)]
 pub struct ConfigOptsCheck {
     /// A filter to apply to cloudfare targets
     pub filter: Option<String>,
+    /// Include cloudfare targets (default: ALL)
+    #[clap(short, long, value_name = "path")]
+    pub include: Option<Vec<PathBuf>>,
+    /// Ignore cloudfare targets (default: NONE)
+    #[clap(short, long, value_name = "path")]
+    pub ignore: Option<Vec<PathBuf>>,
 }
