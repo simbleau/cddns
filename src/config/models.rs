@@ -11,18 +11,8 @@ pub struct ConfigOpts {
 }
 
 impl ConfigOpts {
-    /// Return the full configuration based on config file & environment
-    /// variables.
-    pub fn full(config: Option<PathBuf>) -> Result<Self> {
-        let toml_cfg = Self::from_file(config)?;
-        let env_cfg =
-            Self::from_env().context("error reading env var config")?;
-        let cfg = Self::merge(toml_cfg, env_cfg);
-        Ok(cfg)
-    }
-
     /// Read runtime config from a target path.
-    fn from_file(path: Option<PathBuf>) -> Result<Self> {
+    pub fn from_file(path: Option<PathBuf>) -> Result<Self> {
         let mut cfddns_toml_path = path.unwrap_or_else(|| CONFIG_PATH.into());
         if !cfddns_toml_path.exists() {
             return Ok(Default::default());
@@ -44,18 +34,19 @@ impl ConfigOpts {
     }
 
     /// Read runtime config from environment variables
-    fn from_env() -> Result<Self> {
+    pub fn from_env() -> Result<Self> {
         Ok(ConfigOpts {
             check: Some(
                 envy::prefixed("CFDDNS_CHECK_")
-                    .from_env::<ConfigOptsCheck>()?,
+                    .from_env::<ConfigOptsCheck>()
+                    .context("error reading env var config")?,
             ),
         })
     }
 
-    /// Merge the given layers, where the `greater` layer takes precedence.
-    fn merge(mut lesser: Self, mut greater: Self) -> Self {
-        greater.check = match (lesser.check.take(), greater.check.take()) {
+    /// Merge config layers, where the `greater` layer takes precedence.
+    pub fn merge(mut self, mut greater: Self) -> Self {
+        greater.check = match (self.check.take(), greater.check.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(_), Some(g)) => Some(g),
@@ -67,12 +58,11 @@ impl ConfigOpts {
 /// Config options for the check system.
 #[derive(Clone, Debug, Default, Deserialize, Args)]
 pub struct ConfigOptsCheck {
+    // A zone to check
+    pub zone: Option<String>,
     /// A filter to apply to cloudfare targets
     pub filter: Option<String>,
-    /// Include cloudfare targets (default: ALL)
-    #[clap(short, long, value_name = "path")]
-    pub include: Option<Vec<PathBuf>>,
     /// Ignore cloudfare targets (default: NONE)
     #[clap(short, long, value_name = "path")]
-    pub ignore: Option<Vec<PathBuf>>,
+    pub ignore: Option<Vec<String>>,
 }
