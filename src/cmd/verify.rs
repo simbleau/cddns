@@ -32,7 +32,6 @@ impl Verify {
             Some(t) => t,
             None => anyhow::bail!("no token was provided"),
         };
-        cloudfare::endpoints::verify(&token).await?;
-        Ok(())
+        Ok(cloudfare::endpoints::verify(&token).await?)
     }
 }
