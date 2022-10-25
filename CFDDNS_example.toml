@@ -1,7 +1,4 @@
+[verify]
 # The API Token with permission to Edit DNS Zones.
 # Read more: https://dash.cloudflare.com/profile/api-tokens
-token = "<YOUR_CLOUDFARE_TOKEN>"
-
-[example.com]
-# If you need a different token for a special website, you can do that here.
 token = "<YOUR_CLOUDFARE_TOKEN>"
