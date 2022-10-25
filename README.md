@@ -14,9 +14,9 @@ You will need a Cloudfare API token.
 
 # Execution
 1. Locate your `CFDDNS.toml` (config) file and your `CFDDNS_INVENTORY.yaml` (inventory) file
-   - CFDDNS expects these files in the working directory
-   - You can set the `CFDDNS_CONFIG` environment variable or add `-c <PATH>` in the CLI to change the config location.
-   - You can set the `CFDDNS_INVENTORY` environment variable or add `-i <PATH>` in the CLI to change the inventory location.
+   - CFDDNS expects these files in the working directory, or:
+     - You can set the `CFDDNS_CONFIG` environment variable or add `-c <PATH>` in the CLI to change the config location.
+     - You can set the `CFDDNS_INVENTORY` environment variable or add `-i <PATH>` in the CLI to change the inventory location.
 2. Run `cfddns verify` to test authentication
 3. Run `cfddns check` to see pending DNS modifications without applying any modifications
 4. Run `cfddns run` to execute the daemon
