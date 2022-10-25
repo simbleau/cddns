@@ -20,9 +20,10 @@ You will need a Cloudfare API token.
      - You can set the `CFDDNS_CONFIG` environment variable or add `-c <PATH>` in the CLI to change the config location.
      - You can set the `CFDDNS_INVENTORY` environment variable or add `-i <PATH>` in the CLI to change the inventory location.
 2. Run `cfddns verify` to test authentication
-3. Run `cfddns check` to check outdated DNS records
-4. Run `cfddns run` to commit DNS record updates found in `check`
-5. Run `cfddns watch` to continually check for DNS record updates on loop
+3. Run `cfddns list build` to build an inventory for DNS record watch
+4. Run `cfddns check` to check outdated DNS records
+5. Run `cfddns run` to commit DNS record updates found in `check`
+6. Run `cfddns watch` to continually check for DNS record updates on loop
 
 # Docker
 To run this as a Cloudfare DDNS daemon in Docker, here is an example:

@@ -25,15 +25,21 @@ impl Args {
             Subcommands::Config(inner) => inner.run(self.config).await,
             Subcommands::Verify(inner) => inner.run(self.config).await,
             Subcommands::List(inner) => inner.run(self.config).await,
+            Subcommands::Check => todo!(),
+            Subcommands::Run => todo!(),
+            Subcommands::Watch => todo!(),
         }
     }
 }
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Verify(cmd::verify::Verify),
     Config(cmd::config::Config),
+    Verify(cmd::verify::Verify),
     List(cmd::list::List),
+    Check,
+    Run,
+    Watch,
 }
 
 #[tokio::main]
