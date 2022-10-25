@@ -8,7 +8,7 @@ You will need a Cloudfare API token.
 3. Save your token somewhere safe. It is a password.
 
 # Install
-1. `Cargo install cloudfare-ddns`
+1. `cargo install cloudfare-ddns`
 2. Run `cfddns build config` to run an interactive configuration builder
 3. Run `cfddns build inventory` to run an interactive inventory builder for your daemon
 
