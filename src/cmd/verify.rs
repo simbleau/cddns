@@ -9,7 +9,7 @@ use clap::Args;
 
 /// Verify authentication
 #[derive(Debug, Args)]
-#[clap(name = "")]
+#[clap(name = "verify")]
 pub struct Verify {
     #[clap(flatten)]
     pub cfg: ConfigOptsVerify,
