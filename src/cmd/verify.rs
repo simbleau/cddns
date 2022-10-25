@@ -26,12 +26,10 @@ impl Verify {
         // Apply layering to configuration data (TOML < ENV < CLI)
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
-        println!("{:#?}", opts);
-        let verify_opts = opts.verify.unwrap_or_default();
-        let token = match verify_opts.token {
-            Some(t) => t,
-            None => anyhow::bail!("no token was provided"),
-        };
-        Ok(cloudfare::endpoints::verify(&token).await?)
+        if let Some(token) = opts.verify.map(|opts| opts.token).flatten() {
+            Ok(cloudfare::endpoints::verify(&token).await?)
+        } else {
+            anyhow::bail!("no token was provided")
+        }
     }
 }
