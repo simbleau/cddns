@@ -5,7 +5,7 @@ mod cloudfare;
 mod cmd;
 mod config;
 
-/// Cloudfare DDNS CLI arguments
+/// Cloudfare DDNS command line utility
 #[derive(Parser, Debug)]
 #[clap(about, author, version, name = "cfddns")]
 struct Args {
