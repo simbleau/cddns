@@ -7,7 +7,8 @@ use std::path::PathBuf;
 /// A model of all potential configuration options for the CFDDNS CLI system.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ConfigOpts {
-    pub check: Option<ConfigOptsCheck>,
+    pub verify: Option<ConfigOptsVerify>,
+    pub list: Option<ConfigOptsList>,
 }
 
 impl ConfigOpts {
@@ -36,9 +37,14 @@ impl ConfigOpts {
     /// Read runtime config from environment variables
     pub fn from_env() -> Result<Self> {
         Ok(ConfigOpts {
-            check: Some(
-                envy::prefixed("CFDDNS_CHECK_")
-                    .from_env::<ConfigOptsCheck>()
+            list: Some(
+                envy::prefixed("CFDDNS_LIST_")
+                    .from_env::<ConfigOptsList>()
+                    .context("error reading env var config")?,
+            ),
+            verify: Some(
+                envy::prefixed("CFDDNS_VERIFY_")
+                    .from_env::<ConfigOptsVerify>()
                     .context("error reading env var config")?,
             ),
         })
@@ -46,23 +52,51 @@ impl ConfigOpts {
 
     /// Merge config layers, where the `greater` layer takes precedence.
     pub fn merge(mut self, mut greater: Self) -> Self {
-        greater.check = match (self.check.take(), greater.check.take()) {
+        greater.verify = match (self.verify.take(), greater.verify.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
-            (Some(_), Some(g)) => Some(g),
+            (Some(l), Some(mut g)) => {
+                g.token = g.token.or(l.token);
+                Some(g)
+            }
+        };
+        greater.list = match (self.list.take(), greater.list.take()) {
+            (None, None) => None,
+            (Some(val), None) | (None, Some(val)) => Some(val),
+            (Some(l), Some(mut g)) => {
+                g.include_zones = g.include_zones.or(l.include_zones);
+                g.ignore_zones = g.ignore_zones.or(l.ignore_zones);
+                g.include_records = g.include_records.or(l.include_records);
+                g.ignore_records = g.ignore_records.or(l.ignore_records);
+                Some(g)
+            }
         };
         greater
     }
 }
 
-/// Config options for the check system.
+/// Config options for the list system.
 #[derive(Clone, Debug, Default, Deserialize, Args)]
-pub struct ConfigOptsCheck {
-    // A zone to check
-    pub zone: Option<String>,
-    /// A filter to apply to cloudfare targets
-    pub filter: Option<String>,
-    /// Ignore cloudfare targets (default: NONE)
-    #[clap(short, long, value_name = "path")]
-    pub ignore: Option<Vec<String>>,
+pub struct ConfigOptsList {
+    /// Include cloudfare zones (default: ["*"])
+    #[clap(long)]
+    pub include_zones: Option<Vec<String>>,
+    /// Ignore cloudfare zones (default: [])
+    #[clap(long)]
+    pub ignore_zones: Option<Vec<String>>,
+
+    /// Include cloudfare records (default: ["*"])
+    #[clap(long)]
+    pub include_records: Option<Vec<String>>,
+    /// Ignore cloudfare records (default: [])
+    #[clap(long)]
+    pub ignore_records: Option<Vec<String>>,
+}
+
+/// Config options for the verify system.
+#[derive(Clone, Debug, Default, Deserialize, Args)]
+pub struct ConfigOptsVerify {
+    // Your Cloudfare API key token
+    #[clap(short, long)]
+    pub token: Option<String>,
 }

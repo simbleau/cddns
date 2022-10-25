@@ -2,3 +2,13 @@
 # The API Token with permission to Edit DNS Zones.
 # Read more: https://dash.cloudflare.com/profile/api-tokens
 token = "<YOUR_CLOUDFARE_TOKEN>"
+
+[list]
+# Zones (domains, subdomains, identities) to include with `cfddns list`
+include_zones = ["*"] # Default: ["*"]
+# Zones (domains, subdomains, identities) to ignore with `cfddns list`
+ignore_zones = [] # Default: []
+# (DNS) Records to include with `cfddns list`
+include_records = ["*"] # Default: ["*"]
+# (DNS) Records to ignore with `cfddns list`
+ignore_records = [] # Default: []

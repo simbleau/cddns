@@ -23,15 +23,17 @@ impl Args {
     pub async fn run(self) -> Result<()> {
         match self.action {
             Subcommands::Config(inner) => inner.run(self.config).await,
-            Subcommands::Check(inner) => inner.run(self.config).await,
+            Subcommands::Verify(inner) => inner.run(self.config).await,
+            Subcommands::List(inner) => inner.run(self.config).await,
         }
     }
 }
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
+    Verify(cmd::verify::Verify),
     Config(cmd::config::Config),
-    Check(cmd::check::Check),
+    List(cmd::list::List),
 }
 
 #[tokio::main]
