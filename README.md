@@ -1,29 +1,43 @@
 # CFDDNS
 A simple, modern, and secure Cloudfare DDNS command line utility.
 
-Featuring 
+Built for containerization, featuring interactive building and layered configuration options.
 
-# Pre-requisite: Cloudfare Token
+# Installation
+## Option A: Cargo
+- `cargo install cloudfare-ddns`
+## Option B: Binary
+- Download a compatible binary from [releases](https://github.com/simbleau/cloudfare-ddns/releases)
+## Containerization
+- See our [Docker](#docker) or [Kubernetes](#kubernetes) instructions.
+
+# Setup
+## Cloudfare API Token
 You will need a Cloudfare API token.
 1. Create API Token https://dash.cloudflare.com/profile/api-tokens
 2. Permissions: Zone | DNS | Edit
 3. Save your token somewhere safe. It is a password.
 
-# Install
-1. `cargo install cloudfare-ddns`
-2. Run `cfddns build config` to run an interactive configuration builder
-3. Run `cfddns build inventory` to run an interactive inventory builder for your daemon
+## Build your config
+- Run `cfddns build config` to run an interactive configuration builder
+- You can visit `CFDDNS.toml`[CFDDNS.toml] for an annotated example.
 
-# Execution
+## Build your DNS record inventory
+- Run `cfddns build inventory` to run an interactive inventory builder
+- You can visit `CFDDNS_INVENTORY.yaml`[CFDDNS_INVENTORY.yaml] for an annotated example.
+
+## Testing
 1. Locate your `CFDDNS.toml` (config) file and your `CFDDNS_INVENTORY.yaml` (inventory) file
    - CFDDNS expects these files in the working directory, or:
      - You can set the `CFDDNS_CONFIG` environment variable or add `-c <PATH>` in the CLI to change the config location.
      - You can set the `CFDDNS_INVENTORY` environment variable or add `-i <PATH>` in the CLI to change the inventory location.
 2. Run `cfddns verify` to test authentication
-3. Run `cfddns list build` to build an inventory for DNS record watch
-4. Run `cfddns check` to check outdated DNS records
-5. Run `cfddns run` to commit DNS record updates found in `check`
-6. Run `cfddns watch` to continually check for DNS record updates on loop
+3. Run `cfddns check` to check outdated DNS records
+4. Run `cfddns run` to commit DNS record updates found in `check`
+5. Run `cfddns watch` to continually check for DNS record updates on loop
+
+## Configuration
+<TODO: Table of env variables>
 
 # Docker
 To run this as a Cloudfare DDNS daemon in Docker, here is an example:
