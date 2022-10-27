@@ -10,8 +10,8 @@ use super::models::{Record, Zone};
 pub async fn verify(token: &str) -> Result<()> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
-        .context("error resolving verify endpoint")?;
-    anyhow::ensure!(resp.success, "error with verifying API token");
+        .context("error verifying API token")?;
+    println!("{:?}", resp.messages);
     Ok(())
 }
 

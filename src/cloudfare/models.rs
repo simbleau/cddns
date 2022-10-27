@@ -3,8 +3,28 @@ use std::fmt;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+pub struct CloudfareError {
+    pub code: i32,
+    pub message: String,
+    pub error_chain: Vec<CloudfareMessage>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CloudfareMessage {
+    pub code: i32,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CloudfareResponse {
+    pub success: bool,
+    pub errors: Vec<CloudfareError>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct VerifyResponse {
     pub success: bool,
+    pub messages: Vec<CloudfareMessage>,
 }
 
 #[derive(Debug, Deserialize)]
