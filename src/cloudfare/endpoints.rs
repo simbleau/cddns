@@ -40,10 +40,9 @@ pub async fn zones(token: &str) -> Result<Vec<Zone>> {
 }
 
 /// Return all known Cloudfare records
-pub async fn records(token: &str) -> Result<Vec<Record>> {
-    let zones = zones(token).await.context("error retrieving zones")?;
+pub async fn records(zones: &Vec<Zone>, token: &str) -> Result<Vec<Record>> {
     let mut records = vec![];
-    for zone in &zones {
+    for zone in zones {
         let mut page_cursor = 1;
         loop {
             let endpoint =
