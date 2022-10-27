@@ -78,17 +78,17 @@ impl ConfigOpts {
 /// Config options for the list system.
 #[derive(Clone, Debug, Default, Deserialize, Args)]
 pub struct ConfigOptsList {
-    /// Include cloudfare zones (default: ["*"])
+    /// Include cloudfare zones (default: [".*"])
     #[clap(long)]
     pub include_zones: Option<Vec<String>>,
     /// Ignore cloudfare zones (default: [])
     #[clap(long)]
     pub ignore_zones: Option<Vec<String>>,
 
-    /// Include cloudfare records (default: ["*"])
+    /// Include cloudfare zone records (default: [".*"])
     #[clap(long)]
     pub include_records: Option<Vec<String>>,
-    /// Ignore cloudfare records (default: [])
+    /// Ignore cloudfare zone records (default: [])
     #[clap(long)]
     pub ignore_records: Option<Vec<String>>,
 }
