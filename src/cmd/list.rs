@@ -24,9 +24,16 @@ pub struct List {
 #[derive(Clone, Debug, Subcommand)]
 enum ListSubcommands {
     /// Show zones (domains, subdomains, and identities)
-    Zones,
+    Zones(ZoneArgs),
     /// Show authoritative DNS records
     Records(RecordArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ZoneArgs {
+    /// Print a single zone
+    #[clap(short, long)]
+    pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -34,6 +41,9 @@ pub struct RecordArgs {
     /// Print records belonging to a single zone
     #[clap(short, long)]
     pub zone: Option<String>,
+    /// Print a single record
+    #[clap(short, long)]
+    pub record: Option<String>,
 }
 
 impl List {
@@ -58,16 +68,26 @@ impl List {
             None => anyhow::bail!("no token was provided"),
         };
 
-        // Get zones
-        let mut zones = cloudfare::endpoints::zones(&token).await?;
-        filter_zones(&mut zones, &opts)?;
-
         match self.action {
             Some(subcommand) => match subcommand {
-                ListSubcommands::Zones => {
+                ListSubcommands::Zones(args) => {
+                    // Get zones
+                    let mut zones = cloudfare::endpoints::zones(&token).await?;
+                    // Filter zones
+                    if let Some(zone) = args.zone {
+                        zones.retain(|z| z.name == zone || z.id == zone);
+                        anyhow::ensure!(
+                            zones.len() > 0,
+                            "no results with that zone filter"
+                        );
+                    } else {
+                        filter_zones(&mut zones, &opts)?;
+                    }
                     print_zones(&zones);
                 }
                 ListSubcommands::Records(args) => {
+                    // Get zones
+                    let mut zones = cloudfare::endpoints::zones(&token).await?;
                     if let Some(zone) = args.zone {
                         zones = zones
                             .into_iter()
@@ -77,17 +97,35 @@ impl List {
                             zones.len() > 0,
                             "no results with that zone filter"
                         );
+                    } else {
+                        filter_zones(&mut zones, &opts)?;
                     }
+                    // Get records
                     let mut records =
                         cloudfare::endpoints::records(&zones, &token).await?;
-                    filter_records(&mut records, &opts)?;
+                    // Filter records
+                    if let Some(record) = args.record {
+                        records = records
+                            .into_iter()
+                            .filter(|r| r.name == record || r.id == record)
+                            .collect();
+                        anyhow::ensure!(
+                            records.len() > 0,
+                            "no results with that record filter"
+                        );
+                    } else {
+                        filter_records(&mut records, &opts)?;
+                    }
                     print_records(&records);
                 }
             },
             None => {
+                // Get zones
+                let mut zones = cloudfare::endpoints::zones(&token).await?;
                 // Get records
                 let mut records =
                     cloudfare::endpoints::records(&zones, &token).await?;
+                filter_zones(&mut zones, &opts)?;
                 filter_records(&mut records, &opts)?;
                 print_all(&zones, &records);
             }
