@@ -7,7 +7,7 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 
-/// Verify authentication
+/// Verify authentication to Cloudfare
 #[derive(Debug, Args)]
 #[clap(name = "verify")]
 pub struct Verify {

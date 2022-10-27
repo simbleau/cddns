@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
 
-/// List Cloudfare resources
+/// List available resources
 #[derive(Debug, Args)]
 #[clap(name = "list")]
 pub struct List {
