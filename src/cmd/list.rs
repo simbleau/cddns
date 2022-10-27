@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use crate::config::{ConfigOpts, ConfigOptsList};
+use crate::{
+    cloudfare,
+    config::{ConfigOpts, ConfigOptsList},
+};
 use anyhow::Result;
 use clap::{Args, Subcommand};
 
@@ -24,22 +27,43 @@ impl List {
         };
         // Apply layering to configuration data (TOML < ENV < CLI)
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
-        println!("{:#?}", opts);
+
+        let token = match opts.verify.map(|opts| opts.token).flatten() {
+            Some(t) => t,
+            None => anyhow::bail!("no token was provided"),
+        };
 
         match self.action {
             Some(filter) => match filter {
                 ListSubcommands::Zones => {
-                    todo!("Print cloudfare zones")
+                    print_zones(&token).await?;
                 }
                 ListSubcommands::Records => {
-                    todo!("Print cloudfare records")
+                    print_records(&token).await?;
                 }
             },
             None => {
-                todo!("Print cloudfare zones and records")
+                print_all(&token).await?;
             }
         }
+
+        Ok(())
     }
+}
+
+async fn print_all(token: &str) -> Result<()> {
+    print_zones(token).await?;
+    print_records(token).await?;
+    Ok(())
+}
+
+async fn print_zones(token: &str) -> Result<()> {
+    println!("{:#?}", cloudfare::endpoints::zones(token).await?);
+    Ok(())
+}
+
+async fn print_records(token: &str) -> Result<()> {
+    todo!()
 }
 
 #[derive(Clone, Debug, Subcommand)]

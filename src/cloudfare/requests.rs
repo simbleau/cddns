@@ -2,7 +2,7 @@ use crate::cloudfare::API_BASE;
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 
-pub(crate) async fn get<T>(endpoint: &'static str, token: &str) -> Result<T>
+pub(crate) async fn get<T>(endpoint: &str, token: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
