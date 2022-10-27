@@ -136,16 +136,27 @@ impl List {
 }
 
 fn print_all(zones: &Vec<Zone>, records: &Vec<Record>) {
-    print_zones(zones);
-    print_records(records);
+    for (i, zone) in zones.iter().enumerate() {
+        if i != 0 {
+            println!("{}", "-".repeat(3));
+        }
+        println!("{}", zone);
+        for record in records.iter().filter(|r| r.zone_id == zone.id) {
+            println!("  - {}", record);
+        }
+    }
 }
 
 fn print_zones(zones: &Vec<Zone>) {
-    println!("{:#?}", zones);
+    for zone in zones {
+        println!("{}", zone);
+    }
 }
 
 fn print_records(records: &Vec<Record>) {
-    println!("{:#?}", records);
+    for record in records {
+        println!("{}", record);
+    }
 }
 
 fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {

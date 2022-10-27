@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -19,6 +21,12 @@ pub struct Zone {
     pub status: String,
 }
 
+impl fmt::Display for Zone {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.id)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Record {
     pub id: String,
@@ -29,6 +37,12 @@ pub struct Record {
     pub record_type: String,
     pub content: String,
     pub locked: bool,
+}
+
+impl fmt::Display for Record {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {} => {}", self.name, self.id, self.content)
+    }
 }
 
 #[derive(Debug, Deserialize)]
