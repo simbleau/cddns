@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     cloudfare::{
         self,
@@ -8,7 +10,6 @@ use crate::{
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
-use std::path::PathBuf;
 
 /// List Cloudfare resources
 #[derive(Debug, Args)]
@@ -31,17 +32,17 @@ enum ListSubcommands {
 #[derive(Debug, Clone, Args)]
 pub struct ZoneArgs {
     /// Print a single zone
-    #[clap(short, long)]
+    #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct RecordArgs {
     /// Print records belonging to a single zone
-    #[clap(short, long)]
+    #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
     /// Print a single record
-    #[clap(short, long)]
+    #[clap(short, long, value_name = "name|id")]
     pub record: Option<String>,
 }
 
