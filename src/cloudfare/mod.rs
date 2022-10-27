@@ -7,4 +7,5 @@
 pub const API_BASE: &str = "https://api.cloudflare.com/client/v4/";
 
 pub mod endpoints;
-pub mod requests;
+pub(crate) mod models;
+pub(crate) mod requests;
