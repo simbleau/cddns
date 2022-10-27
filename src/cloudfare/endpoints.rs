@@ -1,10 +1,8 @@
-use crate::cloudfare::{
-    models::{ListRecordsResponse, ListZonesResponse, VerifyResponse},
-    requests,
+use crate::cloudfare::models::{
+    ListRecordsResponse, ListZonesResponse, Record, VerifyResponse, Zone,
 };
+use crate::cloudfare::requests;
 use anyhow::{Context, Result};
-
-use super::models::{Record, Zone};
 
 /// Return Ok if the token is verifiable
 pub async fn verify(token: &str) -> Result<()> {
