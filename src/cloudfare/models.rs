@@ -20,8 +20,27 @@ pub struct Zone {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Record {
+    pub id: String,
+    pub zone_id: String,
+    pub zone_name: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub record_type: String,
+    pub content: String,
+    pub locked: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ListZonesResponse {
     pub success: bool,
     pub result_info: ResultInfo,
     pub result: Vec<Zone>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListRecordsResponse {
+    pub success: bool,
+    pub result_info: ResultInfo,
+    pub result: Vec<Record>,
 }

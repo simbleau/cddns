@@ -63,7 +63,8 @@ async fn print_zones(token: &str) -> Result<()> {
 }
 
 async fn print_records(token: &str) -> Result<()> {
-    todo!()
+    println!("{:#?}", cloudfare::endpoints::records(token).await?);
+    Ok(())
 }
 
 #[derive(Clone, Debug, Subcommand)]
