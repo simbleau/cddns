@@ -20,7 +20,7 @@ pub async fn zones(token: &str) -> Result<Vec<Zone>> {
     let mut zones = vec![];
     let mut page_cursor = 1;
     loop {
-        let endpoint = format!("/zones?page={}", page_cursor);
+        let endpoint = format!("/zones?order=name&page={}", page_cursor);
         let resp: ListZonesResponse = requests::get(&endpoint, token)
             .await
             .context("error resolving zones endpoint")?;
@@ -45,8 +45,10 @@ pub async fn records(zones: &Vec<Zone>, token: &str) -> Result<Vec<Record>> {
     for zone in zones {
         let mut page_cursor = 1;
         loop {
-            let endpoint =
-                format!("/zones/{}/dns_records?page={}", zone.id, page_cursor);
+            let endpoint = format!(
+                "/zones/{}/dns_records?order=name&page={}",
+                zone.id, page_cursor
+            );
             let resp: ListRecordsResponse = requests::get(&endpoint, token)
                 .await
                 .context("error resolving records endpoint")?;
