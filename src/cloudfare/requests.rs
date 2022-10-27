@@ -26,7 +26,31 @@ where
         true => Ok(serde_json::from_slice(bytes.as_slice())
             .context("error deserializing cloudfare payload")?),
         false => {
-            anyhow::bail!("{:#?}", cf_resp.errors)
+            if let Some(error_stack) = cf_resp
+                .errors
+                .iter()
+                .map(|msg| {
+                    format!(
+                        "{}: {}{}",
+                        msg.code,
+                        msg.message,
+                        msg.error_chain
+                            .iter()
+                            .map(|error| format!(
+                                "\n  - {}: {}",
+                                error.code, error.message
+                            ))
+                            .reduce(|cur: String, nxt: String| cur + &nxt)
+                            .unwrap_or_default()
+                    )
+                })
+                .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
+            {
+                Err(anyhow::anyhow!("{}", error_stack))
+            } else {
+                Err(anyhow::anyhow!("unknown error")
+                    .context(format!("{:#?}", cf_resp)))
+            }
         }
     }
 }

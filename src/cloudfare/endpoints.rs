@@ -9,7 +9,14 @@ pub async fn verify(token: &str) -> Result<()> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
         .context("error verifying API token")?;
-    println!("{:?}", resp.messages);
+    if let Some(message) = resp
+        .messages
+        .into_iter()
+        .map(|msg| msg.message)
+        .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
+    {
+        println!("{}", message);
+    }
     Ok(())
 }
 
