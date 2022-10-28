@@ -1,4 +1,4 @@
-use crate::config::CONFIG_PATH;
+use crate::config::DEFAULT_CONFIG_PATH;
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ pub struct ConfigOpts {
 impl ConfigOpts {
     /// Read runtime config from a target path.
     pub fn from_file(path: Option<PathBuf>) -> Result<Self> {
-        let mut cfddns_toml_path = path.unwrap_or_else(|| CONFIG_PATH.into());
+        let mut cfddns_toml_path = path.unwrap_or(DEFAULT_CONFIG_PATH.into());
         if !cfddns_toml_path.exists() {
             return Ok(Default::default());
         }

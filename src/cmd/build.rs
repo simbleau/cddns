@@ -1,4 +1,4 @@
-use crate::config::{ConfigOpts, ConfigOptsVerify};
+use crate::config::{ConfigOpts, ConfigOptsVerify, DEFAULT_CONFIG_PATH};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::{
@@ -142,7 +142,7 @@ async fn build_config(
         list: None,
     };
 
-    save(&config, "CFDDNS.toml", receiver).await?;
+    save(&config, DEFAULT_CONFIG_PATH, receiver).await?;
     println!("Saved");
     Ok(())
 }
