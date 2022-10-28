@@ -1,15 +1,7 @@
-use crate::{
-    cloudfare::{
-        self,
-        models::{Record, Zone},
-    },
-    config::{ConfigOpts, ConfigOptsList},
-};
+use crate::config::{ConfigOpts, ConfigOptsVerify};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use regex::Regex;
-use std::{collections::BTreeMap, path::PathBuf};
-use tokio::io;
+use std::io::Write;
 
 /// Build configuration or inventory files
 #[derive(Debug, Args)]
@@ -29,11 +21,13 @@ enum BuildSubcommands {
 
 impl Build {
     pub async fn run(self) -> Result<()> {
-        let (stdin_tx, stdin_rx) = tokio::sync::mpsc::channel(1);
+        let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel(1);
         start_reading(stdin_tx, tokio::runtime::Handle::current());
 
-        let x = read_input(stdin_rx).await;
-        println!("Got {:?}", x);
+        match self.action {
+            BuildSubcommands::Config => build_config(&mut stdin_rx).await?,
+            BuildSubcommands::Inventory => todo!(),
+        };
         Ok(())
     }
 }
@@ -46,7 +40,7 @@ fn start_reading(
         let stdin = std::io::stdin();
         let mut line_buf = String::new();
         while stdin.read_line(&mut line_buf).is_ok() {
-            let line = line_buf.trim_end().to_string();
+            let line = line_buf.trim().to_string();
             line_buf.clear();
             {
                 let sender = sender.clone();
@@ -57,7 +51,7 @@ fn start_reading(
 }
 
 async fn read_input(
-    mut stdin_rx: tokio::sync::mpsc::Receiver<String>,
+    stdin_rx: &mut tokio::sync::mpsc::Receiver<String>,
 ) -> Option<String> {
     tokio::select! {
         Some(line) = stdin_rx.recv() => {
@@ -71,4 +65,34 @@ async fn read_input(
             }
         }
     }
+}
+
+async fn user_input(
+    prompt: &str,
+    stdin_rx: &mut tokio::sync::mpsc::Receiver<String>,
+) -> Result<String> {
+    std::io::stdout().write(format!("{}: > ", prompt).as_bytes())?;
+    std::io::stdout().flush()?;
+
+    Ok(read_input(stdin_rx).await.context("Aborted")?)
+}
+
+async fn build_config(
+    receiver: &mut tokio::sync::mpsc::Receiver<String>,
+) -> Result<()> {
+    let token = user_input("Cloudfare API token", receiver)
+        .await
+        .context("Aborted")?;
+
+    let config = ConfigOpts {
+        verify: Some(ConfigOptsVerify { token: Some(token) }),
+        list: None,
+    };
+
+    println!(
+        "{}",
+        toml::to_string(&config).context("error encoding config")?
+    );
+
+    Ok(())
 }

@@ -1,11 +1,11 @@
 use crate::config::CONFIG_PATH;
 use anyhow::{Context, Result};
 use clap::Args;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// A model of all potential configuration options for the CFDDNS CLI system.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
@@ -76,7 +76,7 @@ impl ConfigOpts {
 }
 
 /// Config options for the list system.
-#[derive(Clone, Debug, Default, Deserialize, Args)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
     /// Include cloudfare zones by regex (default: [".*"])
     #[clap(long, value_name = "pattern")]
@@ -94,7 +94,7 @@ pub struct ConfigOptsList {
 }
 
 /// Config options for the verify system.
-#[derive(Clone, Debug, Default, Deserialize, Args)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
     // Your Cloudfare API key token
     #[clap(short, long)]

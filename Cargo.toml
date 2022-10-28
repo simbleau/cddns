@@ -13,5 +13,7 @@ toml = "0.5.9"
 anyhow = "1.0.66"
 envy = "0.4"
 serde = { version = "1.0.147", features = ["derive"] }
-serde_json = { version = "1.0.87"}
+serde_json = "1.0.87"
+serde_yaml = "0.9.14"
 regex = "1.6.0"
+public-ip = "0.2.2"
