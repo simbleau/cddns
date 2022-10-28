@@ -1,7 +1,7 @@
 use crate::config::{ConfigOpts, ConfigOptsVerify};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::io::Write;
+use std::{io::Write, path::Path};
 
 /// Build configuration or inventory files
 #[derive(Debug, Args)]
@@ -80,19 +80,44 @@ async fn user_input(
 async fn build_config(
     receiver: &mut tokio::sync::mpsc::Receiver<String>,
 ) -> Result<()> {
-    let token = user_input("Cloudfare API token", receiver)
-        .await
-        .context("Aborted")?;
-
+    // Build config
+    let token = user_input("Cloudfare API token", receiver).await?;
     let config = ConfigOpts {
         verify: Some(ConfigOptsVerify { token: Some(token) }),
         list: None,
     };
 
-    println!(
-        "{}",
-        toml::to_string(&config).context("error encoding config")?
-    );
+    // Get output path
+    let mut output_path =
+        user_input("Output location [default: CFDDNS.toml]", receiver).await?;
+    if output_path.is_empty() {
+        output_path.push_str("CFDDNS");
+    }
+    if !output_path.ends_with(".toml") {
+        output_path.push_str(".toml");
+    }
+    let output_path = Path::new(&output_path);
+    if output_path.exists() {
+        match user_input("File location exists, overwrite? (y/N)", receiver)
+            .await?
+            .to_lowercase()
+            .as_str()
+        {
+            "y" | "yes" => {
+                tokio::fs::remove_file(output_path).await?;
+            }
+            _ => anyhow::bail!("Aborted"),
+        };
+    }
 
+    // Save
+    tokio::fs::write(
+        output_path,
+        toml::to_string(&config).context("error encoding config to TOML")?,
+    )
+    .await
+    .context("error saving config")?;
+
+    println!("Saved");
     Ok(())
 }
