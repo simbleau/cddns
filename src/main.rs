@@ -6,6 +6,7 @@ use std::path::PathBuf;
 mod cloudfare;
 mod cmd;
 mod config;
+mod inventory;
 
 /// Cloudfare DDNS command line utility
 #[derive(Parser, Debug)]
