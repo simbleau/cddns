@@ -50,13 +50,17 @@ fn start_reading(
     });
 }
 
-async fn read_input(
+async fn prompt(
+    prompt: &str,
     stdin_rx: &mut tokio::sync::mpsc::Receiver<String>,
-) -> Option<String> {
-    tokio::select! {
+) -> Result<String> {
+    std::io::stdout().write(format!("{}: > ", prompt).as_bytes())?;
+    std::io::stdout().flush()?;
+
+    let input = tokio::select! {
         Some(line) = stdin_rx.recv() => {
             match line.as_str() {
-                "exit" => {
+                "exit" | "quit" => {
                     None
                 },
                 _ => {
@@ -64,24 +68,16 @@ async fn read_input(
                 }
             }
         }
-    }
-}
+    };
 
-async fn user_input(
-    prompt: &str,
-    stdin_rx: &mut tokio::sync::mpsc::Receiver<String>,
-) -> Result<String> {
-    std::io::stdout().write(format!("{}: > ", prompt).as_bytes())?;
-    std::io::stdout().flush()?;
-
-    Ok(read_input(stdin_rx).await.context("Aborted")?)
+    Ok(input.context("aborted")?)
 }
 
 async fn build_config(
     receiver: &mut tokio::sync::mpsc::Receiver<String>,
 ) -> Result<()> {
     // Build config
-    let token = user_input("Cloudfare API token", receiver).await?;
+    let token = prompt("Cloudfare API token", receiver).await?;
     let config = ConfigOpts {
         verify: Some(ConfigOptsVerify { token: Some(token) }),
         list: None,
@@ -89,7 +85,7 @@ async fn build_config(
 
     // Get output path
     let mut output_path =
-        user_input("Output location [default: CFDDNS.toml]", receiver).await?;
+        prompt("Output location [default: CFDDNS.toml]", receiver).await?;
     if output_path.is_empty() {
         output_path.push_str("CFDDNS");
     }
@@ -98,7 +94,7 @@ async fn build_config(
     }
     let output_path = Path::new(&output_path);
     if output_path.exists() {
-        match user_input("File location exists, overwrite? (y/N)", receiver)
+        match prompt("File location exists, overwrite? (y/N)", receiver)
             .await?
             .to_lowercase()
             .as_str()
@@ -106,7 +102,7 @@ async fn build_config(
             "y" | "yes" => {
                 tokio::fs::remove_file(output_path).await?;
             }
-            _ => anyhow::bail!("Aborted"),
+            _ => anyhow::bail!("aborted"),
         };
     }
 
