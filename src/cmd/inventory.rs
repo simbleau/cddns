@@ -1,14 +1,28 @@
 use crate::config::{ConfigOpts, ConfigOptsInventory};
 use anyhow::Result;
-use clap::Args;
+use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
-/// Verify authentication to Cloudfare
+/// Manage inventory of watched records
 #[derive(Debug, Args)]
 #[clap(name = "inventory")]
 pub struct Inventory {
+    #[clap(subcommand)]
+    action: InventorySubcommands,
     #[clap(flatten)]
     pub cfg: ConfigOptsInventory,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum InventorySubcommands {
+    /// Print your inventory
+    Show,
+    /// Print erroneous DNS records
+    Check,
+    /// Fix erroneous DNS records once
+    Commit,
+    /// Fix erroneous DNS records on a loop
+    Watch,
 }
 
 impl Inventory {

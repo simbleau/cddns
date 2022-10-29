@@ -1,4 +1,7 @@
-use crate::{config::DEFAULT_CONFIG_PATH, inventory::DEFAULT_INVENTORY_PATH};
+use crate::{
+    config::DEFAULT_CONFIG_PATH,
+    inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
+};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -38,15 +41,15 @@ impl ConfigOpts {
     /// Read runtime config from environment variables
     pub fn from_env() -> Result<Self> {
         Ok(ConfigOpts {
-            list: Some(
-                envy::prefixed("CFDDNS_LIST_")
-                    .from_env::<ConfigOptsList>()
-                    .context("error reading list env var config")?,
-            ),
             verify: Some(
                 envy::prefixed("CFDDNS_VERIFY_")
                     .from_env::<ConfigOptsVerify>()
                     .context("error reading verify env var config")?,
+            ),
+            list: Some(
+                envy::prefixed("CFDDNS_LIST_")
+                    .from_env::<ConfigOptsList>()
+                    .context("error reading list env var config")?,
             ),
             inventory: Some(
                 envy::prefixed("CFDDNS_INVENTORY_")
@@ -83,6 +86,7 @@ impl ConfigOpts {
                 (Some(val), None) | (None, Some(val)) => Some(val),
                 (Some(l), Some(mut g)) => {
                     g.path = g.path.or(l.path);
+                    g.interval = g.interval.or(l.interval);
                     Some(g)
                 }
             };
@@ -122,12 +126,15 @@ pub struct ConfigOptsInventory {
     // The path to the inventory file
     #[clap(short, long)]
     pub path: Option<PathBuf>,
+    #[clap(short, long)]
+    pub interval: Option<u32>,
 }
 
 impl Default for ConfigOptsInventory {
     fn default() -> Self {
         Self {
             path: Some(PathBuf::from(DEFAULT_INVENTORY_PATH)),
+            interval: Some(DEFAULT_WATCH_INTERVAL),
         }
     }
 }

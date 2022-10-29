@@ -12,3 +12,9 @@ ignore_zones = [] # Default: []
 include_records = [".*"] # Default: [".*"]
 # (DNS) Records to ignore with `cfddns list`
 ignore_records = [] # Default: []
+
+[inventory]
+# The path to your inventory file
+path = "inventory.yaml" # Default: "inventory.yaml"
+# The interval for record checking, in milliseconds
+interval = 5000 # Default: 5000
