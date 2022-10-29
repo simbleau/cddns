@@ -156,7 +156,7 @@ fn print_records(records: &Vec<Record>) {
     }
 }
 
-fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
+pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
     // Filter zones by configuration options
     if let Some(ref list_opts) = opts.list {
         if let Some(include_filters) = list_opts.include_zones.as_ref() {
@@ -181,7 +181,10 @@ fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
-fn filter_records(records: &mut Vec<Record>, opts: &ConfigOpts) -> Result<()> {
+pub fn filter_records(
+    records: &mut Vec<Record>,
+    opts: &ConfigOpts,
+) -> Result<()> {
     // Filter records by configuration options
     if let Some(ref list_opts) = opts.list {
         if let Some(include_filters) = list_opts.include_records.as_ref() {

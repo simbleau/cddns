@@ -1,4 +1,6 @@
 #![feature(slice_pattern)]
+#![feature(try_blocks)]
+#![feature(is_some_with)]
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -28,7 +30,7 @@ impl Args {
             Subcommands::Config(inner) => inner.run(self.config).await,
             Subcommands::Verify(inner) => inner.run(self.config).await,
             Subcommands::List(inner) => inner.run(self.config).await,
-            Subcommands::Build(inner) => inner.run().await,
+            Subcommands::Build(inner) => inner.run(self.config).await,
             Subcommands::Inventory(inner) => inner.run(self.config).await,
         }
     }
