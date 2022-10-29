@@ -1,4 +1,4 @@
-use crate::config::DEFAULT_CONFIG_PATH;
+use crate::{config::DEFAULT_CONFIG_PATH, inventory::DEFAULT_INVENTORY_PATH};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
+    pub inventory: Option<ConfigOptsInventory>,
 }
 
 impl ConfigOpts {
@@ -40,12 +41,17 @@ impl ConfigOpts {
             list: Some(
                 envy::prefixed("CFDDNS_LIST_")
                     .from_env::<ConfigOptsList>()
-                    .context("error reading env var config")?,
+                    .context("error reading list env var config")?,
             ),
             verify: Some(
                 envy::prefixed("CFDDNS_VERIFY_")
                     .from_env::<ConfigOptsVerify>()
-                    .context("error reading env var config")?,
+                    .context("error reading verify env var config")?,
+            ),
+            inventory: Some(
+                envy::prefixed("CFDDNS_INVENTORY_")
+                    .from_env::<ConfigOptsInventory>()
+                    .context("error reading inventory env var config")?,
             ),
         })
     }
@@ -71,6 +77,15 @@ impl ConfigOpts {
                 Some(g)
             }
         };
+        greater.inventory =
+            match (self.inventory.take(), greater.inventory.take()) {
+                (None, None) => None,
+                (Some(val), None) | (None, Some(val)) => Some(val),
+                (Some(l), Some(mut g)) => {
+                    g.path = g.path.or(l.path);
+                    Some(g)
+                }
+            };
         greater
     }
 }
@@ -78,17 +93,17 @@ impl ConfigOpts {
 /// Config options for the list system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
-    /// Include cloudfare zones by regex (default: [".*"])
+    /// Include cloudfare zones by regex [default: all]
     #[clap(long, value_name = "pattern")]
     pub include_zones: Option<Vec<String>>,
-    /// Ignore cloudfare zones by regex (default: [])
+    /// Ignore cloudfare zones by regex [default: none]
     #[clap(long, value_name = "pattern")]
     pub ignore_zones: Option<Vec<String>>,
 
-    /// Include cloudfare zone records by regex (default: [".*"])
+    /// Include cloudfare zone records by regex [default: all]
     #[clap(long, value_name = "pattern")]
     pub include_records: Option<Vec<String>>,
-    /// Ignore cloudfare zone records by regex (default: [])
+    /// Ignore cloudfare zone records by regex [default: none]
     #[clap(long, value_name = "pattern")]
     pub ignore_records: Option<Vec<String>>,
 }
@@ -99,4 +114,20 @@ pub struct ConfigOptsVerify {
     // Your Cloudfare API key token
     #[clap(short, long)]
     pub token: Option<String>,
+}
+
+/// Config options for the inventory system.
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
+pub struct ConfigOptsInventory {
+    // The path to the inventory file
+    #[clap(short, long)]
+    pub path: Option<PathBuf>,
+}
+
+impl Default for ConfigOptsInventory {
+    fn default() -> Self {
+        Self {
+            path: Some(PathBuf::from(DEFAULT_INVENTORY_PATH)),
+        }
+    }
 }

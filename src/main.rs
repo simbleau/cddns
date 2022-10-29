@@ -29,9 +29,7 @@ impl Args {
             Subcommands::Verify(inner) => inner.run(self.config).await,
             Subcommands::List(inner) => inner.run(self.config).await,
             Subcommands::Build(inner) => inner.run().await,
-            Subcommands::Check => todo!(),
-            Subcommands::Run => todo!(),
-            Subcommands::Watch => todo!(),
+            Subcommands::Inventory(inner) => inner.run(self.config).await,
         }
     }
 }
@@ -42,9 +40,7 @@ enum Subcommands {
     Verify(cmd::verify::Verify),
     List(cmd::list::List),
     Build(cmd::build::Build),
-    Check,
-    Run,
-    Watch,
+    Inventory(cmd::inventory::Inventory),
 }
 
 #[tokio::main]

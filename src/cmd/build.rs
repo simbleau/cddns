@@ -1,4 +1,7 @@
-use crate::config::{ConfigOpts, ConfigOptsVerify, DEFAULT_CONFIG_PATH};
+use crate::config::{
+    ConfigOpts, ConfigOptsInventory, ConfigOptsList, ConfigOptsVerify,
+    DEFAULT_CONFIG_PATH,
+};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::{
@@ -139,7 +142,12 @@ async fn build_config(
     let token = prompt("Cloudfare API token", receiver).await?;
     let config = ConfigOpts {
         verify: Some(ConfigOptsVerify { token: Some(token) }),
-        list: None,
+        list: Some(ConfigOptsList {
+            ..Default::default()
+        }),
+        inventory: Some(ConfigOptsInventory {
+            ..Default::default()
+        }),
     };
 
     save(&config, DEFAULT_CONFIG_PATH, receiver).await?;
