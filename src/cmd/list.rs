@@ -58,15 +58,12 @@ impl List {
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
         // Get token
-        let token = match opts
+        let token = opts
             .verify
             .as_ref()
             .map(|opts| opts.token.clone())
             .flatten()
-        {
-            Some(t) => t,
-            None => anyhow::bail!("no token was provided"),
-        };
+            .context("no token was provided")?;
 
         match self.action {
             Some(subcommand) => match subcommand {

@@ -1,7 +1,4 @@
-use crate::{
-    config::DEFAULT_CONFIG_PATH,
-    inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
-};
+use crate::config::DEFAULT_CONFIG_PATH;
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -121,20 +118,11 @@ pub struct ConfigOptsVerify {
 }
 
 /// Config options for the inventory system.
-#[derive(Clone, Debug, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
     // The path to the inventory file
     #[clap(short, long)]
     pub path: Option<PathBuf>,
     #[clap(short, long)]
     pub interval: Option<u32>,
-}
-
-impl Default for ConfigOptsInventory {
-    fn default() -> Self {
-        Self {
-            path: Some(PathBuf::from(DEFAULT_INVENTORY_PATH)),
-            interval: Some(DEFAULT_WATCH_INTERVAL),
-        }
-    }
 }
