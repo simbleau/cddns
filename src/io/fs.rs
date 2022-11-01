@@ -1,7 +1,6 @@
+use crate::io::Scanner;
 use anyhow::{Context, Result};
 use std::path::Path;
-
-use super::Scanner;
 
 /// Remove a file by force, without user interaction
 pub async fn remove_force<P>(path: P) -> Result<()>

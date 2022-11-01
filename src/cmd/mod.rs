@@ -1,3 +1,5 @@
+//! Clap commands handled by the CLI.
+
 mod config;
 pub(crate) use config::ConfigCmd;
 mod inventory;
