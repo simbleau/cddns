@@ -47,10 +47,25 @@ impl InventoryCmd {
 
         match self.action {
             InventorySubcommands::Build => {
-                let inventory = build(&opts).await?;
                 let runtime = tokio::runtime::Handle::current();
                 let mut scanner = Scanner::new(runtime);
-                let path = scanner.prompt_path(DEFAULT_INVENTORY_PATH).await?;
+
+                // Build
+                let inventory = build(&mut scanner, &opts).await?;
+
+                // Save
+                let path = scanner
+                    .prompt_path_or(
+                        format!(
+                            "Save location [default: {}]",
+                            DEFAULT_INVENTORY_PATH
+                        ),
+                        DEFAULT_INVENTORY_PATH.into(),
+                    )
+                    .await?;
+                if path.exists() {
+                    io::fs::remove_interactive(&path, &mut scanner).await?;
+                }
                 io::fs::save_yaml(&inventory, path).await?;
                 println!("Saved");
             }
@@ -87,7 +102,7 @@ impl InventoryCmd {
     }
 }
 
-async fn build(opts: &ConfigOpts) -> Result<Inventory> {
+async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
     // Get token
     let token = opts
         .verify
@@ -102,8 +117,6 @@ async fn build(opts: &ConfigOpts) -> Result<Inventory> {
     crate::cmd::list::filter_records(&mut records, opts)?;
 
     let mut inventory = HashMap::new();
-    let runtime = tokio::runtime::Handle::current();
-    let mut scanner = Scanner::new(runtime);
     'control: loop {
         anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
         let mut selection: Option<usize> = None;
@@ -113,8 +126,8 @@ async fn build(opts: &ConfigOpts) -> Result<Inventory> {
                 println!("[{}] {}: {}", i + 1, zone.name, zone.id);
             }
             match scanner.prompt("(1/2) Choose a zone").await {
-                Ok(input) => selection = input.parse::<usize>().ok(),
-                Err(_) => break 'control,
+                Ok(Some(input)) => selection = input.parse::<usize>().ok(),
+                _ => break 'control,
             }
         }
         let zone = &zones[selection.unwrap() - 1];
@@ -131,8 +144,8 @@ async fn build(opts: &ConfigOpts) -> Result<Inventory> {
                     println!("[{}] {}: {}", i + 1, record.name, record.id);
                 }
                 match scanner.prompt("(2/2) Choose a record").await {
-                    Ok(input) => selection = input.parse::<usize>().ok(),
-                    Err(_) => break 'control,
+                    Ok(Some(input)) => selection = input.parse::<usize>().ok(),
+                    _ => break 'control,
                 }
             }
             let record = &records[selection.unwrap() - 1];

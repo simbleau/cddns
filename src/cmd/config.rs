@@ -1,8 +1,3 @@
-use std::path::PathBuf;
-
-use anyhow::Result;
-use clap::{Args, Subcommand};
-
 use crate::{
     config::{
         ConfigOpts, ConfigOptsInventory, ConfigOptsList, ConfigOptsVerify,
@@ -10,6 +5,9 @@ use crate::{
     },
     io::{self, Scanner},
 };
+use anyhow::Result;
+use clap::{Args, Subcommand};
+use std::path::PathBuf;
 
 /// Configuration controls
 #[derive(Debug, Args)]
@@ -25,10 +23,14 @@ impl ConfigCmd {
             ConfigSubcommands::Build => {
                 let runtime = tokio::runtime::Handle::current();
                 let mut scanner = Scanner::new(runtime);
-                // Get user input
-                let token = scanner.prompt("Cloudfare API token").await?;
 
-                // Build config
+                // Build
+                let token = scanner
+                    .prompt("Cloudfare API token")
+                    .await?
+                    .unwrap_or_default();
+
+                // Package config
                 let config = ConfigOpts {
                     verify: Some(ConfigOptsVerify { token: Some(token) }),
                     list: Some(ConfigOptsList::default()),
@@ -36,8 +38,19 @@ impl ConfigCmd {
                 };
 
                 // Save
-                let path = scanner.prompt_path(DEFAULT_CONFIG_PATH).await?;
-                io::fs::save_toml(&config, path).await?;
+                let path = scanner
+                    .prompt_path_or(
+                        format!(
+                            "Save location [default: {}]",
+                            DEFAULT_CONFIG_PATH
+                        ),
+                        DEFAULT_CONFIG_PATH.into(),
+                    )
+                    .await?;
+                if path.exists() {
+                    io::fs::remove_interactive(&path, &mut scanner).await?;
+                }
+                io::fs::save_toml(&config, &path).await?;
                 println!("Saved");
             }
             ConfigSubcommands::Show => {

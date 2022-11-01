@@ -1,11 +1,5 @@
 use anyhow::Result;
-use std::{
-    ffi::OsString,
-    fmt::Display,
-    io::Write,
-    path::{Path, PathBuf},
-    thread::JoinHandle,
-};
+use std::{fmt::Display, io::Write, path::PathBuf};
 use tokio::runtime::Handle;
 
 /// A stdin scanner to collect user input on command line.
@@ -33,70 +27,63 @@ impl Scanner {
     }
 
     /// Prompt the user for an answer and collect it.
-    pub async fn prompt(&mut self, prompt: impl Display) -> Result<String> {
+    pub async fn prompt(
+        &mut self,
+        prompt: impl Display,
+    ) -> Result<Option<String>> {
         std::io::stdout().write(format!("{}: > ", prompt).as_bytes())?;
         std::io::stdout().flush()?;
 
         tokio::select! {
-            Some(line) = self.rx.recv() => {
-                match line.to_lowercase().trim() {
-                    "exit" | "quit" => {
-                        anyhow::bail!("aborted")
-                    },
-                    _ => {
-                        Ok(line)
+                Some(line) = self.rx.recv() => {
+                    match line.to_lowercase().trim() {
+                        "exit" | "quit" => {
+                            anyhow::bail!("aborted")
+                        },
+                        "" => {
+                            Ok(None)
+                        }
+                        _ => {
+                            Ok(Some(line.trim().to_owned()))
+                        }
                     }
                 }
-            }
         }
     }
 
-    // Prompt the user for a path and collect it.
-    pub async fn prompt_path<P>(&mut self, default_path: P) -> Result<PathBuf>
-    where
-        P: AsRef<Path>,
-    {
-        let name = default_path
-            .as_ref()
-            .file_name()
-            .expect("invalid default path file name");
-        let ext = default_path
-            .as_ref()
-            .extension()
-            .expect("invalid default file extension");
-        // Get output path
-        let mut output_path = OsString::from(
-            self.prompt(format!(
-                "Output path [default: {}]",
-                default_path.as_ref().display()
-            ))
-            .await?,
-        );
-        if output_path.is_empty() {
-            output_path.push(name);
-        }
-        let output_path = PathBuf::from(&output_path).with_extension(ext);
-        if output_path.exists() {
-            let overwrite = loop {
-                match self
-                    .prompt("File location exists, overwrite? (y/N)")
-                    .await?
-                    .to_lowercase()
-                    .trim()
-                {
-                    "y" | "yes" => break true,
-                    "" | "n" | "no" | "exit" | "quit" => break false,
-                    _ => continue,
-                }
-            };
+    /// Prompt the user for an answer and collect it, or assume a default.
+    pub async fn prompt_or(
+        &mut self,
+        prompt: impl Display,
+        default: String,
+    ) -> Result<String> {
+        Ok(self.prompt(prompt).await?.unwrap_or(default))
+    }
 
-            if overwrite {
-                tokio::fs::remove_file(&output_path).await?;
-            } else {
-                anyhow::bail!("aborted")
+    /// Prompt the user for a path and collect it.
+    pub async fn prompt_path(
+        &mut self,
+        prompt: impl Display,
+    ) -> Result<Option<PathBuf>> {
+        let path = loop {
+            match self.prompt(&prompt).await? {
+                Some(input) => match input.parse::<PathBuf>() {
+                    Ok(pb) => break Some(pb),
+                    _ => continue,
+                },
+                None => break None,
             }
-        }
-        Ok(output_path)
+        };
+        Ok(path)
+    }
+
+    /// Prompt the user for an answer and collect it, or assume a default.
+    pub async fn prompt_path_or(
+        &mut self,
+        prompt: impl Display,
+        default: PathBuf,
+    ) -> Result<PathBuf> {
+        Ok(self.prompt_path(prompt).await?.unwrap_or(default))
     }
 }
 
