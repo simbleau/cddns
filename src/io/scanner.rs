@@ -77,7 +77,7 @@ impl Scanner {
         Ok(path)
     }
 
-    /// Prompt the user for an answer and collect it, or assume a default.
+    /// Prompt the user for a path and collect it, or assume a default.
     pub async fn prompt_path_or(
         &mut self,
         prompt: impl Display,
