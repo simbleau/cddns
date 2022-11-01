@@ -8,7 +8,10 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 /// Manage inventory of watched records
 #[derive(Debug, Args)]
@@ -152,13 +155,15 @@ async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
             let key = zone.id.clone();
             let inventory_zone = inventory
                 .entry(key)
-                .or_insert_with(|| InventoryZone(Some(Vec::new())));
+                .or_insert_with(|| InventoryZone(Some(HashSet::new())));
             inventory_zone
                 .0
                 .as_mut()
                 .unwrap()
-                .push(InventoryRecord(record.id.clone()));
-            println!("Added {}: {}\n", record.name, record.id);
+                .insert(InventoryRecord(record.id.clone()));
+            println!("Added '{}'.\n", record.name);
+        } else {
+            println!("No records for this zone.")
         }
     }
     let inventory = Inventory(Some(inventory));

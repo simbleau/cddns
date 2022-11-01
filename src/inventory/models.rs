@@ -1,7 +1,10 @@
 use crate::inventory::DEFAULT_INVENTORY_PATH;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -9,10 +12,10 @@ pub struct Inventory(pub Option<HashMap<String, InventoryZone>>);
 
 /// The model for a zone with records.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct InventoryZone(pub Option<Vec<InventoryRecord>>);
+pub struct InventoryZone(pub Option<HashSet<InventoryRecord>>);
 
 /// The model for a DNS record.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct InventoryRecord(pub String);
 
 impl Inventory {
