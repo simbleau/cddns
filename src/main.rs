@@ -1,6 +1,7 @@
 #![feature(slice_pattern)]
 #![feature(try_blocks)]
 #![feature(is_some_with)]
+#![feature(unwrap_infallible)]
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -9,6 +10,7 @@ mod cloudfare;
 mod cmd;
 mod config;
 mod inventory;
+mod io;
 
 /// Cloudfare DDNS command line utility
 #[derive(Parser, Debug)]
@@ -30,7 +32,6 @@ impl Args {
             Subcommands::Config(inner) => inner.run(self.config).await,
             Subcommands::Verify(inner) => inner.run(self.config).await,
             Subcommands::List(inner) => inner.run(self.config).await,
-            Subcommands::Build(inner) => inner.run(self.config).await,
             Subcommands::Inventory(inner) => inner.run(self.config).await,
         }
     }
@@ -38,11 +39,10 @@ impl Args {
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Config(cmd::config::Config),
-    Verify(cmd::verify::Verify),
-    List(cmd::list::List),
-    Build(cmd::build::Build),
-    Inventory(cmd::inventory::Inventory),
+    Config(cmd::ConfigCmd),
+    Verify(cmd::VerifyCmd),
+    List(cmd::ListCmd),
+    Inventory(cmd::InventoryCmd),
 }
 
 #[tokio::main]

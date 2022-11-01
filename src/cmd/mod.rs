@@ -1,5 +1,8 @@
-pub mod build;
-pub mod config;
-pub mod inventory;
-pub mod list;
-pub mod verify;
+mod config;
+pub(crate) use config::ConfigCmd;
+mod inventory;
+pub(crate) use inventory::InventoryCmd;
+mod list;
+pub(crate) use list::ListCmd;
+mod verify;
+pub(crate) use verify::VerifyCmd;

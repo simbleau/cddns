@@ -14,7 +14,7 @@ use regex::Regex;
 /// List available resources
 #[derive(Debug, Args)]
 #[clap(name = "list")]
-pub struct List {
+pub struct ListCmd {
     #[clap(subcommand)]
     action: Option<ListSubcommands>,
     #[clap(flatten)]
@@ -46,7 +46,7 @@ pub struct RecordArgs {
     pub record: Option<String>,
 }
 
-impl List {
+impl ListCmd {
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         let toml_cfg = ConfigOpts::from_file(config)?;
         let env_cfg = ConfigOpts::from_env()?;

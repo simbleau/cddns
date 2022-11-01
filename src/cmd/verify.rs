@@ -10,12 +10,12 @@ use clap::Args;
 /// Verify authentication to Cloudfare
 #[derive(Debug, Args)]
 #[clap(name = "verify")]
-pub struct Verify {
+pub struct VerifyCmd {
     #[clap(flatten)]
     pub cfg: ConfigOptsVerify,
 }
 
-impl Verify {
+impl VerifyCmd {
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         let toml_cfg = ConfigOpts::from_file(config)?;
         let env_cfg = ConfigOpts::from_env()?;
