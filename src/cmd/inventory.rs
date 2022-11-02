@@ -87,11 +87,46 @@ impl InventoryCmd {
                     opts.inventory.unwrap_or_default().path,
                 )?;
                 println!("Public IP: {}", ip);
-                if let Some(inventory) = inventory.0 {
-                    for (zone_id, zone) in inventory {
-                        if let Some(records) = zone.0 {
-                            for record in records {
-                                println!("{:?}: {:?}", zone_id, record);
+                // Get token
+                let token = opts
+                    .verify
+                    .as_ref()
+                    .map(|opts| opts.token.clone())
+                    .flatten()
+                    .context("no token was provided")?;
+                let zones = cloudfare::endpoints::zones(&token).await?;
+                let records =
+                    cloudfare::endpoints::records(&zones, &token).await?;
+                for (inv_zone, inv_records) in inventory.into_iter() {
+                    for inv_record in inv_records {
+                        let cf_record = records.iter().find(|r| {
+                            (r.zone_id == inv_zone || r.zone_name == inv_zone)
+                                && (r.id == inv_record || r.name == inv_record)
+                        });
+                        match cf_record {
+                            Some(cf_record) => {
+                                if cf_record.content == ip {
+                                    // IP is same
+                                    println!(
+                                        "MATCH: {} ({})",
+                                        cf_record.name, cf_record.id
+                                    );
+                                } else {
+                                    // IP is misaligned
+                                    println!(
+                                        "MISMATCH: {} ({}) => {}",
+                                        cf_record.name,
+                                        cf_record.id,
+                                        cf_record.content
+                                    );
+                                }
+                            }
+                            None => {
+                                // Invalid record, no match on zone and record
+                                println!(
+                                    "INVALID: {} | {}",
+                                    inv_zone, inv_record
+                                );
                             }
                         }
                     }
