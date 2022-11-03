@@ -11,6 +11,7 @@ use clap::{Args, Subcommand};
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
+    vec,
 };
 
 /// Manage inventory of watched records
@@ -49,105 +50,9 @@ impl InventoryCmd {
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
         match self.action {
-            InventorySubcommands::Build => {
-                let runtime = tokio::runtime::Handle::current();
-                let mut scanner = Scanner::new(runtime);
-
-                // Build
-                let inventory = build(&mut scanner, &opts).await?;
-
-                // Save
-                let path = scanner
-                    .prompt_path_or(
-                        format!(
-                            "Save location [default: {}]",
-                            DEFAULT_INVENTORY_PATH
-                        ),
-                        DEFAULT_INVENTORY_PATH.into(),
-                    )
-                    .await?;
-                if path.exists() {
-                    io::fs::remove_interactive(&path, &mut scanner).await?;
-                }
-                io::fs::save_yaml(&inventory, path).await?;
-                println!("Saved");
-            }
-            InventorySubcommands::Show => {
-                let inventory = Inventory::from_file(
-                    opts.inventory.unwrap_or_default().path,
-                )?;
-                println!(
-                    "{}",
-                    inventory
-                        .into_iter()
-                        .map(|(zone, records)| {
-                            format!(
-                                "{}:{}",
-                                zone,
-                                records
-                                    .into_iter()
-                                    .map(|r| format!("\n  - {}", r))
-                                    .collect::<String>()
-                            )
-                        })
-                        .intersperse("\n---\n".to_string())
-                        .collect::<String>()
-                );
-            }
-            InventorySubcommands::Check => {
-                let ip = public_ip::addr()
-                    .await
-                    .context("error resolving public ip")?
-                    .to_string();
-                let inventory = Inventory::from_file(
-                    opts.inventory.unwrap_or_default().path,
-                )?;
-                println!("Public IP: {}", ip);
-                // Get token
-                let token = opts
-                    .verify
-                    .as_ref()
-                    .map(|opts| opts.token.clone())
-                    .flatten()
-                    .context("no token was provided")?;
-                let zones = cloudfare::endpoints::zones(&token).await?;
-                let records =
-                    cloudfare::endpoints::records(&zones, &token).await?;
-                for (inv_zone, inv_records) in inventory.into_iter() {
-                    for inv_record in inv_records {
-                        let cf_record = records.iter().find(|r| {
-                            (r.zone_id == inv_zone || r.zone_name == inv_zone)
-                                && (r.id == inv_record || r.name == inv_record)
-                        });
-                        match cf_record {
-                            Some(cf_record) => {
-                                if cf_record.content == ip {
-                                    // IP is same
-                                    println!(
-                                        "MATCH: {} ({})",
-                                        cf_record.name, cf_record.id
-                                    );
-                                } else {
-                                    // IP is misaligned
-                                    println!(
-                                        "MISMATCH: {} ({}) => {}",
-                                        cf_record.name,
-                                        cf_record.id,
-                                        cf_record.content
-                                    );
-                                }
-                            }
-                            None => {
-                                // Invalid record, no match on zone and record
-                                println!(
-                                    "INVALID: {} | {}",
-                                    inv_zone, inv_record
-                                );
-                            }
-                        }
-                    }
-                }
-            }
+            InventorySubcommands::Build => build(&opts).await?,
+            InventorySubcommands::Show => show(&opts).await?,
+            InventorySubcommands::Check => check(&opts).await?,
             InventorySubcommands::Commit => todo!(),
             InventorySubcommands::Watch => todo!(),
         }
@@ -156,7 +61,7 @@ impl InventoryCmd {
     }
 }
 
-async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
+async fn build(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
         .verify
@@ -165,12 +70,17 @@ async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
         .flatten()
         .context("no token was provided")?;
 
+    // Get zones and records to build inventory from
+    println!("Retrieving Cloudfare resources...");
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     crate::cmd::list::filter_zones(&mut zones, opts)?;
     let mut records = cloudfare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::filter_records(&mut records, opts)?;
 
-    let mut inventory = HashMap::new();
+    // Control user input to build inventory map
+    let runtime = tokio::runtime::Handle::current();
+    let mut scanner = Scanner::new(runtime);
+    let mut inventory_map = HashMap::new();
     'control: loop {
         anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
         let mut selection: Option<usize> = None;
@@ -204,7 +114,7 @@ async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
             }
             let record = &records[selection.unwrap() - 1];
             let key = zone.id.clone();
-            let inventory_zone = inventory
+            let inventory_zone = inventory_map
                 .entry(key)
                 .or_insert_with(|| InventoryZone(Some(HashSet::new())));
             inventory_zone
@@ -217,6 +127,124 @@ async fn build(scanner: &mut Scanner, opts: &ConfigOpts) -> Result<Inventory> {
             println!("No records for this zone.")
         }
     }
-    let inventory = Inventory(Some(inventory));
-    Ok(inventory)
+    let inventory = Inventory(Some(inventory_map));
+
+    // Save
+    let path = scanner
+        .prompt_path_or(
+            format!("Save location [default: {}]", DEFAULT_INVENTORY_PATH),
+            DEFAULT_INVENTORY_PATH.into(),
+        )
+        .await?;
+    if path.exists() {
+        io::fs::remove_interactive(&path, &mut scanner).await?;
+    }
+    io::fs::save_yaml(&inventory, path).await?;
+    println!("Saved");
+
+    Ok(())
+}
+
+async fn show(opts: &ConfigOpts) -> Result<()> {
+    let inventory_path = opts
+        .inventory
+        .as_ref()
+        .map(|opts| opts.path.clone())
+        .flatten();
+    let inventory = Inventory::from_file(inventory_path)?;
+    let pretty_print = inventory
+        .into_iter()
+        .map(|(zone, records)| {
+            format!(
+                "{}:{}",
+                zone,
+                records
+                    .into_iter()
+                    .map(|r| format!("\n  - {}", r))
+                    .collect::<String>()
+            )
+        })
+        .intersperse("\n---\n".to_string())
+        .collect::<String>();
+    println!("{}", pretty_print);
+    Ok(())
+}
+
+async fn check(opts: &ConfigOpts) -> Result<()> {
+    // Get public IP
+    let ip = public_ip::addr()
+        .await
+        .context("error resolving public ip")?
+        .to_string();
+    println!("Public IP: {}", ip);
+
+    // Get inventory
+    let inventory_path = opts
+        .inventory
+        .as_ref()
+        .map(|opts| opts.path.clone())
+        .flatten();
+    let inventory = Inventory::from_file(inventory_path)?;
+
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    println!("Retrieving Cloudfare resources...");
+    let zones = cloudfare::endpoints::zones(&token).await?;
+    let records = cloudfare::endpoints::records(&zones, &token).await?;
+
+    println!("Checking records...");
+    let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
+    for (inv_zone, inv_records) in inventory.into_iter() {
+        for inv_record in inv_records {
+            let cf_record = records.iter().find(|r| {
+                (r.zone_id == inv_zone || r.zone_name == inv_zone)
+                    && (r.id == inv_record || r.name == inv_record)
+            });
+            match cf_record {
+                Some(cf_record) => {
+                    if cf_record.content == ip {
+                        // IP is same
+                        good.push(cf_record);
+                    } else {
+                        // IP is misaligned
+                        bad.push(cf_record);
+                    }
+                }
+                None => {
+                    // Invalid record, no match on zone and record
+                    invalid.push((inv_zone.clone(), inv_record.clone()));
+                }
+            }
+        }
+    }
+
+    // Print records
+    for cf_record in &good {
+        println!("✅ MATCH: {} ({})", cf_record.name, cf_record.id);
+    }
+    for cf_record in &bad {
+        println!(
+            "❌ MISMATCH: {} ({}) => {}",
+            cf_record.name, cf_record.id, cf_record.content
+        );
+    }
+    for (inv_zone, inv_record) in &invalid {
+        println!("❓ INVALID: {} | {}", inv_zone, inv_record);
+    }
+
+    // Print summary
+    println!(
+        "{} good, {} bad, {} invalid records",
+        good.len(),
+        bad.len(),
+        invalid.len()
+    );
+
+    Ok(())
 }
