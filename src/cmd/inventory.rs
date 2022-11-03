@@ -171,12 +171,16 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
 }
 
 async fn check(opts: &ConfigOpts) -> Result<()> {
-    // Get public IP
-    let ip = public_ip::addr()
-        .await
-        .context("error resolving public ip")?
-        .to_string();
-    println!("Public IP: {}", ip);
+    // Get public IPs
+    println!("Resolving IPs...");
+    let ipv4 = public_ip::addr_v4().await;
+    let ipv6 = public_ip::addr_v6().await;
+    if let Some(ip) = ipv4 {
+        println!("Found IPv4: {}", ip);
+    }
+    if let Some(ip) = ipv6 {
+        println!("Found IPv6: {}", ip);
+    }
 
     // Get inventory
     let inventory_path = opts
@@ -208,12 +212,27 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
             });
             match cf_record {
                 Some(cf_record) => {
-                    if cf_record.content == ip {
-                        // IP is same
-                        good.push(cf_record);
+                    let ip = match cf_record.record_type.as_str() {
+                        "A" => ipv4.map(|ip| ip.to_string()),
+                        "AAAA" => ipv6.map(|ip| ip.to_string()),
+                        _ => unimplemented!(
+                            "unexpected record type: {}",
+                            cf_record.record_type
+                        ),
+                    };
+                    if let Some(ref ip) = ip {
+                        if &cf_record.content == ip {
+                            // IP Match
+                            good.push(cf_record);
+                        } else {
+                            // IP mismatch
+                            bad.push(cf_record);
+                        }
                     } else {
-                        // IP is misaligned
-                        bad.push(cf_record);
+                        anyhow::bail!(
+                            "error no address comparable for {} record",
+                            cf_record.record_type
+                        );
                     }
                 }
                 None => {

@@ -60,7 +60,8 @@ pub async fn records(zones: &Vec<Zone>, token: &str) -> Result<Vec<Record>> {
             anyhow::ensure!(resp.success, "error retrieving records for zone");
 
             records.extend(resp.result.into_iter().filter(|record| {
-                record.record_type == "A" && record.locked == false
+                record.record_type == "A"
+                    || record.record_type == "AAAA" && record.locked == false
             }));
 
             page_cursor += 1;
