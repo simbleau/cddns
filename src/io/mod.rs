@@ -1,6 +1,6 @@
 //! IO operations and helper functions.
 
 mod scanner;
-pub(crate) use scanner::Scanner;
+pub use scanner::Scanner;
 
-pub(crate) mod fs;
+pub mod fs;

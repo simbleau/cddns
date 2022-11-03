@@ -1,10 +1,13 @@
 //! Clap commands handled by the CLI.
 
 mod config;
-pub(crate) use config::ConfigCmd;
+pub use config::ConfigCmd;
+
 mod inventory;
-pub(crate) use inventory::InventoryCmd;
+pub use inventory::InventoryCmd;
+
 mod list;
-pub(crate) use list::ListCmd;
+pub use list::ListCmd;
+
 mod verify;
-pub(crate) use verify::VerifyCmd;
+pub use verify::VerifyCmd;
