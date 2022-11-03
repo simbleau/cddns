@@ -1,9 +1,8 @@
 use crate::{
     cloudfare::{self, models::Record},
     config::{ConfigOpts, ConfigOptsInventory},
-    inventory::{
-        Inventory, InventoryRecord, InventoryZone, DEFAULT_INVENTORY_PATH,
-    },
+    inventory::models::{Inventory, InventoryRecord, InventoryZone},
+    inventory::DEFAULT_INVENTORY_PATH,
     io::{self, Scanner},
 };
 use anyhow::{Context, Result};

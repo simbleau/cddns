@@ -16,5 +16,4 @@ pub const DEFAULT_INVENTORY_PATH: &str = "inventory.yaml";
 /// The default interval for record checking.
 pub const DEFAULT_WATCH_INTERVAL: u32 = 5000;
 
-mod models;
-pub use models::*;
+pub mod models;
