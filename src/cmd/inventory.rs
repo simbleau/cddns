@@ -90,7 +90,7 @@ impl InventoryCmd {
                                     .collect::<String>()
                             )
                         })
-                        .intersperse("\n".to_string())
+                        .intersperse("\n---\n".to_string())
                         .collect::<String>()
                 );
             }
