@@ -2,6 +2,7 @@
 #![feature(try_blocks)]
 #![feature(is_some_with)]
 #![feature(unwrap_infallible)]
+#![feature(iter_intersperse)]
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

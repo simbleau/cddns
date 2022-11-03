@@ -76,7 +76,23 @@ impl InventoryCmd {
                 let inventory = Inventory::from_file(
                     opts.inventory.unwrap_or_default().path,
                 )?;
-                println!("{:#?}", inventory)
+                println!(
+                    "{}",
+                    inventory
+                        .into_iter()
+                        .map(|(zone, records)| {
+                            format!(
+                                "{}:{}",
+                                zone,
+                                records
+                                    .into_iter()
+                                    .map(|r| format!("\n  - {}", r))
+                                    .collect::<String>()
+                            )
+                        })
+                        .intersperse("\n".to_string())
+                        .collect::<String>()
+                );
             }
             InventorySubcommands::Check => {
                 let ip = public_ip::addr()
