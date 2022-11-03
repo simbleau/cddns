@@ -5,7 +5,7 @@ use crate::{
         self,
         models::{Record, Zone},
     },
-    config::{ConfigOpts, ConfigOptsList},
+    config::models::{ConfigOpts, ConfigOptsList},
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};

@@ -1,8 +1,8 @@
 use crate::{
-    config::{
+    config::models::{
         ConfigOpts, ConfigOptsInventory, ConfigOptsList, ConfigOptsVerify,
-        DEFAULT_CONFIG_PATH,
     },
+    config::DEFAULT_CONFIG_PATH,
     io::{self, Scanner},
 };
 use anyhow::Result;

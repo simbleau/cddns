@@ -8,5 +8,4 @@
 /// The default location to configuration.
 pub const DEFAULT_CONFIG_PATH: &str = "CFDDNS.toml";
 
-mod models;
-pub use models::*;
+pub mod models;

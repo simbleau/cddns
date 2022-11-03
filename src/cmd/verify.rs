@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     cloudfare,
-    config::{ConfigOpts, ConfigOptsVerify},
+    config::models::{ConfigOpts, ConfigOptsVerify},
 };
 use anyhow::Result;
 use clap::Args;
