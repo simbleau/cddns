@@ -195,12 +195,9 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .flatten();
     let inventory = Inventory::from_file(inventory_path)?;
 
-    println!("Retrieving Cloudfare resources...");
-    let zones = cloudfare::endpoints::zones(&token).await?;
-    let records = cloudfare::endpoints::records(&zones, &token).await?;
-
     // Check records
-    let (good, bad, invalid) = check_records(inventory, records).await?;
+    println!("Checking Cloudfare resources...");
+    let (good, bad, invalid) = check_records(token, inventory).await?;
 
     // Print records
     for cf_record in &good {
@@ -228,18 +225,15 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
 }
 
 pub async fn check_records(
+    token: String,
     inventory: Inventory,
-    records: Vec<Record>,
 ) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
     // Get public IPs
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
-    if let Some(ip) = ipv4 {
-        println!("Found IPv4: {}", ip);
-    }
-    if let Some(ip) = ipv6 {
-        println!("Found IPv6: {}", ip);
-    }
+
+    let zones = cloudfare::endpoints::zones(&token).await?;
+    let records = cloudfare::endpoints::records(&zones, &token).await?;
 
     // Check and collect records
     let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
