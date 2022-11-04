@@ -84,17 +84,17 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         while selection.is_none() || selection.is_some_and(|i| *i > zones.len())
         {
             for (i, zone) in zones.iter().enumerate() {
-                println!("[{}] {}: {}", i + 1, zone.name, zone.id);
+                println!("[{}] {}", i + 1, zone);
             }
-            match scanner.prompt("(1/2) Choose a zone").await {
-                Ok(Some(input)) => selection = input.parse::<usize>().ok(),
-                _ => break 'control,
+            match scanner.prompt("🌎 Choose a zone").await? {
+                Some(input) => selection = input.parse::<usize>().ok(),
+                None => selection = None,
             }
         }
-        let zone = &zones[selection.unwrap() - 1];
+        let selected_zone = &zones[selection.unwrap() - 1];
         let records = records
             .iter()
-            .filter(|r| r.zone_id == zone.id)
+            .filter(|r| r.zone_id == selected_zone.id)
             .collect::<Vec<&Record>>();
         if records.len() > 0 {
             selection = None;
@@ -102,15 +102,15 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
                 || selection.is_some_and(|i| *i > records.len())
             {
                 for (i, record) in records.iter().enumerate() {
-                    println!("[{}] {}: {}", i + 1, record.name, record.id);
+                    println!("[{}] {}", i + 1, record);
                 }
-                match scanner.prompt("(2/2) Choose a record").await {
-                    Ok(Some(input)) => selection = input.parse::<usize>().ok(),
-                    _ => break 'control,
+                match scanner.prompt("🌎 Choose a record").await? {
+                    Some(input) => selection = input.parse::<usize>().ok(),
+                    None => selection = None,
                 }
             }
             let record = &records[selection.unwrap() - 1];
-            let key = zone.id.clone();
+            let key = selected_zone.id.clone();
             let inventory_zone = inventory_map
                 .entry(key)
                 .or_insert_with(|| InventoryZone(Some(HashSet::new())));
@@ -119,9 +119,16 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
                 .as_mut()
                 .unwrap()
                 .insert(InventoryRecord(record.id.clone()));
-            println!("Added '{}'.\n", record.name);
+            println!("\n✅ Added '{}'.", record.name);
         } else {
-            println!("No records for this zone.")
+            println!("\n❌ No records for this zone.")
+        }
+
+        if let Some(input) = scanner.prompt("Add another record? [Y/n]").await?
+        {
+            if matches!(input.to_lowercase().as_str(), "n" | "no") {
+                break 'control;
+            }
         }
     }
     let inventory = Inventory(Some(inventory_map));
