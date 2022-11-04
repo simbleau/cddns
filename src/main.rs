@@ -19,7 +19,7 @@ mod io;
 struct Args {
     #[clap(subcommand)]
     action: Subcommands,
-    /// Path to the default config file [default: CFDDNS.toml]
+    /// A config file to use. [default: CFDDNS.toml]
     #[clap(short, long, env = "CFDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
     /// Enable verbose logging.

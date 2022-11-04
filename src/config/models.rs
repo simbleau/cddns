@@ -113,7 +113,7 @@ pub struct ConfigOptsList {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
     // Your Cloudfare API key token
-    #[clap(short, long)]
+    #[clap(short, long, env = "CFDDNS_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }
 
@@ -121,7 +121,7 @@ pub struct ConfigOptsVerify {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
     // The path to the inventory file
-    #[clap(short, long)]
+    #[clap(short, long, env = "CFDDNS_INVENTORY", value_name = "file")]
     pub path: Option<PathBuf>,
     #[clap(short, long)]
     pub interval: Option<u32>,
