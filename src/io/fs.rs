@@ -42,10 +42,7 @@ where
     P: AsRef<Path>,
 {
     tokio::fs::write(
-        match path.as_ref().extension() {
-            Some(_) => path.as_ref().to_owned(),
-            None => path.as_ref().with_extension("toml"),
-        },
+        path,
         toml::to_string(&contents).context("error encoding to TOML")?,
     )
     .await
@@ -59,10 +56,7 @@ where
     P: AsRef<Path>,
 {
     tokio::fs::write(
-        match path.as_ref().extension() {
-            Some(_) => path.as_ref().to_owned(),
-            None => path.as_ref().with_extension("yaml"),
-        },
+        path,
         serde_yaml::to_string(&contents).context("error encoding to YAML")?,
     )
     .await

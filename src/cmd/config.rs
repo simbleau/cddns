@@ -26,7 +26,7 @@ impl ConfigCmd {
 
                 // Build
                 let token = scanner
-                    .prompt("Cloudfare API token")
+                    .prompt("🔑 Cloudfare API token")
                     .await?
                     .unwrap_or_default();
 
@@ -46,12 +46,16 @@ impl ConfigCmd {
                         ),
                         DEFAULT_CONFIG_PATH.into(),
                     )
-                    .await?;
+                    .await
+                    .map(|p| match p.extension() {
+                        Some(_) => p,
+                        None => p.with_extension("toml"),
+                    })?;
                 if path.exists() {
                     io::fs::remove_interactive(&path, &mut scanner).await?;
                 }
                 io::fs::save_toml(&config, &path).await?;
-                println!("Saved");
+                println!("✅ Saved");
             }
             ConfigSubcommands::Show => {
                 let toml_cfg = ConfigOpts::from_file(config)?;

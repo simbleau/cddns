@@ -136,15 +136,19 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     // Save
     let path = scanner
         .prompt_path_or(
-            format!("Save location [default: {}]", DEFAULT_INVENTORY_PATH),
+            format!("💾 Save location [default: {}]", DEFAULT_INVENTORY_PATH),
             DEFAULT_INVENTORY_PATH.into(),
         )
-        .await?;
+        .await
+        .map(|p| match p.extension() {
+            Some(_) => p,
+            None => p.with_extension("yaml"),
+        })?;
     if path.exists() {
         io::fs::remove_interactive(&path, &mut scanner).await?;
     }
     io::fs::save_yaml(&inventory, path).await?;
-    println!("Saved");
+    println!("✅ Saved");
 
     Ok(())
 }
