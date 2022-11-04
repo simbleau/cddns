@@ -33,7 +33,7 @@ pub struct ResultInfo {
     pub total_pages: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Zone {
     pub id: String,
     pub name: String,
@@ -47,7 +47,7 @@ impl fmt::Display for Zone {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Record {
     pub id: String,
     pub zone_id: String,

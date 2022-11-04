@@ -1,13 +1,12 @@
-use std::path::PathBuf;
-
 use crate::{
     cloudfare,
     config::models::{ConfigOpts, ConfigOptsVerify},
 };
 use anyhow::Result;
 use clap::Args;
+use std::path::PathBuf;
 
-/// Verify authentication to Cloudfare
+/// Verify authentication to Cloudfare.
 #[derive(Debug, Args)]
 #[clap(name = "verify")]
 pub struct VerifyCmd {

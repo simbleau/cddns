@@ -13,7 +13,7 @@ use std::{
     vec,
 };
 
-/// Manage inventory of watched records
+/// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
 #[clap(name = "inventory")]
 pub struct InventoryCmd {
@@ -179,16 +179,13 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
 }
 
 async fn check(opts: &ConfigOpts) -> Result<()> {
-    // Get public IPs
-    println!("Resolving IPs...");
-    let ipv4 = public_ip::addr_v4().await;
-    let ipv6 = public_ip::addr_v6().await;
-    if let Some(ip) = ipv4 {
-        println!("Found IPv4: {}", ip);
-    }
-    if let Some(ip) = ipv6 {
-        println!("Found IPv6: {}", ip);
-    }
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
 
     // Get inventory
     let inventory_path = opts
@@ -198,58 +195,12 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .flatten();
     let inventory = Inventory::from_file(inventory_path)?;
 
-    // Get token
-    let token = opts
-        .verify
-        .as_ref()
-        .map(|opts| opts.token.clone())
-        .flatten()
-        .context("no token was provided")?;
-
     println!("Retrieving Cloudfare resources...");
     let zones = cloudfare::endpoints::zones(&token).await?;
     let records = cloudfare::endpoints::records(&zones, &token).await?;
 
-    println!("Checking records...");
-    let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
-    for (inv_zone, inv_records) in inventory.into_iter() {
-        for inv_record in inv_records {
-            let cf_record = records.iter().find(|r| {
-                (r.zone_id == inv_zone || r.zone_name == inv_zone)
-                    && (r.id == inv_record || r.name == inv_record)
-            });
-            match cf_record {
-                Some(cf_record) => {
-                    let ip = match cf_record.record_type.as_str() {
-                        "A" => ipv4.map(|ip| ip.to_string()),
-                        "AAAA" => ipv6.map(|ip| ip.to_string()),
-                        _ => unimplemented!(
-                            "unexpected record type: {}",
-                            cf_record.record_type
-                        ),
-                    };
-                    if let Some(ref ip) = ip {
-                        if &cf_record.content == ip {
-                            // IP Match
-                            good.push(cf_record);
-                        } else {
-                            // IP mismatch
-                            bad.push(cf_record);
-                        }
-                    } else {
-                        anyhow::bail!(
-                            "error no address comparable for {} record",
-                            cf_record.record_type
-                        );
-                    }
-                }
-                None => {
-                    // Invalid record, no match on zone and record
-                    invalid.push((inv_zone.clone(), inv_record.clone()));
-                }
-            }
-        }
-    }
+    // Check records
+    let (good, bad, invalid) = check_records(inventory, records).await?;
 
     // Print records
     for cf_record in &good {
@@ -274,4 +225,62 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     );
 
     Ok(())
+}
+
+pub async fn check_records(
+    inventory: Inventory,
+    records: Vec<Record>,
+) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
+    // Get public IPs
+    let ipv4 = public_ip::addr_v4().await;
+    let ipv6 = public_ip::addr_v6().await;
+    if let Some(ip) = ipv4 {
+        println!("Found IPv4: {}", ip);
+    }
+    if let Some(ip) = ipv6 {
+        println!("Found IPv6: {}", ip);
+    }
+
+    // Check and collect records
+    let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
+    for (inv_zone, inv_records) in inventory.into_iter() {
+        for inv_record in inv_records {
+            let cf_record = records.iter().find(|r| {
+                (r.zone_id == inv_zone || r.zone_name == inv_zone)
+                    && (r.id == inv_record || r.name == inv_record)
+            });
+            match cf_record {
+                Some(cf_record) => {
+                    let ip = match cf_record.record_type.as_str() {
+                        "A" => ipv4.map(|ip| ip.to_string()),
+                        "AAAA" => ipv6.map(|ip| ip.to_string()),
+                        _ => unimplemented!(
+                            "unexpected record type: {}",
+                            cf_record.record_type
+                        ),
+                    };
+                    if let Some(ref ip) = ip {
+                        if &cf_record.content == ip {
+                            // IP Match
+                            good.push(cf_record.clone());
+                        } else {
+                            // IP mismatch
+                            bad.push(cf_record.clone());
+                        }
+                    } else {
+                        anyhow::bail!(
+                            "error no address comparable for {} record",
+                            cf_record.record_type
+                        );
+                    }
+                }
+                None => {
+                    // Invalid record, no match on zone and record
+                    invalid.push((inv_zone.clone(), inv_record.clone()));
+                }
+            }
+        }
+    }
+
+    Ok((good, bad, invalid))
 }

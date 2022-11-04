@@ -22,25 +22,25 @@ pub struct ListCmd {
 
 #[derive(Clone, Debug, Subcommand)]
 enum ListSubcommands {
-    /// Show zones (domains, subdomains, and identities)
+    /// Show zones (domains, subdomains, and identities.)
     Zones(ZoneArgs),
-    /// Show authoritative DNS records
+    /// Show authoritative DNS records.
     Records(RecordArgs),
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct ZoneArgs {
-    /// Print zones matching a regex filter
+    /// Print zones matching a regex filter.
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct RecordArgs {
-    /// Print zones matching a regex filter
+    /// Print zones matching a regex filter.
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
-    /// Print records matching a regex filter
+    /// Print records matching a regex filter.
     #[clap(short, long, value_name = "name|id")]
     pub record: Option<String>,
 }
@@ -56,7 +56,6 @@ impl ListCmd {
         // Apply layering to configuration data (TOML < ENV < CLI)
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
-        println!("Retrieving Cloudfare resources...");
         match self.action {
             Some(subcommand) => match subcommand {
                 ListSubcommands::Zones(args) => print_zones(&opts, &args).await,
@@ -79,6 +78,7 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
         .flatten()
         .context("no token was provided")?;
 
+    println!("Retrieving Cloudfare resources...");
     // Get zones
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     filter_zones(&mut zones, &opts)?;
@@ -107,6 +107,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
+    println!("Retrieving Cloudfare resources...");
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     // Filter zones
     if let Some(ref zone_filter) = cmd_args.zone {
@@ -136,6 +137,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
+    println!("Retrieving Cloudfare resources...");
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     if let Some(ref zone_filter) = cmd_args.zone {
         let pattern = Regex::new(&zone_filter)
