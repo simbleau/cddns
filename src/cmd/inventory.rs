@@ -49,14 +49,12 @@ impl InventoryCmd {
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
         match self.action {
-            InventorySubcommands::Build => build(&opts).await?,
-            InventorySubcommands::Show => show(&opts).await?,
-            InventorySubcommands::Check => check(&opts).await?,
+            InventorySubcommands::Build => build(&opts).await,
+            InventorySubcommands::Show => show(&opts).await,
+            InventorySubcommands::Check => check(&opts).await,
             InventorySubcommands::Commit => todo!(),
             InventorySubcommands::Watch => todo!(),
         }
-
-        Ok(())
     }
 }
 
