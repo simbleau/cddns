@@ -224,6 +224,77 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+async fn commit(opts: &ConfigOpts) -> Result<()> {
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    // Get inventory
+    let inventory_path = opts
+        .inventory
+        .as_ref()
+        .map(|opts| opts.path.clone())
+        .flatten();
+    let inventory = Inventory::from_file(inventory_path)?;
+
+    // Check records
+    println!("Checking Cloudfare resources...");
+    let (good, bad, invalid) = check_records(token, inventory).await?;
+
+    // Print records
+    for cf_record in &bad {
+        println!(
+            "❌ MISMATCH: {} ({}) => {}",
+            cf_record.name, cf_record.id, cf_record.content
+        );
+    }
+    // Print summary
+    println!("❌ {} BAD", bad.len());
+
+    // Ask to fix records
+    let runtime = tokio::runtime::Handle::current();
+    let mut scanner = Scanner::new(runtime);
+    'control: loop {
+        if let Some(input) = scanner.prompt("🔨 Fix bad records? [Y/n]").await?
+        {
+            match input.to_lowercase().as_str() {
+                "n" | "no" => break 'control,
+                "y" | "yes" => {
+                    todo!("Fix records");
+                    // Print summary
+                    println!("✅ {} CHANGED", bad.len());
+                }
+                _ => continue 'control,
+            }
+        }
+    }
+
+    for (inv_zone, inv_record) in &invalid {
+        println!("❓ INVALID: {} | {}", inv_zone, inv_record);
+    }
+    'control: loop {
+        if let Some(input) =
+            scanner.prompt("🗑️ Prune invalid records? [Y/n]").await?
+        {
+            match input.to_lowercase().as_str() {
+                "n" | "no" => break 'control,
+                "y" | "yes" => {
+                    todo!("Remove invalid records");
+                    // Print summary
+                    println!("✅ {} REMOVED", invalid.len());
+                }
+                _ => continue 'control,
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn check_records(
     token: String,
     inventory: Inventory,
