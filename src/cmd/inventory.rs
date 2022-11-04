@@ -52,7 +52,7 @@ impl InventoryCmd {
             InventorySubcommands::Build => build(&opts).await,
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await,
-            InventorySubcommands::Commit => todo!(),
+            InventorySubcommands::Commit => commit(&opts).await,
             InventorySubcommands::Watch => todo!(),
         }
     }
@@ -243,53 +243,72 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 
     // Check records
     println!("Checking Cloudfare resources...");
-    let (good, bad, invalid) = check_records(token, inventory).await?;
+    let (_good, bad, invalid) = check_records(token, inventory).await?;
 
-    // Print records
-    for cf_record in &bad {
-        println!(
-            "❌ MISMATCH: {} ({}) => {}",
-            cf_record.name, cf_record.id, cf_record.content
-        );
-    }
-    // Print summary
-    println!("❌ {} BAD", bad.len());
-
-    // Ask to fix records
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
-    'control: loop {
-        if let Some(input) = scanner.prompt("🔨 Fix bad records? [Y/n]").await?
-        {
-            match input.to_lowercase().as_str() {
-                "n" | "no" => break 'control,
-                "y" | "yes" => {
-                    todo!("Fix records");
-                    // Print summary
-                    println!("✅ {} CHANGED", bad.len());
-                }
-                _ => continue 'control,
-            }
+
+    // Print records
+    if bad.len() > 0 {
+        // Print bad records
+        for cf_record in &bad {
+            println!(
+                "❌ MISMATCH: {} ({}) => {}",
+                cf_record.name, cf_record.id, cf_record.content
+            );
+        }
+        // Print summary
+        println!("{} BAD", bad.len());
+
+        // Ask to fix records
+        'control: loop {
+            match scanner.prompt("🔨 Fix bad records? [Y/n]").await? {
+                Some(input) => match input.to_lowercase().as_str() {
+                    "y" | "yes" => {}
+                    "n" | "no" => break 'control,
+                    _ => continue 'control,
+                },
+                None => {}
+            };
+            todo!("Fix and drain records");
         }
     }
 
-    for (inv_zone, inv_record) in &invalid {
-        println!("❓ INVALID: {} | {}", inv_zone, inv_record);
-    }
-    'control: loop {
-        if let Some(input) =
-            scanner.prompt("🗑️ Prune invalid records? [Y/n]").await?
-        {
-            match input.to_lowercase().as_str() {
-                "n" | "no" => break 'control,
-                "y" | "yes" => {
-                    todo!("Remove invalid records");
-                    // Print summary
-                    println!("✅ {} REMOVED", invalid.len());
-                }
-                _ => continue 'control,
-            }
+    if invalid.len() > 0 {
+        // Print summary
+        for (inv_zone, inv_record) in &invalid {
+            println!("❓ INVALID: {} | {}", inv_zone, inv_record);
         }
+        // Print summary
+        println!("{} INVALID", invalid.len());
+
+        // Ask to prune records
+        'control: loop {
+            match scanner.prompt("🗑️ Prune invalid records? [Y/n]").await?
+            {
+                Some(input) => match input.to_lowercase().as_str() {
+                    "n" | "no" => break 'control,
+                    "y" | "yes" => {}
+                    _ => continue 'control,
+                },
+                None => {}
+            };
+            todo!("Remove invalid records");
+            // Print summary
+            println!("✅ {} REMOVED", invalid.len());
+        }
+    }
+
+    if bad.len() == 0 && invalid.len() == 0 {
+        println!("✅ No bad or invalid records.");
+    } else {
+        println!(
+            "{} {} bad, {} {} invalid records remain.",
+            if bad.len() == 0 { "✅" } else { "❌" },
+            bad.len(),
+            if invalid.len() == 0 { "✅" } else { "❓" },
+            invalid.len()
+        );
     }
 
     Ok(())
