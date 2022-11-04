@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::{
     cloudfare::{
         self,
@@ -10,6 +8,7 @@ use crate::{
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
+use std::path::PathBuf;
 
 /// List available resources
 #[derive(Debug, Args)]
@@ -31,17 +30,17 @@ enum ListSubcommands {
 
 #[derive(Debug, Clone, Args)]
 pub struct ZoneArgs {
-    /// Print a single zone
+    /// Print zones matching a regex filter
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct RecordArgs {
-    /// Print records belonging to a single zone
+    /// Print zones matching a regex filter
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
-    /// Print a single record
+    /// Print records matching a regex filter
     #[clap(short, long, value_name = "name|id")]
     pub record: Option<String>,
 }
@@ -57,103 +56,117 @@ impl ListCmd {
         // Apply layering to configuration data (TOML < ENV < CLI)
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
-        // Get token
-        let token = opts
-            .verify
-            .as_ref()
-            .map(|opts| opts.token.clone())
-            .flatten()
-            .context("no token was provided")?;
-
+        println!("Retrieving Cloudfare resources...");
         match self.action {
             Some(subcommand) => match subcommand {
-                ListSubcommands::Zones(args) => {
-                    // Get zones
-                    let mut zones = cloudfare::endpoints::zones(&token).await?;
-                    // Filter zones
-                    if let Some(zone) = args.zone {
-                        zones.retain(|z| z.name == zone || z.id == zone);
-                        anyhow::ensure!(
-                            zones.len() > 0,
-                            "no results with that zone filter"
-                        );
-                    } else {
-                        filter_zones(&mut zones, &opts)?;
-                    }
-                    print_zones(&zones);
-                }
+                ListSubcommands::Zones(args) => print_zones(&opts, &args).await,
                 ListSubcommands::Records(args) => {
-                    // Get zones
-                    let mut zones = cloudfare::endpoints::zones(&token).await?;
-                    if let Some(zone) = args.zone {
-                        zones = zones
-                            .into_iter()
-                            .filter(|z| z.name == zone || z.id == zone)
-                            .collect();
-                        anyhow::ensure!(
-                            zones.len() > 0,
-                            "no results with that zone filter"
-                        );
-                    } else {
-                        filter_zones(&mut zones, &opts)?;
-                    }
-                    // Get records
-                    let mut records =
-                        cloudfare::endpoints::records(&zones, &token).await?;
-                    // Filter records
-                    if let Some(record) = args.record {
-                        records = records
-                            .into_iter()
-                            .filter(|r| r.name == record || r.id == record)
-                            .collect();
-                        anyhow::ensure!(
-                            records.len() > 0,
-                            "no results with that record filter"
-                        );
-                    } else {
-                        filter_records(&mut records, &opts)?;
-                    }
-                    print_records(&records);
+                    print_records(&opts, &args).await
                 }
             },
-            None => {
-                // Get zones
-                let mut zones = cloudfare::endpoints::zones(&token).await?;
-                // Get records
-                let mut records =
-                    cloudfare::endpoints::records(&zones, &token).await?;
-                filter_zones(&mut zones, &opts)?;
-                filter_records(&mut records, &opts)?;
-                print_all(&zones, &records);
-            }
+            None => print_all(&opts).await,
         }
-
-        Ok(())
     }
 }
 
-fn print_all(zones: &Vec<Zone>, records: &Vec<Record>) {
-    for (i, zone) in zones.iter().enumerate() {
-        if i != 0 {
-            println!("{}", "-".repeat(3));
-        }
+/// Print all zones and records.
+async fn print_all(opts: &ConfigOpts) -> Result<()> {
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    // Get zones
+    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    filter_zones(&mut zones, &opts)?;
+    // Get records
+    let mut records = cloudfare::endpoints::records(&zones, &token).await?;
+    filter_records(&mut records, &opts)?;
+
+    for zone in zones.iter() {
         println!("{}", zone);
         for record in records.iter().filter(|r| r.zone_id == zone.id) {
             println!("  - {}", record);
         }
     }
+
+    Ok(())
 }
 
-fn print_zones(zones: &Vec<Zone>) {
+/// Print only zones.
+async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    // Get zones
+    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    // Filter zones
+    if let Some(ref zone_filter) = cmd_args.zone {
+        let pattern = Regex::new(&zone_filter)
+            .context("error compiling zone regex filter")?;
+        zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
+        anyhow::ensure!(zones.len() > 0, "no results with that zone filter");
+    } else {
+        filter_zones(&mut zones, &opts)?;
+    }
+
     for zone in zones {
         println!("{}", zone);
     }
+
+    Ok(())
 }
 
-fn print_records(records: &Vec<Record>) {
+/// Print only records.
+async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    // Get zones
+    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    if let Some(ref zone_filter) = cmd_args.zone {
+        let pattern = Regex::new(&zone_filter)
+            .context("error compiling zone regex filter")?;
+        zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
+        anyhow::ensure!(zones.len() > 0, "no results with that zone filter");
+    } else {
+        filter_zones(&mut zones, &opts)?;
+    }
+
+    // Get records
+    let mut records = cloudfare::endpoints::records(&zones, &token).await?;
+    // Filter records
+    if let Some(ref record_filter) = cmd_args.record {
+        let pattern = Regex::new(&record_filter)
+            .context("error compiling record regex filter")?;
+        records
+            .retain(|r| pattern.is_match(&r.id) || pattern.is_match(&r.name));
+        anyhow::ensure!(
+            records.len() > 0,
+            "no results with that record filter"
+        );
+    } else {
+        filter_records(&mut records, &opts)?;
+    }
+
     for record in records {
         println!("{}", record);
     }
+
+    Ok(())
 }
 
 pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
