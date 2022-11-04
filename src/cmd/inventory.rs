@@ -215,7 +215,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
 
     // Print summary
     println!(
-        "{} good, {} bad, {} invalid records",
+        "✅ {} GOOD, ❌ {} BAD, ❓ {} INVALID",
         good.len(),
         bad.len(),
         invalid.len()
