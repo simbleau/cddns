@@ -53,21 +53,13 @@ impl Inventory {
         let zone_id = zone_id.into();
         let record_id = record_id.into();
 
-        if let None = self.0 {
-            self.0 = Some(HashMap::new());
-        }
-        // Get inventory zone
-        let inventory_zone = self
-            .0
-            .as_mut()
-            .unwrap()
+        // Magic that inserts the record
+        self.0
+            .get_or_insert(HashMap::new())
             .entry(zone_id)
-            .or_insert_with(|| InventoryZone(Some(HashSet::new())));
-        // Insert record
-        inventory_zone
+            .or_insert_with(|| InventoryZone(None))
             .0
-            .as_mut()
-            .unwrap()
+            .get_or_insert(HashSet::new())
             .insert(InventoryRecord(record_id));
     }
 
