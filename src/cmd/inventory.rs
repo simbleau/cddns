@@ -281,7 +281,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Ask to fix records
         let fix = 'control: loop {
             match scanner
-                .prompt(format!("🔨 Fix {} bad records? [Y/n]", bad.len()))
+                .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
                 .await?
             {
                 Some(input) => match input.to_lowercase().as_str() {
@@ -307,7 +307,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let prune = 'control: loop {
             match scanner
                 .prompt(format!(
-                    "🗑️ Prune {} invalid records? [Y/n]",
+                    "Prune {} invalid records? [Y/n]",
                     invalid.len()
                 ))
                 .await?

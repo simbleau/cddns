@@ -26,7 +26,7 @@ impl ConfigCmd {
 
                 // Build
                 let token = scanner
-                    .prompt("🔑 Cloudfare API token")
+                    .prompt("Cloudfare API token")
                     .await?
                     .unwrap_or_default();
 
@@ -41,7 +41,7 @@ impl ConfigCmd {
                 let path = scanner
                     .prompt_path_or(
                         format!(
-                            "💾 Save location [default: {}]",
+                            "Save location [default: {}]",
                             DEFAULT_CONFIG_PATH
                         ),
                         DEFAULT_CONFIG_PATH.into(),
