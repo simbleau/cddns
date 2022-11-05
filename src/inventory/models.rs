@@ -63,6 +63,29 @@ impl Inventory {
             .insert(InventoryRecord(record_id));
     }
 
+    /// Remove a record from the inventory. Returns whether the value was
+    /// present in the set.
+    pub fn remove<S>(&mut self, zone_id: S, record_id: S) -> Result<bool>
+    where
+        S: Into<String>,
+    {
+        let zone_id = zone_id.into();
+        let record = InventoryRecord(record_id.into());
+
+        // Magic that removes the record, returning true if the record was
+        // present, false otherwise
+        Ok(self
+            .0
+            .as_mut()
+            .context("no zone map found")?
+            .get_mut(&zone_id)
+            .with_context(|| format!("error removing from zone '{}'", zone_id))?
+            .0
+            .as_mut()
+            .with_context(|| format!("no records found in zone '{}'", zone_id))?
+            .remove(&record))
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }
