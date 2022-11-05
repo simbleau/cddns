@@ -19,10 +19,16 @@ where
     P: AsRef<Path>,
 {
     let overwrite = loop {
-        match scanner.prompt("Location exists, overwrite? [y/N]").await? {
+        match scanner
+            .prompt(format!(
+                "Path '{}' exists, remove? [y/N]",
+                path.as_ref().display()
+            ))
+            .await?
+        {
             Some(input) => match input.to_lowercase().as_str() {
                 "y" | "yes" => break true,
-                "" | "n" | "no" | "exit" | "quit" => break false,
+                "n" | "no" => break false,
                 _ => continue,
             },
             None => break false,
