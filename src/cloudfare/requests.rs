@@ -3,8 +3,9 @@ use crate::cloudfare::API_BASE;
 use anyhow::{Context, Result};
 use core::slice::SlicePattern;
 use serde::de::DeserializeOwned;
+use std::fmt::Display;
 
-pub async fn get<T>(endpoint: &str, token: &str) -> Result<T>
+pub async fn get<T>(endpoint: impl Display, token: impl Display) -> Result<T>
 where
     T: DeserializeOwned,
 {
