@@ -1,9 +1,8 @@
-use crate::inventory::DEFAULT_INVENTORY_PATH;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    path::PathBuf,
+    path::Path,
 };
 use tokio::fs;
 
@@ -25,17 +24,17 @@ impl Inventory {
         Self(None)
     }
     /// Read inventory from a target path.
-    pub async fn from_file(path: Option<PathBuf>) -> Result<Self> {
-        let mut inventory_path = path.unwrap_or(DEFAULT_INVENTORY_PATH.into());
-        if !inventory_path.is_absolute() {
-            inventory_path =
-                inventory_path.canonicalize().with_context(|| {
-                    format!(
-                        "error getting canonical path to inventory file {:?}",
-                        &inventory_path
-                    )
-                })?;
-        }
+    pub async fn from_file<P>(inventory_path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let inventory_path =
+            inventory_path.as_ref().canonicalize().with_context(|| {
+                format!(
+                    "error getting canonical path to inventory file {:?}",
+                    inventory_path.as_ref().display()
+                )
+            })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
         let cfg_bytes = fs::read(&inventory_path)
             .await

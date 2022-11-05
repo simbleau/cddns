@@ -3,11 +3,11 @@ use crate::{
     config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::models::Inventory,
     inventory::DEFAULT_INVENTORY_PATH,
-    io::{self, Scanner},
+    io::{self, fs, Scanner},
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::{path::PathBuf, vec};
+use std::{fmt::Display, path::PathBuf, vec};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -172,7 +172,8 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .inventory
         .as_ref()
         .map(|opts| opts.path.clone())
-        .flatten();
+        .flatten()
+        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
     let inventory = Inventory::from_file(inventory_path).await?;
     if inventory.is_empty() {
         println!("Inventory file is empty.");
@@ -210,12 +211,13 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .inventory
         .as_ref()
         .map(|opts| opts.path.clone())
-        .flatten();
+        .flatten()
+        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
     println!("Checking Cloudfare resources...");
-    let (good, bad, invalid) = check_records(token, inventory).await?;
+    let (good, bad, invalid) = check_records(token, &inventory).await?;
 
     // Print records
     for cf_record in &good {
@@ -256,12 +258,13 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .inventory
         .as_ref()
         .map(|opts| opts.path.clone())
-        .flatten();
-    let inventory = Inventory::from_file(inventory_path).await?;
+        .flatten()
+        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+    let mut inventory = Inventory::from_file(&inventory_path).await?;
 
     // Check records
     println!("Checking Cloudfare resources...");
-    let (_good, bad, invalid) = check_records(token, inventory).await?;
+    let (_good, bad, invalid) = check_records(token, &inventory).await?;
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -319,7 +322,12 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         };
         // Prune
         if prune {
-            todo!("Remove invalid records");
+            for (zone_id, record_id) in &invalid {
+                let _removed = inventory
+                    .remove(zone_id.to_owned(), record_id.to_owned())?;
+            }
+            fs::remove_force(&inventory_path).await?;
+            fs::save_yaml(&inventory, &inventory_path).await?;
         }
     }
 
@@ -338,19 +346,20 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 }
 
 pub async fn check_records(
-    token: String,
-    inventory: Inventory,
+    token: impl Display,
+    inventory: &Inventory,
 ) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
     // Get public IPs
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
 
-    let zones = cloudfare::endpoints::zones(&token).await?;
-    let records = cloudfare::endpoints::records(&zones, &token).await?;
+    let zones = cloudfare::endpoints::zones(token.to_string()).await?;
+    let records =
+        cloudfare::endpoints::records(&zones, token.to_string()).await?;
 
     // Check and collect records
     let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
-    for (inv_zone, inv_records) in inventory.into_iter() {
+    for (inv_zone, inv_records) in inventory.clone().into_iter() {
         for inv_record in inv_records {
             let cf_record = records.iter().find(|r| {
                 (r.zone_id == inv_zone || r.zone_name == inv_zone)
