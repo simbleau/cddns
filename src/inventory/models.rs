@@ -9,17 +9,21 @@ use tokio::fs;
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Inventory(pub Option<HashMap<String, InventoryZone>>);
+pub struct Inventory(Option<HashMap<String, InventoryZone>>);
 
 /// The model for a zone with records.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct InventoryZone(pub Option<HashSet<InventoryRecord>>);
+pub struct InventoryZone(Option<HashSet<InventoryRecord>>);
 
 /// The model for a DNS record.
 #[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub struct InventoryRecord(pub String);
+pub struct InventoryRecord(String);
 
 impl Inventory {
+    /// Build a new inventory.
+    pub fn new() -> Self {
+        Self(None)
+    }
     /// Read inventory from a target path.
     pub async fn from_file(path: Option<PathBuf>) -> Result<Self> {
         let mut inventory_path = path.unwrap_or(DEFAULT_INVENTORY_PATH.into());
@@ -39,6 +43,36 @@ impl Inventory {
         let cfg = serde_yaml::from_slice(&cfg_bytes)
             .context("error reading inventory file contents as YAML data")?;
         Ok(cfg)
+    }
+
+    /// Insert a record into the inventory.
+    pub fn insert<S>(&mut self, zone_id: S, record_id: S)
+    where
+        S: Into<String>,
+    {
+        let zone_id = zone_id.into();
+        let record_id = record_id.into();
+
+        if let None = self.0 {
+            self.0 = Some(HashMap::new());
+        }
+        // Get inventory zone
+        let inventory_zone = self
+            .0
+            .as_mut()
+            .unwrap()
+            .entry(zone_id)
+            .or_insert_with(|| InventoryZone(Some(HashSet::new())));
+        // Insert record
+        inventory_zone
+            .0
+            .as_mut()
+            .unwrap()
+            .insert(InventoryRecord(record_id));
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
     }
 }
 

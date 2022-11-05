@@ -3,6 +3,7 @@
 #![feature(is_some_with)]
 #![feature(unwrap_infallible)]
 #![feature(iter_intersperse)]
+#![feature(exact_size_is_empty)]
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

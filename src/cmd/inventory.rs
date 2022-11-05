@@ -1,17 +1,13 @@
 use crate::{
     cloudfare::{self, models::Record},
     config::models::{ConfigOpts, ConfigOptsInventory},
-    inventory::models::{Inventory, InventoryRecord, InventoryZone},
+    inventory::models::Inventory,
     inventory::DEFAULT_INVENTORY_PATH,
     io::{self, Scanner},
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-    vec,
-};
+use std::{path::PathBuf, vec};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -81,7 +77,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     let mut scanner = Scanner::new(runtime);
 
     // Capture user input to build inventory map
-    let mut inventory_map = HashMap::new();
+    let mut inventory = Inventory::new();
     'control: loop {
         let zone_idx = 'zone: loop {
             // Print zone options
@@ -130,15 +126,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
 
             let zone_id = selected_zone.id.clone();
             let record_id = selected_record.id.clone();
-            // TODO: Clean this up with cleaner code
-            let inventory_zone = inventory_map
-                .entry(zone_id)
-                .or_insert_with(|| InventoryZone(Some(HashSet::new())));
-            inventory_zone
-                .0
-                .as_mut()
-                .unwrap()
-                .insert(InventoryRecord(record_id));
+            inventory.insert(zone_id, record_id);
             println!("\n✅ Added '{}'.", selected_record.name);
         } else {
             println!("\n❌ No records for this zone.")
@@ -158,7 +146,6 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             break 'control;
         }
     }
-    let inventory = Inventory(Some(inventory_map));
 
     // Save
     let path = scanner
@@ -187,21 +174,25 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .map(|opts| opts.path.clone())
         .flatten();
     let inventory = Inventory::from_file(inventory_path).await?;
-    let pretty_print = inventory
-        .into_iter()
-        .map(|(zone, records)| {
-            format!(
-                "{}:{}",
-                zone,
-                records
-                    .into_iter()
-                    .map(|r| format!("\n  - {}", r))
-                    .collect::<String>()
-            )
-        })
-        .intersperse("\n---\n".to_string())
-        .collect::<String>();
-    println!("{}", pretty_print);
+    if inventory.is_empty() {
+        println!("Inventory file is empty.");
+    } else {
+        let pretty_print = inventory
+            .into_iter()
+            .map(|(zone, records)| {
+                format!(
+                    "{}:{}",
+                    zone,
+                    records
+                        .into_iter()
+                        .map(|r| format!("\n  - {}", r))
+                        .collect::<String>()
+                )
+            })
+            .intersperse("\n---\n".to_string())
+            .collect::<String>();
+        println!("{}", pretty_print);
+    }
     Ok(())
 }
 
