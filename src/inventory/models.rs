@@ -91,7 +91,7 @@ impl Inventory {
     }
 }
 
-/// An iterator over the zone and corresponding records
+/// An iterator over the zone and corresponding records.
 pub struct InventoryIter {
     items: Vec<(String, Vec<String>)>,
     curr: usize,
