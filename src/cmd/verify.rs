@@ -26,7 +26,16 @@ impl VerifyCmd {
         let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
 
         if let Some(token) = opts.verify.map(|opts| opts.token).flatten() {
-            Ok(cloudfare::endpoints::verify(&token).await?)
+            println!("Verifying...");
+            let login_messages = cloudfare::endpoints::verify(&token).await?;
+            if let Some(message_stack) = login_messages
+                .into_iter()
+                .map(|msg| msg.message)
+                .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
+            {
+                println!("{}", message_stack);
+            }
+            Ok(())
         } else {
             anyhow::bail!("no token was provided")
         }

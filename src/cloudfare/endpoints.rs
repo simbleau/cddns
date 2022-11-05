@@ -6,23 +6,17 @@ use crate::cloudfare::models::{
 use crate::cloudfare::requests;
 use anyhow::{Context, Result};
 
-/// Return Ok if the token is verifiable
-pub async fn verify(token: &str) -> Result<()> {
+use super::models::CloudfareMessage;
+
+/// Return Ok with a list of login messages if the token is verifiable.
+pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
         .context("error verifying API token")?;
-    if let Some(message_stack) = resp
-        .messages
-        .into_iter()
-        .map(|msg| msg.message)
-        .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
-    {
-        println!("{}", message_stack);
-    }
-    Ok(())
+    Ok(resp.messages)
 }
 
-/// Return all known Cloudfare zones
+/// Return all known Cloudfare zones.
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     let mut zones = vec![];
     let mut page_cursor = 1;
