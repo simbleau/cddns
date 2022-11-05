@@ -291,7 +291,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         };
         // Fix records
         if fix {
-            todo!("Remove invalid records");
+            todo!("Fix bad records");
         }
     }
 
