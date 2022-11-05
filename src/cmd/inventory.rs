@@ -29,7 +29,7 @@ enum InventorySubcommands {
     Check,
     /// Fix erroneous DNS records once.
     Commit,
-    /// Fix erroneous DNS records on a loop.
+    /// Fix erroneous DNS records on an interval.
     Watch,
 }
 

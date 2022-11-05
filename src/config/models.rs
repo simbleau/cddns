@@ -120,9 +120,10 @@ pub struct ConfigOptsVerify {
 /// Config options for the inventory system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
-    // The path to the inventory file
+    /// The path to the inventory file.
     #[clap(short, long, env = "CFDDNS_INVENTORY", value_name = "file")]
     pub path: Option<PathBuf>,
-    #[clap(short, long)]
+    /// The interval for watching inventory records.
+    #[clap(short, long, value_name = "milliseconds")]
     pub interval: Option<u32>,
 }
