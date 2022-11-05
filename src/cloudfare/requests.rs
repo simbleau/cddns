@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use core::slice::SlicePattern;
 use serde::de::DeserializeOwned;
 
-pub(crate) async fn get<T>(endpoint: &str, token: &str) -> Result<T>
+pub async fn get<T>(endpoint: &str, token: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
