@@ -71,64 +71,91 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     println!("Retrieving Cloudfare resources...");
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     crate::cmd::list::filter_zones(&mut zones, opts)?;
+    anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
+
     let mut records = cloudfare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::filter_records(&mut records, opts)?;
+    anyhow::ensure!(records.len() > 0, "no records to build inventory from");
 
-    // Control user input to build inventory map
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
+
+    // Capture user input to build inventory map
     let mut inventory_map = HashMap::new();
     'control: loop {
-        anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
-        let mut selection: Option<usize> = None;
-        while selection.is_none() || selection.is_some_and(|i| *i > zones.len())
-        {
+        let zone_idx = 'zone: loop {
+            // Print zone options
             for (i, zone) in zones.iter().enumerate() {
                 println!("[{}] {}", i + 1, zone);
             }
-            match scanner.prompt("🌎 Choose a zone").await? {
-                Some(input) => selection = input.parse::<usize>().ok(),
-                None => selection = None,
+            // Get zone choice
+            if let Some(idx) = scanner
+                .prompt("(Step 1 of 2) Choose a zone")
+                .await?
+                .map(|s| s.parse::<usize>().ok())
+                .flatten()
+            {
+                if idx > 0 && idx <= zones.len() {
+                    break idx;
+                } else {
+                    continue 'zone;
+                }
             }
-        }
-        let selected_zone = &zones[selection.unwrap() - 1];
-        let records = records
+        };
+        let selected_zone = &zones[zone_idx - 1];
+        let zone_records = records
             .iter()
             .filter(|r| r.zone_id == selected_zone.id)
             .collect::<Vec<&Record>>();
-        if records.len() > 0 {
-            selection = None;
-            while selection.is_none()
-                || selection.is_some_and(|i| *i > records.len())
-            {
-                for (i, record) in records.iter().enumerate() {
+
+        if zone_records.len() > 0 {
+            let record_idx = 'record: loop {
+                for (i, record) in zone_records.iter().enumerate() {
                     println!("[{}] {}", i + 1, record);
                 }
-                match scanner.prompt("🌎 Choose a record").await? {
-                    Some(input) => selection = input.parse::<usize>().ok(),
-                    None => selection = None,
+                if let Some(idx) = scanner
+                    .prompt("(Step 2 of 2) Choose a record")
+                    .await?
+                    .map(|s| s.parse::<usize>().ok())
+                    .flatten()
+                {
+                    if idx > 0 && idx <= zone_records.len() {
+                        break idx;
+                    } else {
+                        continue 'record;
+                    }
                 }
-            }
-            let record = &records[selection.unwrap() - 1];
-            let key = selected_zone.id.clone();
+            };
+            let selected_record = &zone_records[record_idx - 1];
+
+            let zone_id = selected_zone.id.clone();
+            let record_id = selected_record.id.clone();
+            // TODO: Clean this up with cleaner code
             let inventory_zone = inventory_map
-                .entry(key)
+                .entry(zone_id)
                 .or_insert_with(|| InventoryZone(Some(HashSet::new())));
             inventory_zone
                 .0
                 .as_mut()
                 .unwrap()
-                .insert(InventoryRecord(record.id.clone()));
-            println!("\n✅ Added '{}'.", record.name);
+                .insert(InventoryRecord(record_id));
+            println!("\n✅ Added '{}'.", selected_record.name);
         } else {
             println!("\n❌ No records for this zone.")
         }
 
-        if let Some(input) = scanner.prompt("Add another record? [Y/n]").await?
-        {
-            if matches!(input.to_lowercase().as_str(), "n" | "no") {
-                break 'control;
+        let finished = 'finished: loop {
+            match scanner.prompt("Add another record? [Y/n]").await? {
+                Some(input) => match input.to_lowercase().as_str() {
+                    "y" | "yes" => break false,
+                    "n" | "no" => break true,
+                    _ => continue 'finished,
+                },
+                None => break false,
             }
+        };
+        if finished {
+            break 'control;
         }
     }
     let inventory = Inventory(Some(inventory_map));
@@ -201,16 +228,16 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
 
     // Print records
     for cf_record in &good {
-        println!("✅ MATCH: {} ({})", cf_record.name, cf_record.id);
+        println!("MATCH: {} ({})", cf_record.name, cf_record.id);
     }
     for cf_record in &bad {
         println!(
-            "❌ MISMATCH: {} ({}) => {}",
+            "MISMATCH: {} ({}) => {}",
             cf_record.name, cf_record.id, cf_record.content
         );
     }
     for (inv_zone, inv_record) in &invalid {
-        println!("❓ INVALID: {} | {}", inv_zone, inv_record);
+        println!("INVALID: {} | {}", inv_zone, inv_record);
     }
 
     // Print summary
@@ -253,60 +280,65 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Print bad records
         for cf_record in &bad {
             println!(
-                "❌ MISMATCH: {} ({}) => {}",
+                "MISMATCH: {} ({}) => {}",
                 cf_record.name, cf_record.id, cf_record.content
             );
         }
-        // Print summary
-        println!("{} BAD", bad.len());
-
         // Ask to fix records
-        'control: loop {
-            match scanner.prompt("🔨 Fix bad records? [Y/n]").await? {
+        let fix = 'control: loop {
+            match scanner
+                .prompt(format!("🔨 Fix {} bad records? [Y/n]", bad.len()))
+                .await?
+            {
                 Some(input) => match input.to_lowercase().as_str() {
-                    "y" | "yes" => {}
-                    "n" | "no" => break 'control,
+                    "y" | "yes" => break true,
+                    "n" | "no" => break false,
                     _ => continue 'control,
                 },
-                None => {}
-            };
-            todo!("Fix and drain records");
+                None => break true,
+            }
+        };
+        // Fix records
+        if fix {
+            todo!("Remove invalid records");
         }
     }
 
     if invalid.len() > 0 {
-        // Print summary
+        // Print invalid records
         for (inv_zone, inv_record) in &invalid {
-            println!("❓ INVALID: {} | {}", inv_zone, inv_record);
+            println!("INVALID: {} | {}", inv_zone, inv_record);
         }
-        // Print summary
-        println!("{} INVALID", invalid.len());
-
         // Ask to prune records
-        'control: loop {
-            match scanner.prompt("🗑️ Prune invalid records? [Y/n]").await?
+        let prune = 'control: loop {
+            match scanner
+                .prompt(format!(
+                    "🗑️ Prune {} invalid records? [Y/n]",
+                    invalid.len()
+                ))
+                .await?
             {
                 Some(input) => match input.to_lowercase().as_str() {
-                    "n" | "no" => break 'control,
-                    "y" | "yes" => {}
+                    "n" | "no" => break false,
+                    "y" | "yes" => break true,
                     _ => continue 'control,
                 },
-                None => {}
-            };
+                None => break true,
+            }
+        };
+        // Prune
+        if prune {
             todo!("Remove invalid records");
-            // Print summary
-            println!("✅ {} REMOVED", invalid.len());
         }
     }
 
+    // Print summary
     if bad.len() == 0 && invalid.len() == 0 {
         println!("✅ No bad or invalid records.");
     } else {
         println!(
-            "{} {} bad, {} {} invalid records remain.",
-            if bad.len() == 0 { "✅" } else { "❌" },
+            "❌ {} bad, {} invalid records remain.",
             bad.len(),
-            if invalid.len() == 0 { "✅" } else { "❓" },
             invalid.len()
         );
     }
