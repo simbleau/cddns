@@ -5,6 +5,7 @@ use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
 };
+use tokio::fs;
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -20,9 +21,8 @@ pub struct InventoryRecord(pub String);
 
 impl Inventory {
     /// Read inventory from a target path.
-    pub fn from_file(path: Option<PathBuf>) -> Result<Self> {
+    pub async fn from_file(path: Option<PathBuf>) -> Result<Self> {
         let mut inventory_path = path.unwrap_or(DEFAULT_INVENTORY_PATH.into());
-        anyhow::ensure!(inventory_path.exists(), "inventory was not found");
         if !inventory_path.is_absolute() {
             inventory_path =
                 inventory_path.canonicalize().with_context(|| {
@@ -32,9 +32,11 @@ impl Inventory {
                     )
                 })?;
         }
-        let cfg_bytes = std::fs::read(&inventory_path)
+        anyhow::ensure!(inventory_path.exists(), "inventory was not found");
+        let cfg_bytes = fs::read(&inventory_path)
+            .await
             .context("error reading inventory file")?;
-        let cfg: Self = serde_yaml::from_slice(&cfg_bytes)
+        let cfg = serde_yaml::from_slice(&cfg_bytes)
             .context("error reading inventory file contents as YAML data")?;
         Ok(cfg)
     }

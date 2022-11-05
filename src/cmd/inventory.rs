@@ -186,7 +186,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten();
-    let inventory = Inventory::from_file(inventory_path)?;
+    let inventory = Inventory::from_file(inventory_path).await?;
     let pretty_print = inventory
         .into_iter()
         .map(|(zone, records)| {
@@ -220,7 +220,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten();
-    let inventory = Inventory::from_file(inventory_path)?;
+    let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
     println!("Checking Cloudfare resources...");
@@ -266,7 +266,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten();
-    let inventory = Inventory::from_file(inventory_path)?;
+    let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
     println!("Checking Cloudfare resources...");
