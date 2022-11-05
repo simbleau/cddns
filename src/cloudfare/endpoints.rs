@@ -1,12 +1,10 @@
-use std::fmt::Display;
-
 use crate::cloudfare::models::{
-    ListRecordsResponse, ListZonesResponse, Record, VerifyResponse, Zone,
+    CloudfareMessage, ListRecordsResponse, ListZonesResponse, Record,
+    VerifyResponse, Zone,
 };
 use crate::cloudfare::requests;
 use anyhow::{Context, Result};
-
-use super::models::CloudfareMessage;
+use std::fmt::Display;
 
 /// Return Ok with a list of login messages if the token is verifiable.
 pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
