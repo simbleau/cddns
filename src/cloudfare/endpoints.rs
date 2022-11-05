@@ -39,7 +39,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     Ok(zones)
 }
 
-/// Return all known Cloudfare records
+/// Return all known Cloudfare records.
 pub async fn records(
     zones: &Vec<Zone>,
     token: impl Display,
