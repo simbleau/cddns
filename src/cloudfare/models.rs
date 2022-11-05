@@ -33,7 +33,7 @@ pub struct ResultInfo {
     pub total_pages: i32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Zone {
     pub id: String,
     pub name: String,
@@ -76,5 +76,11 @@ pub struct ListZonesResponse {
 pub struct ListRecordsResponse {
     pub success: bool,
     pub result_info: ResultInfo,
+    pub result: Vec<Record>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PatchRecordResponse {
+    pub success: bool,
     pub result: Vec<Record>,
 }

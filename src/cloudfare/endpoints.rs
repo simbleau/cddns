@@ -1,9 +1,10 @@
 use crate::cloudfare::models::{
-    CloudfareMessage, ListRecordsResponse, ListZonesResponse, Record,
-    VerifyResponse, Zone,
+    CloudfareMessage, ListRecordsResponse, ListZonesResponse,
+    PatchRecordResponse, Record, VerifyResponse, Zone,
 };
 use crate::cloudfare::requests;
 use anyhow::{Context, Result};
+use serde::Serialize;
 use std::fmt::Display;
 
 /// Return a list of login messages if the token is verifiable.
@@ -70,4 +71,28 @@ pub async fn records(
         }
     }
     Ok(records)
+}
+
+/// Patch a cloudfare record.
+pub async fn update_record(
+    token: impl Display,
+    zone_id: impl Display,
+    record_id: impl Display,
+    ip: impl Display,
+) -> Result<()> {
+    let endpoint = format!("/zones/{}/dns_records/{}", zone_id, record_id);
+
+    let resp: PatchRecordResponse = requests::patch(endpoint, token, {
+        #[derive(Serialize)]
+        struct UpdateRecordRequest {
+            pub content: String,
+        }
+        &UpdateRecordRequest {
+            content: ip.to_string(),
+        }
+    })
+    .await
+    .context("error resolving records endpoint")?;
+    anyhow::ensure!(resp.success, "error patching record");
+    Ok(())
 }
