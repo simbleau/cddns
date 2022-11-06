@@ -35,6 +35,9 @@ where
                         msg.code,
                         msg.message,
                         msg.error_chain
+                            // TODO: Make this cleaner
+                            .as_ref()
+                            .unwrap_or(&vec![])
                             .iter()
                             .map(|error| format!(
                                 "\n  - {}: {}",
@@ -64,17 +67,16 @@ where
     T: DeserializeOwned,
 {
     let bytes = reqwest::Client::new()
-        .put(format!("{}{}", API_BASE, endpoint))
+        .patch(format!("{}{}", API_BASE, endpoint))
+        .bearer_auth(token)
         .header("Content-Type", "application/json")
         .json(json)
-        .bearer_auth(token)
         .send()
         .await
         .context("error sending HTTP request")?
         .bytes()
         .await
         .context("error retrieving HTTP response")?;
-
     let cf_resp: CloudfareResponse =
         serde_json::from_slice(bytes.as_slice())
             .context("error reading cloudfare response")?;
@@ -91,6 +93,9 @@ where
                         msg.code,
                         msg.message,
                         msg.error_chain
+                            // TODO: Make this cleaner
+                            .as_ref()
+                            .unwrap_or(&vec![])
                             .iter()
                             .map(|error| format!(
                                 "\n  - {}: {}",

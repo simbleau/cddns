@@ -6,7 +6,7 @@ use serde::Deserialize;
 pub struct CloudfareError {
     pub code: i32,
     pub message: String,
-    pub error_chain: Vec<CloudfareMessage>,
+    pub error_chain: Option<Vec<CloudfareMessage>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -82,5 +82,5 @@ pub struct ListRecordsResponse {
 #[derive(Debug, Deserialize)]
 pub struct PatchRecordResponse {
     pub success: bool,
-    pub result: Vec<Record>,
+    pub result: Record,
 }

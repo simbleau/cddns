@@ -1,5 +1,5 @@
 use crate::{
-    cloudfare::{self, models::Record},
+    cloudfare::{self, endpoints::update_record, models::Record},
     config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::models::Inventory,
     inventory::DEFAULT_INVENTORY_PATH,
@@ -7,7 +7,13 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::{fmt::Display, path::PathBuf, vec};
+use std::{
+    collections::HashSet,
+    fmt::Display,
+    net::{Ipv4Addr, Ipv6Addr},
+    path::PathBuf,
+    vec,
+};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -217,7 +223,10 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
 
     // Check records
     println!("Checking Cloudfare resources...");
-    let (good, bad, invalid) = check_records(token, &inventory).await?;
+    let ipv4 = public_ip::addr_v4().await;
+    let ipv6 = public_ip::addr_v6().await;
+    let (good, bad, invalid) =
+        check_records(token, &inventory, ipv4, ipv6).await?;
 
     // Print records
     for cf_record in &good {
@@ -264,7 +273,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 
     // Check records
     println!("Checking Cloudfare resources...");
-    let (_good, bad, invalid) = check_records(token, &inventory).await?;
+    let ipv4 = public_ip::addr_v4().await;
+    let ipv6 = public_ip::addr_v6().await;
+    let (_good, mut bad, mut invalid) =
+        check_records(&token, &inventory, ipv4.clone(), ipv6.clone()).await?;
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -279,7 +291,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             );
         }
         // Ask to fix records
-        let fix = 'control: loop {
+        let fix = 'fix: loop {
             match scanner
                 .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
                 .await?
@@ -287,15 +299,47 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                 Some(input) => match input.to_lowercase().as_str() {
                     "y" | "yes" => break true,
                     "n" | "no" => break false,
-                    _ => continue 'control,
+                    _ => continue 'fix,
                 },
                 None => break true,
             }
         };
         // Fix records
+        let mut fixed = HashSet::new();
         if fix {
-            todo!("Fix bad records");
+            for cf_record in &bad {
+                match cf_record.record_type.as_str() {
+                    "A" => match ipv4 {
+                        Some(ip) => {
+                            update_record(
+                                token.clone(),
+                                cf_record.zone_id.clone(),
+                                cf_record.id.clone(),
+                                ip,
+                            )
+                            .await?
+                        }
+                        None => anyhow::bail!("no discovered IPv4 address needed to patch A record"),
+                    },
+                    "AAAA" => match ipv6 {
+                        Some(ip) => update_record(
+                                token.clone(),
+                                cf_record.zone_id.clone(),
+                                cf_record.id.clone(),
+                                ip,
+                            )
+                            .await?,
+                        None => anyhow::bail!("no discovered IPv6 address needed to patch AAAA record"),
+                    },
+                    _ => unimplemented!(
+                            "unexpected record type: {}",
+                            cf_record.record_type
+                        ),
+                };
+                fixed.insert(cf_record.id.clone());
+            }
         }
+        bad.retain_mut(|r| !fixed.contains(&r.id));
     }
 
     if invalid.len() > 0 {
@@ -348,11 +392,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 pub async fn check_records(
     token: impl Display,
     inventory: &Inventory,
+    ipv4: Option<Ipv4Addr>,
+    ipv6: Option<Ipv6Addr>,
 ) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
-    // Get public IPs
-    let ipv4 = public_ip::addr_v4().await;
-    let ipv6 = public_ip::addr_v6().await;
-
     let zones = cloudfare::endpoints::zones(token.to_string()).await?;
     let records =
         cloudfare::endpoints::records(&zones, token.to_string()).await?;

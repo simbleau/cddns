@@ -4,7 +4,7 @@ use crate::cloudfare::models::{
 };
 use crate::cloudfare::requests;
 use anyhow::{Context, Result};
-use serde::Serialize;
+use std::collections::HashMap;
 use std::fmt::Display;
 
 /// Return a list of login messages if the token is verifiable.
@@ -82,17 +82,12 @@ pub async fn update_record(
 ) -> Result<()> {
     let endpoint = format!("/zones/{}/dns_records/{}", zone_id, record_id);
 
-    let resp: PatchRecordResponse = requests::patch(endpoint, token, {
-        #[derive(Serialize)]
-        struct UpdateRecordRequest {
-            pub content: String,
-        }
-        &UpdateRecordRequest {
-            content: ip.to_string(),
-        }
-    })
-    .await
-    .context("error resolving records endpoint")?;
+    let mut data = HashMap::new();
+    data.insert("content", ip.to_string());
+
+    let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
+        .await
+        .context("error resolving records endpoint")?;
     anyhow::ensure!(resp.success, "error patching record");
     Ok(())
 }
