@@ -308,7 +308,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let mut fixed = HashSet::new();
         if fix {
             for cf_record in &bad {
-                match cf_record.record_type.as_str() {
+                if let Ok(_) = match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
                         Some(ip) => {
                             update_record(
@@ -317,9 +317,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                                 cf_record.id.clone(),
                                 ip,
                             )
-                            .await?
+                            .await
                         }
-                        None => anyhow::bail!("no discovered IPv4 address needed to patch A record"),
+                        None => Err(anyhow::anyhow!("no discovered IPv4 address needed to patch A record")),
                     },
                     "AAAA" => match ipv6 {
                         Some(ip) => update_record(
@@ -328,15 +328,16 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                                 cf_record.id.clone(),
                                 ip,
                             )
-                            .await?,
-                        None => anyhow::bail!("no discovered IPv6 address needed to patch AAAA record"),
+                            .await,
+                        None => Err(anyhow::anyhow!("no discovered IPv6 address needed to patch AAAA record")),
                     },
                     _ => unimplemented!(
                             "unexpected record type: {}",
                             cf_record.record_type
                         ),
-                };
-                fixed.insert(cf_record.id.clone());
+                } {
+                    fixed.insert(cf_record.id.clone());
+                }
             }
         }
         bad.retain_mut(|r| !fixed.contains(&r.id));
@@ -368,9 +369,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let mut pruned = HashSet::new();
         if prune {
             for (zone_id, record_id) in invalid.iter() {
-                let removed = inventory
-                    .remove(zone_id.to_owned(), record_id.to_owned())?;
-                if removed {
+                let removed =
+                    inventory.remove(zone_id.to_owned(), record_id.to_owned());
+                if let Ok(true) = removed {
                     pruned.insert((zone_id.clone(), record_id.clone()));
                 }
             }
