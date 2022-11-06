@@ -365,11 +365,18 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             }
         };
         // Prune
+        let mut pruned = HashSet::new();
         if prune {
-            for (zone_id, record_id) in &invalid {
-                let _removed = inventory
+            for (zone_id, record_id) in invalid.iter() {
+                let removed = inventory
                     .remove(zone_id.to_owned(), record_id.to_owned())?;
+                if removed {
+                    pruned.insert((zone_id.clone(), record_id.clone()));
+                }
             }
+            invalid.retain_mut(|(z, r)| {
+                !pruned.contains(&(z.to_owned(), r.to_owned()))
+            });
             fs::remove_force(&inventory_path).await?;
             fs::save_yaml(&inventory, &inventory_path).await?;
         }
@@ -385,7 +392,6 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             invalid.len()
         );
     }
-
     Ok(())
 }
 
