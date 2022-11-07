@@ -125,5 +125,5 @@ pub struct ConfigOptsInventory {
     pub path: Option<PathBuf>,
     /// The interval for watching inventory records.
     #[clap(short, long, value_name = "milliseconds")]
-    pub interval: Option<u32>,
+    pub interval: Option<u64>,
 }

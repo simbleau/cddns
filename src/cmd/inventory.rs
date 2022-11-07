@@ -2,7 +2,7 @@ use crate::{
     cloudfare::{self, endpoints::update_record, models::Record},
     config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::models::Inventory,
-    inventory::DEFAULT_INVENTORY_PATH,
+    inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
     io::{self, fs, Scanner},
 };
 use anyhow::{Context, Result};
@@ -14,6 +14,7 @@ use std::{
     path::PathBuf,
     vec,
 };
+use tokio::time::{self, Duration, MissedTickBehavior};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -55,7 +56,7 @@ impl InventoryCmd {
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await,
             InventorySubcommands::Commit => commit(&opts).await,
-            InventorySubcommands::Watch => todo!(),
+            InventorySubcommands::Watch => watch(&opts).await,
         }
     }
 }
@@ -394,6 +395,33 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         );
     }
     Ok(())
+}
+
+pub async fn watch(opts: &ConfigOpts) -> Result<()> {
+    // Get watch interval
+    let interval = Duration::from_millis(
+        opts.inventory
+            .as_ref()
+            .map(|opts| opts.interval)
+            .flatten()
+            .unwrap_or(DEFAULT_WATCH_INTERVAL),
+    );
+    if interval.is_zero() {
+        loop {
+            if let Err(e) = commit(&opts).await {
+                println!("{}", e.to_string());
+            }
+        }
+    } else {
+        let mut timer = time::interval(interval);
+        timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        loop {
+            timer.tick().await;
+            if let Err(e) = commit(&opts).await {
+                println!("{}", e.to_string());
+            }
+        }
+    }
 }
 
 pub async fn check_records(
