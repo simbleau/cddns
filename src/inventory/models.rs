@@ -43,12 +43,15 @@ impl Inventory {
         Ok(cfg)
     }
 
+    /// Save the inventory file at the given path.
     pub async fn save<P>(&self, path: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
         let path = path.as_ref();
-        crate::io::fs::remove_force(path).await?;
+        crate::io::fs::remove_force(path).await.with_context(|| {
+            format!("path could not be overwritten '{}'", path.display())
+        })?;
         crate::io::fs::save_yaml(&self, path).await?;
         Ok(())
     }

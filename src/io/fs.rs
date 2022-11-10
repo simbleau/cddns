@@ -42,6 +42,7 @@ where
     Ok(())
 }
 
+/// Save a serializable object as a TOML file.
 pub async fn save_toml<T, P>(contents: &T, path: P) -> Result<()>
 where
     T: ?Sized + serde::Serialize,
@@ -56,6 +57,7 @@ where
     Ok(())
 }
 
+/// Save a serializable object as a YAML file.
 pub async fn save_yaml<T, P>(contents: &T, path: P) -> Result<()>
 where
     T: ?Sized + serde::Serialize,
