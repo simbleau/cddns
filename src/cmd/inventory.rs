@@ -3,7 +3,7 @@ use crate::{
     config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::models::Inventory,
     inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
-    io::{self, fs, Scanner},
+    io::{self, Scanner},
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -379,8 +379,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             invalid.retain_mut(|(z, r)| {
                 !pruned.contains(&(z.to_owned(), r.to_owned()))
             });
-            fs::remove_force(&inventory_path).await?;
-            fs::save_yaml(&inventory, &inventory_path).await?;
+            inventory.save(inventory_path).await?;
         }
     }
 

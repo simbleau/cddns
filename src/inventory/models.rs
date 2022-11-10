@@ -4,7 +4,6 @@ use std::{
     collections::{HashMap, HashSet},
     path::Path,
 };
-use tokio::fs;
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,12 +35,22 @@ impl Inventory {
                 )
             })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
-        let cfg_bytes = fs::read(&inventory_path)
+        let cfg_bytes = tokio::fs::read(&inventory_path)
             .await
             .context("error reading inventory file")?;
         let cfg = serde_yaml::from_slice(&cfg_bytes)
             .context("error reading inventory file contents as YAML data")?;
         Ok(cfg)
+    }
+
+    pub async fn save<P>(&self, path: P) -> Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        crate::io::fs::remove_force(path).await?;
+        crate::io::fs::save_yaml(&self, path).await?;
+        Ok(())
     }
 
     /// Insert a record into the inventory.
