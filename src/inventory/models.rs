@@ -30,16 +30,16 @@ impl Inventory {
         let inventory_path =
             inventory_path.as_ref().canonicalize().with_context(|| {
                 format!(
-                    "error getting canonical path to inventory file {:?}",
+                    "getting canonical path to inventory file {:?}",
                     inventory_path.as_ref().display()
                 )
             })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
         let cfg_bytes = tokio::fs::read(&inventory_path)
             .await
-            .context("error reading inventory file")?;
+            .context("reading inventory file")?;
         let cfg = serde_yaml::from_slice(&cfg_bytes)
-            .context("error reading inventory file contents as YAML data")?;
+            .context("reading inventory file contents as YAML data")?;
         Ok(cfg)
     }
 
@@ -87,10 +87,10 @@ impl Inventory {
             .as_mut()
             .context("no zone map found")?
             .get_mut(&zone_id)
-            .with_context(|| format!("error removing from zone '{}'", zone_id))?
+            .with_context(|| format!("no zone '{}'", zone_id))?
             .0
             .as_mut()
-            .with_context(|| format!("no records found in zone '{}'", zone_id))?
+            .with_context(|| format!("no records in zone '{}'", zone_id))?
             .remove(&record))
     }
 

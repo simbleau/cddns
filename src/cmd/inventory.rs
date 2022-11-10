@@ -483,7 +483,7 @@ pub async fn check_records(
                         }
                     } else {
                         anyhow::bail!(
-                            "error no address comparable for {} record",
+                            "no address comparable for {} record",
                             cf_record.record_type
                         );
                     }

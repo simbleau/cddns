@@ -23,7 +23,7 @@ impl ConfigOpts {
             cfddns_toml_path =
                 cfddns_toml_path.canonicalize().with_context(|| {
                     format!(
-                    "error getting canonical path to CFDDNS config file {:?}",
+                    "could not canonicalize path to CFDDNS config file {:?}",
                     &cfddns_toml_path
                 )
                 })?;

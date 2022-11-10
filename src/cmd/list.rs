@@ -111,8 +111,8 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     // Filter zones
     if let Some(ref zone_filter) = cmd_args.zone {
-        let pattern = Regex::new(&zone_filter)
-            .context("error compiling zone regex filter")?;
+        let pattern =
+            Regex::new(&zone_filter).context("compiling zone regex filter")?;
         zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
         anyhow::ensure!(zones.len() > 0, "no results with that zone filter");
     } else {
@@ -140,8 +140,8 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     println!("Retrieving Cloudfare resources...");
     let mut zones = cloudfare::endpoints::zones(&token).await?;
     if let Some(ref zone_filter) = cmd_args.zone {
-        let pattern = Regex::new(&zone_filter)
-            .context("error compiling zone regex filter")?;
+        let pattern =
+            Regex::new(&zone_filter).context("compiling zone regex filter")?;
         zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
         anyhow::ensure!(zones.len() > 0, "no results with that zone filter");
     } else {
@@ -153,7 +153,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     // Filter records
     if let Some(ref record_filter) = cmd_args.record {
         let pattern = Regex::new(&record_filter)
-            .context("error compiling record regex filter")?;
+            .context("compiling record regex filter")?;
         records
             .retain(|r| pattern.is_match(&r.id) || pattern.is_match(&r.name));
         anyhow::ensure!(
@@ -177,7 +177,7 @@ pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
         if let Some(include_filters) = list_opts.include_zones.as_ref() {
             for filter_str in include_filters {
                 let pattern = Regex::new(&filter_str)
-                    .context("error compiling include_zones regex filter")?;
+                    .context("compiling include_zones regex filter")?;
                 zones.retain(|z| {
                     pattern.is_match(&z.id) || pattern.is_match(&z.name)
                 });
@@ -186,7 +186,7 @@ pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
         if let Some(ignore_filters) = list_opts.ignore_zones.as_ref() {
             for filter_str in ignore_filters {
                 let pattern = Regex::new(&filter_str)
-                    .context("error compiling ignore_zones regex filter")?;
+                    .context("compiling ignore_zones regex filter")?;
                 zones.retain(|z| {
                     !pattern.is_match(&z.id) && !pattern.is_match(&z.name)
                 });
@@ -205,7 +205,7 @@ pub fn filter_records(
         if let Some(include_filters) = list_opts.include_records.as_ref() {
             for filter_str in include_filters {
                 let pattern = Regex::new(&filter_str)
-                    .context("error compiling include_records regex filter")?;
+                    .context("compiling include_records regex filter")?;
                 records.retain(|r| {
                     pattern.is_match(&r.id) || pattern.is_match(&r.name)
                 });
@@ -214,7 +214,7 @@ pub fn filter_records(
         if let Some(ignore_filters) = list_opts.ignore_records.as_ref() {
             for filter_str in ignore_filters {
                 let pattern = Regex::new(&filter_str)
-                    .context("error compiling ignore_records regex filter")?;
+                    .context("compiling ignore_records regex filter")?;
                 records.retain(|r| {
                     !pattern.is_match(&r.id) && !pattern.is_match(&r.name)
                 });

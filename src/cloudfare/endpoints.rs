@@ -11,7 +11,7 @@ use std::fmt::Display;
 pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
-        .context("error verifying API token")?;
+        .context("verifying API token")?;
     Ok(resp.messages)
 }
 
@@ -24,8 +24,8 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
         let resp: ListZonesResponse =
             requests::get(endpoint, token.to_string())
                 .await
-                .context("error resolving zones endpoint")?;
-        anyhow::ensure!(resp.success, "error retrieving zones");
+                .context("resolving zones endpoint")?;
+        anyhow::ensure!(resp.success, "cloudfare response indicated failure");
 
         zones.extend(resp.result.into_iter().filter(|zone| {
             &zone.status == "active"
@@ -56,8 +56,11 @@ pub async fn records(
             let resp: ListRecordsResponse =
                 requests::get(endpoint, token.to_string())
                     .await
-                    .context("error resolving records endpoint")?;
-            anyhow::ensure!(resp.success, "error retrieving records for zone");
+                    .context("resolving records endpoint")?;
+            anyhow::ensure!(
+                resp.success,
+                "cloudfare response indicated failure"
+            );
 
             records.extend(resp.result.into_iter().filter(|record| {
                 record.record_type == "A"
@@ -87,7 +90,7 @@ pub async fn update_record(
 
     let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
         .await
-        .context("error resolving records endpoint")?;
-    anyhow::ensure!(resp.success, "error patching record");
+        .context("resolving records endpoint")?;
+    anyhow::ensure!(resp.success, "cloudfare response indicated failure");
     Ok(())
 }

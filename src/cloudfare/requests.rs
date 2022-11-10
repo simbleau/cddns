@@ -14,17 +14,16 @@ where
         .bearer_auth(token)
         .send()
         .await
-        .context("error sending HTTP request")?
+        .context("sending HTTP request")?
         .bytes()
         .await
-        .context("error retrieving HTTP response")?;
+        .context("retrieving HTTP response")?;
 
-    let cf_resp: CloudfareResponse =
-        serde_json::from_slice(bytes.as_slice())
-            .context("error reading cloudfare response")?;
+    let cf_resp: CloudfareResponse = serde_json::from_slice(bytes.as_slice())
+        .context("reading cloudfare response")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("error deserializing cloudfare payload")?),
+            .context("deserializing cloudfare payload")?),
         false => {
             if let Some(error_stack) = cf_resp
                 .errors
@@ -73,16 +72,15 @@ where
         .json(json)
         .send()
         .await
-        .context("error sending HTTP request")?
+        .context("sending HTTP request")?
         .bytes()
         .await
-        .context("error retrieving HTTP response")?;
-    let cf_resp: CloudfareResponse =
-        serde_json::from_slice(bytes.as_slice())
-            .context("error reading cloudfare response")?;
+        .context("retrieving HTTP response")?;
+    let cf_resp: CloudfareResponse = serde_json::from_slice(bytes.as_slice())
+        .context("reading cloudfare response")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("error deserializing cloudfare payload")?),
+            .context("deserializing cloudfare payload")?),
         false => {
             if let Some(error_stack) = cf_resp
                 .errors

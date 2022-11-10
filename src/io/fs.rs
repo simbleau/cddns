@@ -49,10 +49,10 @@ where
 {
     tokio::fs::write(
         path,
-        toml::to_string(&contents).context("error encoding to TOML")?,
+        toml::to_string(&contents).context("encoding to TOML")?,
     )
     .await
-    .context("error saving TOML contents")?;
+    .context("saving TOML contents")?;
     Ok(())
 }
 
@@ -63,9 +63,9 @@ where
 {
     tokio::fs::write(
         path,
-        serde_yaml::to_string(&contents).context("error encoding to YAML")?,
+        serde_yaml::to_string(&contents).context("encoding to YAML")?,
     )
     .await
-    .context("error saving YAML contents")?;
+    .context("saving YAML contents")?;
     Ok(())
 }
