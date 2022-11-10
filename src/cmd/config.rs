@@ -39,18 +39,16 @@ impl ConfigCmd {
 
                 // Save
                 let path = scanner
-                    .prompt_path_or(
-                        format!(
-                            "Save location [default: {}]",
-                            DEFAULT_CONFIG_PATH
-                        ),
-                        DEFAULT_CONFIG_PATH.into(),
-                    )
-                    .await
+                    .prompt_path(format!(
+                        "Save location [default: {}]",
+                        DEFAULT_CONFIG_PATH
+                    ))
+                    .await?
                     .map(|p| match p.extension() {
                         Some(_) => p,
                         None => p.with_extension("toml"),
-                    })?;
+                    })
+                    .unwrap_or(DEFAULT_CONFIG_PATH.into());
                 if path.exists() {
                     io::fs::remove_interactive(&path, &mut scanner).await?;
                 }

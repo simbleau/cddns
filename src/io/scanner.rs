@@ -51,15 +51,6 @@ impl Scanner {
         }
     }
 
-    /// Prompt the user for an answer and collect it, or assume a default.
-    pub async fn prompt_or(
-        &mut self,
-        prompt: impl Display,
-        default: String,
-    ) -> Result<String> {
-        Ok(self.prompt(prompt).await?.unwrap_or(default))
-    }
-
     /// Prompt the user for a path and collect it.
     pub async fn prompt_path(
         &mut self,
@@ -75,15 +66,6 @@ impl Scanner {
             }
         };
         Ok(path)
-    }
-
-    /// Prompt the user for a path and collect it, or assume a default.
-    pub async fn prompt_path_or(
-        &mut self,
-        prompt: impl Display,
-        default: PathBuf,
-    ) -> Result<PathBuf> {
-        Ok(self.prompt_path(prompt).await?.unwrap_or(default))
     }
 }
 
