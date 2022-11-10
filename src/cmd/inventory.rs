@@ -11,7 +11,7 @@ use std::{
     collections::HashSet,
     fmt::Display,
     net::{Ipv4Addr, Ipv6Addr},
-    path::PathBuf,
+    path::{Path, PathBuf},
     vec,
 };
 use tokio::time::{self, Duration, MissedTickBehavior};
@@ -397,6 +397,23 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 }
 
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
+    // Get token
+    let token = opts
+        .verify
+        .as_ref()
+        .map(|opts| opts.token.clone())
+        .flatten()
+        .context("no token was provided")?;
+
+    // Get inventory
+    let inventory_path = opts
+        .inventory
+        .as_ref()
+        .map(|opts| opts.path.clone())
+        .flatten()
+        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+    let mut inventory = Inventory::from_file(&inventory_path).await?;
+
     // Get watch interval
     let interval = Duration::from_millis(
         opts.inventory
@@ -405,9 +422,12 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             .flatten()
             .unwrap_or(DEFAULT_WATCH_INTERVAL),
     );
+
     if interval.is_zero() {
         loop {
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) =
+                __watch(&token, &mut inventory, &inventory_path).await
+            {
                 println!("{}", e.to_string());
             }
         }
@@ -416,7 +436,9 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
         loop {
             timer.tick().await;
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) =
+                __watch(&token, &mut inventory, &inventory_path).await
+            {
                 println!("{}", e.to_string());
             }
         }
@@ -475,4 +497,100 @@ pub async fn check_records(
     }
 
     Ok((good, bad, invalid))
+}
+
+/// This would be fantastic as an async closure when that becomes stabalized.
+/// For now, this is a helper to perform the commits without interaction.
+async fn __watch<P>(
+    token: impl Display,
+    inventory: &mut Inventory,
+    inventory_path: P,
+) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    let token = token.to_string();
+
+    // Check records
+    println!("Checking Cloudfare resources...");
+    let ipv4 = public_ip::addr_v4().await;
+    let ipv6 = public_ip::addr_v6().await;
+    let (_good, mut bad, mut invalid) =
+        check_records(&token, &inventory, ipv4.clone(), ipv6.clone()).await?;
+
+    // Print records
+    if bad.len() > 0 {
+        // Fix records
+        let mut fixed = HashSet::new();
+        for cf_record in &bad {
+            println!(
+                "MISMATCH: {} ({}) => {}",
+                cf_record.name, cf_record.id, cf_record.content
+            );
+            if let Ok(_) = match cf_record.record_type.as_str() {
+                    "A" => match ipv4 {
+                        Some(ip) => {
+                            update_record(
+                                token.clone(),
+                                cf_record.zone_id.clone(),
+                                cf_record.id.clone(),
+                                ip,
+                            )
+                            .await
+                        }
+                        None => Err(anyhow::anyhow!("no discovered IPv4 address needed to patch A record")),
+                    },
+                    "AAAA" => match ipv6 {
+                        Some(ip) => update_record(
+                                token.clone(),
+                                cf_record.zone_id.clone(),
+                                cf_record.id.clone(),
+                                ip,
+                            )
+                            .await,
+                        None => Err(anyhow::anyhow!("no discovered IPv6 address needed to patch AAAA record")),
+                    },
+                    _ => unimplemented!(
+                            "unexpected record type: {}",
+                            cf_record.record_type
+                        ),
+                } {
+                    fixed.insert(cf_record.id.clone());
+                }
+        }
+        bad.retain_mut(|r| !fixed.contains(&r.id));
+    }
+
+    // Prune
+    let mut pruned = HashSet::new();
+    if invalid.len() > 0 {
+        // Print invalid records
+        for (inv_zone, inv_record) in &invalid {
+            println!("INVALID: {} | {}", inv_zone, inv_record);
+        }
+        for (zone_id, record_id) in invalid.iter() {
+            let removed =
+                inventory.remove(zone_id.to_owned(), record_id.to_owned());
+            if let Ok(true) = removed {
+                pruned.insert((zone_id.clone(), record_id.clone()));
+            }
+        }
+        invalid.retain_mut(|(z, r)| {
+            !pruned.contains(&(z.to_owned(), r.to_owned()))
+        });
+        inventory.save(inventory_path).await?;
+    }
+
+    // Print summary
+    if bad.len() == 0 && invalid.len() == 0 {
+        println!("✅ No bad or invalid records.");
+    } else {
+        println!(
+            "❌ {} bad, {} invalid records remain.",
+            bad.len(),
+            invalid.len()
+        );
+    }
+
+    Ok(())
 }
