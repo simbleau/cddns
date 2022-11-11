@@ -68,7 +68,7 @@ impl ConfigCmd {
 
 #[derive(Clone, Debug, Subcommand)]
 enum ConfigSubcommands {
-    /// Build the CFDDNS configuration file.
+    /// Build the CDDNS configuration file.
     Build,
     /// Show the current config pre-CLI.
     Show,

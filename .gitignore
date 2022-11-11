@@ -1,5 +1,5 @@
 # Ignore config
-CFDDNS.toml
+config.toml
 
 # Ignore inventory
 inventory.yaml

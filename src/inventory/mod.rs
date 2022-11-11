@@ -1,6 +1,6 @@
-//! CFDDNS inventory management.
+//! CDDNS inventory management.
 //!
-//! CFDDNS uses YAML to format inventory files.
+//! CDDNS uses YAML to format inventory files.
 //! Below is an example:
 //! ```yaml
 //! # You can use Cloudflare IDs

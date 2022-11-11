@@ -4,7 +4,7 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// A model of all potential configuration options for the CFDDNS CLI system.
+/// A model of all potential configuration options for the CDDNS CLI system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
@@ -15,21 +15,20 @@ pub struct ConfigOpts {
 impl ConfigOpts {
     /// Read runtime config from a target path.
     pub fn from_file(path: Option<PathBuf>) -> Result<Self> {
-        let mut cfddns_toml_path = path.unwrap_or(DEFAULT_CONFIG_PATH.into());
-        if !cfddns_toml_path.exists() {
+        let mut config_path = path.unwrap_or(DEFAULT_CONFIG_PATH.into());
+        if !config_path.exists() {
             return Ok(Default::default());
         }
-        if !cfddns_toml_path.is_absolute() {
-            cfddns_toml_path =
-                cfddns_toml_path.canonicalize().with_context(|| {
-                    format!(
-                    "could not canonicalize path to CFDDNS config file {:?}",
-                    &cfddns_toml_path
+        if !config_path.is_absolute() {
+            config_path = config_path.canonicalize().with_context(|| {
+                format!(
+                    "could not canonicalize path to CDDNS config file {:?}",
+                    &config_path
                 )
-                })?;
+            })?;
         }
         let cfg_bytes =
-            std::fs::read(&cfddns_toml_path).context("reading config file")?;
+            std::fs::read(&config_path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;
         Ok(cfg)
@@ -39,17 +38,17 @@ impl ConfigOpts {
     pub fn from_env() -> Result<Self> {
         Ok(ConfigOpts {
             verify: Some(
-                envy::prefixed("CFDDNS_VERIFY_")
+                envy::prefixed("CDDNS_VERIFY_")
                     .from_env::<ConfigOptsVerify>()
                     .context("reading verify env var config")?,
             ),
             list: Some(
-                envy::prefixed("CFDDNS_LIST_")
+                envy::prefixed("CDDNS_LIST_")
                     .from_env::<ConfigOptsList>()
                     .context("reading list env var config")?,
             ),
             inventory: Some(
-                envy::prefixed("CFDDNS_INVENTORY_")
+                envy::prefixed("CDDNS_INVENTORY_")
                     .from_env::<ConfigOptsInventory>()
                     .context("reading inventory env var config")?,
             ),
@@ -113,7 +112,7 @@ pub struct ConfigOptsList {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
     // Your Cloudflare API key token
-    #[clap(short, long, env = "CFDDNS_TOKEN", value_name = "token")]
+    #[clap(short, long, env = "CDDNS_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }
 
@@ -121,7 +120,7 @@ pub struct ConfigOptsVerify {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
     /// The path to the inventory file.
-    #[clap(short, long, env = "CFDDNS_INVENTORY", value_name = "file")]
+    #[clap(short, long, env = "CDDNS_INVENTORY", value_name = "file")]
     pub path: Option<PathBuf>,
     /// The interval for watching inventory records.
     #[clap(short, long, value_name = "milliseconds")]

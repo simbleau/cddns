@@ -16,12 +16,12 @@ mod io;
 
 /// Cloudflare DDNS command line utility
 #[derive(Parser, Debug)]
-#[clap(about, author, version, name = "cfddns")]
+#[clap(about, author, version, name = "cddns")]
 struct Args {
     #[clap(subcommand)]
     action: Subcommands,
-    /// A config file to use. [default: CFDDNS.toml]
-    #[clap(short, long, env = "CFDDNS_CONFIG", value_name = "file")]
+    /// A config file to use. [default: $XDG_CONFIG_HOME/cddns/config.toml]
+    #[clap(short, long, env = "CDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
     /// Enable verbose logging.
     #[clap(short)]
