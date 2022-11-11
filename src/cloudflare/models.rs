@@ -1,6 +1,5 @@
-use std::fmt;
-
 use serde::Deserialize;
+use std::fmt;
 
 #[derive(Debug, Deserialize)]
 pub struct CloudfareError {

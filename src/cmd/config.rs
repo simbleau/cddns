@@ -26,7 +26,7 @@ impl ConfigCmd {
 
                 // Build
                 let token = scanner
-                    .prompt("Cloudfare API token")
+                    .prompt("Cloudflare API token")
                     .await?
                     .unwrap_or_default();
 

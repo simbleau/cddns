@@ -1,12 +1,12 @@
 use crate::{
-    cloudfare,
+    cloudflare,
     config::models::{ConfigOpts, ConfigOptsVerify},
 };
 use anyhow::Result;
 use clap::Args;
 use std::path::PathBuf;
 
-/// Verify authentication to Cloudfare.
+/// Verify authentication to Cloudflare.
 #[derive(Debug, Args)]
 #[clap(name = "verify")]
 pub struct VerifyCmd {
@@ -27,7 +27,7 @@ impl VerifyCmd {
 
         if let Some(token) = opts.verify.map(|opts| opts.token).flatten() {
             println!("Verifying...");
-            let login_messages = cloudfare::endpoints::verify(&token).await?;
+            let login_messages = cloudflare::endpoints::verify(&token).await?;
             if let Some(message_stack) = login_messages
                 .into_iter()
                 .map(|msg| msg.message)

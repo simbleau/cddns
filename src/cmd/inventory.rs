@@ -1,5 +1,5 @@
 use crate::{
-    cloudfare::{self, endpoints::update_record, models::Record},
+    cloudflare::{self, endpoints::update_record, models::Record},
     config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::models::Inventory,
     inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
@@ -71,12 +71,12 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones and records to build inventory from
-    println!("Retrieving Cloudfare resources...");
-    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    println!("Retrieving Cloudflare resources...");
+    let mut zones = cloudflare::endpoints::zones(&token).await?;
     crate::cmd::list::filter_zones(&mut zones, opts)?;
     anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
 
-    let mut records = cloudfare::endpoints::records(&zones, &token).await?;
+    let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::filter_records(&mut records, opts)?;
     anyhow::ensure!(records.len() > 0, "no records to build inventory from");
 
@@ -224,7 +224,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
-    println!("Checking Cloudfare resources...");
+    println!("Checking Cloudflare resources...");
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
     let (good, bad, invalid) =
@@ -274,7 +274,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
     // Check records
-    println!("Checking Cloudfare resources...");
+    println!("Checking Cloudflare resources...");
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
     let (_good, mut bad, mut invalid) =
@@ -452,9 +452,9 @@ pub async fn check_records(
     ipv4: Option<Ipv4Addr>,
     ipv6: Option<Ipv6Addr>,
 ) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
-    let zones = cloudfare::endpoints::zones(token.to_string()).await?;
+    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
     let records =
-        cloudfare::endpoints::records(&zones, token.to_string()).await?;
+        cloudflare::endpoints::records(&zones, token.to_string()).await?;
 
     // Check and collect records
     let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
@@ -513,7 +513,7 @@ where
     let token = token.to_string();
 
     // Check records
-    println!("Checking Cloudfare resources...");
+    println!("Checking Cloudflare resources...");
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
     let (_good, mut bad, mut invalid) =

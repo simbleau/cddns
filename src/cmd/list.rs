@@ -1,5 +1,5 @@
 use crate::{
-    cloudfare::{
+    cloudflare::{
         self,
         models::{Record, Zone},
     },
@@ -78,12 +78,12 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
         .flatten()
         .context("no token was provided")?;
 
-    println!("Retrieving Cloudfare resources...");
+    println!("Retrieving Cloudflare resources...");
     // Get zones
-    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    let mut zones = cloudflare::endpoints::zones(&token).await?;
     filter_zones(&mut zones, &opts)?;
     // Get records
-    let mut records = cloudfare::endpoints::records(&zones, &token).await?;
+    let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     filter_records(&mut records, &opts)?;
 
     for zone in zones.iter() {
@@ -107,8 +107,8 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
-    println!("Retrieving Cloudfare resources...");
-    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    println!("Retrieving Cloudflare resources...");
+    let mut zones = cloudflare::endpoints::zones(&token).await?;
     // Filter zones
     if let Some(ref zone_filter) = cmd_args.zone {
         let pattern =
@@ -137,8 +137,8 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
-    println!("Retrieving Cloudfare resources...");
-    let mut zones = cloudfare::endpoints::zones(&token).await?;
+    println!("Retrieving Cloudflare resources...");
+    let mut zones = cloudflare::endpoints::zones(&token).await?;
     if let Some(ref zone_filter) = cmd_args.zone {
         let pattern =
             Regex::new(&zone_filter).context("compiling zone regex filter")?;
@@ -149,7 +149,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     }
 
     // Get records
-    let mut records = cloudfare::endpoints::records(&zones, &token).await?;
+    let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     // Filter records
     if let Some(ref record_filter) = cmd_args.record {
         let pattern = Regex::new(&record_filter)

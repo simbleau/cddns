@@ -1,8 +1,8 @@
-use crate::cloudfare::models::{
+use crate::cloudflare::models::{
     CloudfareMessage, ListRecordsResponse, ListZonesResponse,
     PatchRecordResponse, Record, VerifyResponse, Zone,
 };
-use crate::cloudfare::requests;
+use crate::cloudflare::requests;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;

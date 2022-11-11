@@ -1,12 +1,12 @@
-# 🚀 CFDDNS (Cloudfare Dynamic DNS)
-A modern, hackable, green DDNS CLI and service for Cloudfare. Built for native and scale, featuring interactive builders and layered configuration options.
+# 🚀 CFDDNS (Cloudflare Dynamic DNS)
+A modern, hackable, green DDNS CLI and service for Cloudflare. Built for native and scale, featuring interactive builders and layered configuration options.
 
 # 🇺🇸 Purpose
 Dynamic DNS allows experts and home users to keep services available without a static IP address. CFDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
 
 # 🧰 Before: Requirements
-- Cloudfare Account ([Cloudfare Docs](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
-- Cloudfare API Token ([Cloudfare Docs](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
+- Cloudflare Account ([Docs](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
+- Cloudflare API Token ([Docs](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
 - Existing DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
 
 # 💻 Supported Platforms (Instructions)
@@ -17,9 +17,9 @@ Dynamic DNS allows experts and home users to keep services available without a s
 # Native
 ## Installation
 ### Option A: Cargo
-- `cargo install cloudfare-ddns`
+- `cargo install cloudflare-ddns`
 ### Option B: Binary
-- Download a compatible binary from [releases](https://github.com/simbleau/cloudfare-ddns/releases)
+- Download a compatible binary from [releases](https://github.com/simbleau/cloudflare-ddns/releases)
 
 ## Getting Started
 TODO
@@ -48,7 +48,7 @@ TODO
 <TODO: Table of env variables>
 
 # Docker
-To run this as a Cloudfare DDNS daemon in Docker, here is an example:
+To run this as a Cloudflare DDNS daemon in Docker, here is an example:
 ```bash
 docker service create -d \
   --replicas=1 \
@@ -60,8 +60,8 @@ docker service create -d \
 ```
 
 # Kubernetes
-To run this as a Cloudfare DDNS daemon in a cluster, here is an example:
-1. Convert your token to base64: `echo -n '<YOUR_CLOUDFARE_TOKEN>' | base64`
+To run this as a Cloudflare DDNS daemon in a cluster, here is an example:
+1. Convert your token to base64: `echo -n '<YOUR_CLOUDFLARE_TOKEN>' | base64`
 2. Create a secret for your token:
 ```yaml
 apiVersion: v1

@@ -28,10 +28,10 @@ impl ConfigOpts {
                 )
                 })?;
         }
-        let cfg_bytes = std::fs::read(&cfddns_toml_path)
-            .context("error reading config file")?;
+        let cfg_bytes =
+            std::fs::read(&cfddns_toml_path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
-            .context("error reading config file contents as TOML data")?;
+            .context("reading config file contents as TOML data")?;
         Ok(cfg)
     }
 
@@ -41,17 +41,17 @@ impl ConfigOpts {
             verify: Some(
                 envy::prefixed("CFDDNS_VERIFY_")
                     .from_env::<ConfigOptsVerify>()
-                    .context("error reading verify env var config")?,
+                    .context("reading verify env var config")?,
             ),
             list: Some(
                 envy::prefixed("CFDDNS_LIST_")
                     .from_env::<ConfigOptsList>()
-                    .context("error reading list env var config")?,
+                    .context("reading list env var config")?,
             ),
             inventory: Some(
                 envy::prefixed("CFDDNS_INVENTORY_")
                     .from_env::<ConfigOptsInventory>()
-                    .context("error reading inventory env var config")?,
+                    .context("reading inventory env var config")?,
             ),
         })
     }
@@ -94,17 +94,17 @@ impl ConfigOpts {
 /// Config options for the list system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
-    /// Include cloudfare zones by regex [default: all]
+    /// Include cloudflare zones by regex [default: all]
     #[clap(long, value_name = "pattern")]
     pub include_zones: Option<Vec<String>>,
-    /// Ignore cloudfare zones by regex [default: none]
+    /// Ignore cloudflare zones by regex [default: none]
     #[clap(long, value_name = "pattern")]
     pub ignore_zones: Option<Vec<String>>,
 
-    /// Include cloudfare zone records by regex [default: all]
+    /// Include cloudflare zone records by regex [default: all]
     #[clap(long, value_name = "pattern")]
     pub include_records: Option<Vec<String>>,
-    /// Ignore cloudfare zone records by regex [default: none]
+    /// Ignore cloudflare zone records by regex [default: none]
     #[clap(long, value_name = "pattern")]
     pub ignore_records: Option<Vec<String>>,
 }
@@ -112,7 +112,7 @@ pub struct ConfigOptsList {
 /// Config options for the verify system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
-    // Your Cloudfare API key token
+    // Your Cloudflare API key token
     #[clap(short, long, env = "CFDDNS_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }

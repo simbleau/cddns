@@ -1,7 +1,7 @@
 [verify]
 # The API Token with permission to Edit DNS Zones.
 # Read more: https://dash.cloudflare.com/profile/api-tokens
-token = "<YOUR_CLOUDFARE_TOKEN>"
+token = "<YOUR_CLOUDFLARE_TOKEN>"
 
 [list]
 # Zones (domains, subdomains, identities) to include with `cfddns list`

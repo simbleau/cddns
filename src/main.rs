@@ -8,13 +8,13 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-mod cloudfare;
+mod cloudflare;
 mod cmd;
 mod config;
 mod inventory;
 mod io;
 
-/// Cloudfare DDNS command line utility
+/// Cloudflare DDNS command line utility
 #[derive(Parser, Debug)]
 #[clap(about, author, version, name = "cfddns")]
 struct Args {

@@ -1,5 +1,5 @@
-use crate::cloudfare::models::CloudfareResponse;
-use crate::cloudfare::API_BASE;
+use crate::cloudflare::models::CloudfareResponse;
+use crate::cloudflare::API_BASE;
 use anyhow::{Context, Result};
 use core::slice::SlicePattern;
 use serde::{de::DeserializeOwned, Serialize};
