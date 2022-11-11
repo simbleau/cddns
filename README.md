@@ -1,20 +1,29 @@
-# CFDDNS (Cloudfare DDNS)
-A modern, hackable, green DDNS CLI purposed for Cloudfare. Built for native (Windows/Mac/Unix) and to scale (Docker, Kubernetes). Featuring interactive builders and layered configuration options.
+# 🚀 CFDDNS (Cloudfare Dynamic DNS)
+A modern, hackable, green DDNS CLI and service for Cloudfare. Built for native and scale, featuring interactive builders and layered configuration options.
 
-# Installation
-## Option A: Cargo
+# 🇺🇸 Purpose
+Dynamic DNS allows experts and home users to keep services available without a static IP address. CFDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
+
+# 🧰 Before: Requirements
+- Cloudfare Account ([Cloudfare Docs](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
+- Cloudfare API Token ([Cloudfare Docs](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
+- Existing DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
+
+# 💻 Supported Platforms (Instructions)
+- Native (Windows / MacOS / Unix)
+- Docker, Docker-Compose
+- Kubernetes
+
+# Native
+## Installation
+### Option A: Cargo
 - `cargo install cloudfare-ddns`
-## Option B: Binary
+### Option B: Binary
 - Download a compatible binary from [releases](https://github.com/simbleau/cloudfare-ddns/releases)
-## Containerization
-- See our [Docker](#docker) or [Kubernetes](#kubernetes) instructions.
 
-# Setup
-## Cloudfare API Token
-You will need a Cloudfare API token.
-1. Create API Token https://dash.cloudflare.com/profile/api-tokens
-2. Permissions: Zone | DNS | Edit
-3. Save your token somewhere safe. It is a password.
+## Getting Started
+TODO
+
 
 ## Build your config
 - Run `cfddns build config` to run an interactive configuration builder
