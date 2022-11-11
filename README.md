@@ -1,7 +1,5 @@
-# CFDDNS
-A simple, modern, and secure Cloudfare DDNS command line utility.
-
-Built for containerization, featuring interactive building and layered configuration options.
+# CFDDNS (Cloudfare DDNS)
+A modern, hackable, green DDNS CLI purposed for Cloudfare. Built for native (Windows/Mac/Unix) and to scale (Docker, Kubernetes). Featuring interactive builders and layered configuration options.
 
 # Installation
 ## Option A: Cargo
