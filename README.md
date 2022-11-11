@@ -1,16 +1,25 @@
-# 🚀 CFDDNS (Cloudflare Dynamic DNS)
-A modern, hackable, green DDNS CLI and service for Cloudflare. Built for native and scale, featuring interactive builders and layered configuration options.
+# 🚀 CDDNS : Cloudflare Dynamic DNS
+**cddns** is a modern, green, hackable DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust, featuring interactive builders and layered configuration options.
+
+<TODO: GIF>
+
+---
+[![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
+[![Documentation](https://docs.rs/cddns/badge.svg)](https://docs.rs/cddns)
+[![Build Status](https://github.com/simbleau/cddns/workflows/build/badge.svg)](https://github.com/simbleau/cddns/actions/workflows/build.yml)
+[![dependency status](https://deps.rs/repo/github/simbleau/cddns/status.svg)](https://deps.rs/repo/github/simbleau/cddns)
+
 
 # 🇺🇸 Purpose
-Dynamic DNS allows experts and home users to keep services available without a static IP address. CFDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
+Dynamic DNS allows experts and home users to keep services available without a static IP address. CDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
 
 # 🧰 Before: Requirements
 - Cloudflare Account ([Docs](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
-- Cloudflare API Token ([Docs](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
-- Existing DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
+- Cloudflare API Token with **Edit DNS** permissions ([Docs](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
+- A/AAAA DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
 
 # 💻 Supported Platforms (Instructions)
-- Native (Windows / MacOS / Unix)
+- [Native (Windows / MacOS / Unix)](#native)
 - Docker, Docker-Compose
 - Kubernetes
 
@@ -19,32 +28,44 @@ Dynamic DNS allows experts and home users to keep services available without a s
 ### Option A: Cargo
 - `cargo install cloudflare-ddns`
 ### Option B: Binary
-- Download a compatible binary from [releases](https://github.com/simbleau/cloudflare-ddns/releases)
+- Download a compatible binary release from [releases](https://github.com/simbleau/cloudflare-ddns/releases)
 
 ## Getting Started
-TODO
+First test your Cloudflare API token with the following command:
+> `cddns verify --token <YOUR_CLOUDFLARE_TOKEN>`.
 
+On success, you may see "`This API Token is valid and active`"
 
-## Build your config
-- Run `cfddns build config` to run an interactive configuration builder
-- You can visit `CFDDNS.toml`[CFDDNS.toml] for an annotated example.
+## Configuration (CLI)
+For CLI usage and testing, we use [TOML files](https://toml.io/en/) to save your local configuration, such as your API key. **You should restrict the permissions on this file.**
 
-## Build your DNS record inventory
-- Run `cfddns build inventory` to run an interactive inventory builder
-- You can visit `CFDDNS_INVENTORY.yaml`[CFDDNS_INVENTORY.yaml] for an annotated example.
+To quickly get setup, we offer an interactive configuration file builder.
+> `cddns config build`
 
-## Testing
-1. Locate your `CFDDNS.toml` (config) file and your `CFDDNS_INVENTORY.yaml` (inventory) file
-   - CFDDNS expects these files in the working directory, or:
-     - You can set the `CFDDNS_CONFIG` environment variable or add `-c <PATH>` in the CLI to change the config location.
-     - You can set the `CFDDNS_INVENTORY` environment variable or add `-i <PATH>` in the CLI to change the inventory location.
-2. Run `cfddns verify` to test authentication
-3. Run `cfddns list` to list managed items
-4. Run `cfddns check` to check outdated DNS records
-5. Run `cfddns run` to commit DNS record updates found in `check`
-6. Run `cfddns watch` to continually check for DNS record updates on loop
+If you prefer, you can visit [`config.toml`](config.toml) for an annotated example.
 
-## Configuration
+### Location
+By default, we check `$XDG_CONFIG_HOME/cddns/config.toml` for your configuration file.
+- On Linux, this would be `$HOME/.config/cddns/config.toml`
+- On MacOS, this would be `$HOME/Library/Application Support/cddns/config.toml`
+- On Windows, this would be `%APPData%\cddns\config.toml`
+
+You can set the **CDDNS_CONFIG** environment variable to manually specify the location of this file. [Click here](#environment-variables) for more environment variables.
+
+## Inventory
+We use [YAML files](https://yaml.org/) to save which DNS records to watch.
+
+To quickly get setup, we offer an interactive inventory file builder.
+> `cddns inventory build`
+
+If you prefer, you can visit [`inventory.yaml`](inventory.yaml) for an annotated example.
+
+### Location
+By default, we check `./inventory.yaml` for your inventory file.
+
+You can set the **CDDNS_INVENTORY** environment variable to manually specify the location of this file. [Click here](#environment-variables) for more environment variables.
+
+# Environment Variables
 <TODO: Table of env variables>
 
 # Docker
@@ -52,11 +73,11 @@ To run this as a Cloudflare DDNS daemon in Docker, here is an example:
 ```bash
 docker service create -d \
   --replicas=1 \
-  --name cfddns-daemon \
-  --mount type=bind,source="$(pwd)"/CFDDNS.toml \
-  --mount type=bind,source="$(pwd)"/CFDDNS_INVENTORY.yaml \
-  -e CFDDNS_WATCH_INTERVAL='5000' \
-  simbleau/cfddns:latest
+  --name cddns-daemon \
+  --mount type=bind,source="$(pwd)"/inventory.yaml \
+  -e CDDNS_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -e CDDNS_WATCH_INTERVAL='5000' \
+  simbleau/cddns:latest
 ```
 
 # Kubernetes
@@ -77,35 +98,35 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cfddns-deployment
+  name: cddns-deployment
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: cfddns
+      app: cddns
   template:
     metadata:
       labels:
-        app: cfddns
+        app: cddns
     spec:
       volumes:
         - name: inventory-volume
           hostPath:
-            path: CFDDNS_INVENTORY.yaml
+            path: /path/to/my/inventory.yaml
       containers:
-      - name: cfddns
-        image: simbleau/cfddns:latest
+      - name: cddns
+        image: simbleau/cddns:latest
         volumeMounts:
         - name: inventory-volume
-            mountPath: "CFDDNS_INVENTORY.yaml"
+            mountPath: "inventory.yaml"
             readOnly: true
         env:
-        - name: CFDDNS_VERIFY_TOKEN
-            valueFrom:
+        - name: CDDNS_TOKEN
+            valueFrom: # Cloudflare API token
             secretKeyRef:
                 name: cf-token-secret
                 key: token
     env:
-    - name: CFDDNS_WATCH_INTERVAL
+    - name: CDDNS_WATCH_INTERVAL
       value: "5000" # Interval (ms) for DNS watch
 ```
