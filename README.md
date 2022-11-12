@@ -120,15 +120,93 @@ By default, we check the current directory for an `inventory.yaml` file.
 You can set the **CDDNS_INVENTORY** environment variable to manually specify the location of this file. [Click here](#213-environment-variables) for more environment variables.
 
 ## 2.2 CLI Commands
-TODO
+
 ### 2.2.1 Verify
-TODO
+**Help: `cddns verify --help`**
+
+The `verify` command will attempt to authenticate using your Cloudflare API token.
+
+Example:
+```bash
+cddns verify --token 'YOUR_CLOUDFLARE_TOKEN'
+```
+
 ### 2.2.2 Config
-TODO
+**Help: `cddns config --help`**
+
+The `config` command will help you build or manage your configuration ([Configuration help](#212-configuration)). cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
+
+To show your configuration:
+Example:
+```bash
+cddns config show
+```
+
+To build a configuration file:
+Example:
+```bash
+cddns config build
+```
+
+By default, cddns checks `$XDG_CONFIG_HOME/cddns/config.toml` for saved configuration ([More](#212-configuration)).
+
 ### 2.2.3 List
-TODO
+**Help: `cddns list --help`**
+
+The `list` command will print Cloudflare resources.
+
+To show your zones AND records:
+Example:
+```bash
+cddns list
+```
+
+To show only zones:
+Example:
+```bash
+cddns list zones
+```
+
+To show only records:
+Example:
+```bash
+cddns list records
+```
+
 ### 2.2.4 Inventory
-TODO
+**Help: `cddns inventory --help`**
+
+The `inventory` command has several subcommands to manage, build, or show your inventory.
+
+To build an inventory:
+Example:
+```bash
+cddns inventory build
+```
+
+To show or validate an inventory:
+Example:
+```bash
+cddns inventory [--path 'inventory.yaml'] show
+```
+
+To check an inventory, without making any changes:
+Example:
+```bash
+cddns inventory check
+```
+
+To fix erroneous records discovered via `check`:
+Example:
+```bash
+cddns inventory commit
+```
+
+To continuously fix erroneous records:
+Example:
+```bash
+cddns inventory watch [--interval 5000]
+```
 
 ## 2.3 Service Deployment
 cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
@@ -147,14 +225,14 @@ cddns inventory --path '/to/your/inventory.yaml'  show
 ```bash
 docker service create -d \
   --replicas=1 \
-  --name cddns-daemon \
+  --name cddns-service \
   --mount type=bind,source=/to/your/inventory.yaml,target=inventory.yaml \
   -e CDDNS_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
   simbleau/cddns:latest
 ```
 
 ### 2.3.2 Kubernetes
-We will eventually support standard installation techniques such as Helm. For now, we recommend your own solution or our imperative steps:
+We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps:
 
 1. Ensure your token is valid with the CLI ([Help](#211-getting-started)).
 ```bash
