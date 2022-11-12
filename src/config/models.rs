@@ -10,6 +10,8 @@ pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
     pub inventory: Option<ConfigOptsInventory>,
+    pub commit: Option<ConfigOptsCommit>,
+    pub watch: Option<ConfigOptsWatch>,
 }
 
 impl ConfigOpts {
@@ -52,6 +54,16 @@ impl ConfigOpts {
                     .from_env::<ConfigOptsInventory>()
                     .context("reading inventory env var config")?,
             ),
+            commit: Some(
+                envy::prefixed("CDDNS_COMMIT_")
+                    .from_env::<ConfigOptsCommit>()
+                    .context("reading inventory env var config")?,
+            ),
+            watch: Some(
+                envy::prefixed("CDDNS_WATCH_")
+                    .from_env::<ConfigOptsWatch>()
+                    .context("reading inventory env var config")?,
+            ),
         })
     }
 
@@ -82,10 +94,25 @@ impl ConfigOpts {
                 (Some(val), None) | (None, Some(val)) => Some(val),
                 (Some(l), Some(mut g)) => {
                     g.path = g.path.or(l.path);
-                    g.interval = g.interval.or(l.interval);
                     Some(g)
                 }
             };
+        greater.commit = match (self.commit.take(), greater.commit.take()) {
+            (None, None) => None,
+            (Some(val), None) | (None, Some(val)) => Some(val),
+            (Some(l), Some(mut g)) => {
+                g.force = g.force || l.force;
+                Some(g)
+            }
+        };
+        greater.watch = match (self.watch.take(), greater.watch.take()) {
+            (None, None) => None,
+            (Some(val), None) | (None, Some(val)) => Some(val),
+            (Some(l), Some(mut g)) => {
+                g.interval = g.interval.or(l.interval);
+                Some(g)
+            }
+        };
         greater
     }
 }
@@ -122,7 +149,20 @@ pub struct ConfigOptsInventory {
     /// The path to the inventory file.
     #[clap(short, long, env = "CDDNS_INVENTORY", value_name = "file")]
     pub path: Option<PathBuf>,
-    /// The interval for watching inventory records.
+}
+
+/// Config options for `inventory commit`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+pub struct ConfigOptsCommit {
+    /// Do not prompt, forcibly commit.
+    #[clap(short, long)]
+    pub force: bool,
+}
+
+/// Config options for `inventory watch`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+pub struct ConfigOptsWatch {
+    /// The interval for refreshing inventory records.
     #[clap(short, long, value_name = "milliseconds")]
     pub interval: Option<u64>,
 }

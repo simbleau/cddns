@@ -4,17 +4,23 @@
 token = "<YOUR_CLOUDFLARE_TOKEN>"
 
 [list]
-# Zones (domains, subdomains, identities) to include with `cfddns list`
+# Zones (domains, subdomains, identities) to include with `cfddns list`.
 include_zones = [".*"] # Default: [".*"]
-# Zones (domains, subdomains, identities) to ignore with `cfddns list`
+# Zones (domains, subdomains, identities) to ignore with `cfddns list`.
 ignore_zones = [] # Default: []
-# (DNS) Records to include with `cfddns list`
+# (DNS) Records to include with `cfddns list`.
 include_records = [".*"] # Default: [".*"]
-# (DNS) Records to ignore with `cfddns list`
+# (DNS) Records to ignore with `cfddns list`.
 ignore_records = [] # Default: []
 
 [inventory]
-# The path to your inventory file
+# The path to your inventory file.
 path = "inventory.yaml" # Default: "inventory.yaml"
-# The interval for record checking, in milliseconds
-interval = 5000 # Default: 5000
+
+[commit]
+# For `inventory commit`, do not prompt on user input.
+force = true # Default: false
+
+[watch]
+# For `inventory watch`, the interval to refresh DNS records, in milliseconds.
+interval = 5000 # Default: 5000ms (5s)

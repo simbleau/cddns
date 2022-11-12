@@ -23,7 +23,7 @@ struct Args {
     /// A config file to use. [default: $XDG_CONFIG_HOME/cddns/config.toml]
     #[clap(short, long, env = "CDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
-    /// Enable verbose logging.
+    /// TODO: Enable verbose logging.
     #[clap(short)]
     pub v: bool,
 }

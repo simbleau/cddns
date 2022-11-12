@@ -1,6 +1,8 @@
 use crate::{
     cloudflare::{self, endpoints::update_record, models::Record},
-    config::models::{ConfigOpts, ConfigOptsInventory},
+    config::models::{
+        ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
+    },
     inventory::models::Inventory,
     inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
     io::{self, Scanner},
@@ -26,6 +28,22 @@ pub struct InventoryCmd {
     pub cfg: ConfigOptsInventory,
 }
 
+/// Fix erroneous DNS records once.
+#[derive(Debug, Clone, Args)]
+#[clap(name = "commit")]
+pub struct InventoryCommitCmd {
+    #[clap(flatten)]
+    pub cfg: ConfigOptsCommit,
+}
+
+/// Fix erroneous DNS records on an interval.
+#[derive(Debug, Clone, Args)]
+#[clap(name = "commit")]
+pub struct InventoryWatchCmd {
+    #[clap(flatten)]
+    pub cfg: ConfigOptsWatch,
+}
+
 #[derive(Clone, Debug, Subcommand)]
 enum InventorySubcommands {
     /// Build an inventory file.
@@ -35,9 +53,9 @@ enum InventorySubcommands {
     /// Print erroneous DNS records.
     Check,
     /// Fix erroneous DNS records once.
-    Commit,
+    Commit(ConfigOptsCommit),
     /// Fix erroneous DNS records on an interval.
-    Watch,
+    Watch(ConfigOptsWatch),
 }
 
 impl InventoryCmd {
@@ -55,8 +73,20 @@ impl InventoryCmd {
             InventorySubcommands::Build => build(&opts).await,
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await,
-            InventorySubcommands::Commit => commit(&opts).await,
-            InventorySubcommands::Watch => watch(&opts).await,
+            InventorySubcommands::Commit(cfg) => {
+                let cli_cfg = ConfigOpts {
+                    commit: Some(cfg),
+                    ..Default::default()
+                };
+                commit(&opts.merge(cli_cfg)).await
+            }
+            InventorySubcommands::Watch(cfg) => {
+                let cli_cfg = ConfigOpts {
+                    watch: Some(cfg),
+                    ..Default::default()
+                };
+                watch(&opts.merge(cli_cfg)).await
+            }
         }
     }
 }
@@ -417,7 +447,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
     // Get watch interval
     let interval = Duration::from_millis(
-        opts.inventory
+        opts.watch
             .as_ref()
             .map(|opts| opts.interval)
             .flatten()

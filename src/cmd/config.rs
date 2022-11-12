@@ -1,6 +1,7 @@
 use crate::{
     config::models::{
-        ConfigOpts, ConfigOptsInventory, ConfigOptsList, ConfigOptsVerify,
+        ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
+        ConfigOptsVerify, ConfigOptsWatch,
     },
     config::DEFAULT_CONFIG_PATH,
     io::{self, Scanner},
@@ -35,6 +36,8 @@ impl ConfigCmd {
                     verify: Some(ConfigOptsVerify { token: Some(token) }),
                     list: Some(ConfigOptsList::default()),
                     inventory: Some(ConfigOptsInventory::default()),
+                    commit: Some(ConfigOptsCommit::default()),
+                    watch: Some(ConfigOptsWatch::default()),
                 };
 
                 // Save
