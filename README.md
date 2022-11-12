@@ -75,15 +75,15 @@ You can also set the **CDDNS_TOKEN** environment variable to manually specify yo
 ### 2.1.2 Configuration
 For CLI usage and testing, you may use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
 
-To quickly get setup, we offer an interactive configuration file builder.
-> `cddns config build`
-
-You can also visit [`config.toml`](config.toml) for an annotated example.
-
 By default, we check `$XDG_CONFIG_HOME/cddns/config.toml` for your configuration file.
 - On Linux, this would be `$HOME/.config/cddns/config.toml`
 - On MacOS, this would be `$HOME/Library/Application Support/cddns/config.toml`
 - On Windows, this would be `%APPData%\cddns\config.toml`
+
+To quickly get setup, we offer an interactive configuration file builder.
+> `cddns config build`
+
+You can also visit [`config.toml`](config.toml) for an annotated example.
 
 You can set the **CDDNS_CONFIG** environment variable to manually specify the location of this file. [Click here](#213-environment-variables) for more environment variables.
 
@@ -125,6 +125,8 @@ You can set the **CDDNS_INVENTORY** environment variable to manually specify the
 **Help: `cddns verify --help`**
 
 The `verify` command will attempt to authenticate using your Cloudflare API token.
+
+If you do not provide `--token ...`, the token will be obtained from your [configuration file](#212-configuration) or the [**CDDNS_TOKEN**](#213-environment-variables) environment variable.
 
 Example:
 ```bash
