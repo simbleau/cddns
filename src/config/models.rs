@@ -57,12 +57,12 @@ impl ConfigOpts {
             commit: Some(
                 envy::prefixed("CDDNS_COMMIT_")
                     .from_env::<ConfigOptsCommit>()
-                    .context("reading inventory env var config")?,
+                    .context("reading commit env var config")?,
             ),
             watch: Some(
                 envy::prefixed("CDDNS_WATCH_")
                     .from_env::<ConfigOptsWatch>()
-                    .context("reading inventory env var config")?,
+                    .context("reading watch env var config")?,
             ),
         })
     }
@@ -156,6 +156,7 @@ pub struct ConfigOptsInventory {
 pub struct ConfigOptsCommit {
     /// Do not prompt, forcibly commit.
     #[clap(short, long)]
+    #[serde(default)]
     pub force: bool,
 }
 
