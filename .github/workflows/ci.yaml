@@ -21,7 +21,7 @@ jobs:
       - name: Setup | Toolchain (clippy)
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           default: true
           components: clippy
 
@@ -61,7 +61,7 @@ jobs:
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           profile: minimal
 
       - name: Build | Check
@@ -99,7 +99,7 @@ jobs:
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           profile: minimal
 
       - name: Build | Test

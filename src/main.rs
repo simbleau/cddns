@@ -1,6 +1,5 @@
 #![feature(slice_pattern)]
 #![feature(try_blocks)]
-#![feature(is_some_with)]
 #![feature(unwrap_infallible)]
 #![feature(iter_intersperse)]
 #![feature(exact_size_is_empty)]
