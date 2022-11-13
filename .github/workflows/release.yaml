@@ -4,7 +4,7 @@ on:
     tags:
       - "v*"
 jobs:
-  build-native:
+  build:
     strategy:
       fail-fast: false
       matrix:
