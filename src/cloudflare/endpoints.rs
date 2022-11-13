@@ -64,7 +64,7 @@ pub async fn records(
 
             records.extend(resp.result.into_iter().filter(|record| {
                 record.record_type == "A"
-                    || record.record_type == "AAAA" && record.locked == false
+                    || record.record_type == "AAAA" && !record.locked
             }));
 
             page_cursor += 1;

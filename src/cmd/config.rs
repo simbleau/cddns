@@ -39,7 +39,7 @@ impl ConfigCmd {
 
                 // Save
                 let default_path = default_config_path()
-                    .unwrap_or(PathBuf::from("config.toml"));
+                    .unwrap_or_else(|| PathBuf::from("config.toml"));
                 let path = scanner
                     .prompt_path(format!(
                         "Save location [default: {}]",
