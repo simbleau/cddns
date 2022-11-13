@@ -75,10 +75,10 @@ You can also set the **CDDNS_TOKEN** environment variable to manually specify yo
 ### 2.1.2 Configuration
 For CLI usage and testing, you may use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
 
-By default, we check `$XDG_CONFIG_HOME/cddns/config.toml` for your configuration file.
-- On Linux, this would be `$HOME/.config/cddns/config.toml`
+By default, we check your local configuration directory for your configuration file.
+- On Linux, this would be `$XDG_CONFIG_HOME/cddns/config.toml` or `$HOME/.config/cddns/config.toml`
 - On MacOS, this would be `$HOME/Library/Application Support/cddns/config.toml`
-- On Windows, this would be `%APPData%\cddns\config.toml`
+- On Windows, this would be `%AppData%\cddns\config.toml`
 
 To quickly get setup, we offer an interactive configuration file builder.
 > `cddns config build`
@@ -90,17 +90,17 @@ You can set the **CDDNS_CONFIG** environment variable to manually specify the lo
 ### 2.1.3 Environment Variables
 Every value which can be stored in a [configuration file](#212-configuration) can be superseded or provided as an environment variable.
 
-| Variable Name                                   | Description                                         | Default                       | Example                                    |
-| ----------------------------------------------- | --------------------------------------------------- | ----------------------------- | ------------------------------------------ |
-| **CDDNS_CONFIG**                                | The path to your configuration file                 | `$XDG_HOME/cddns/config.toml` | `/etc/cddns/CDDNS.toml`                    |
-| **CDDNS_TOKEN** or **CDDNS_VERIFY_TOKEN**       | The default Cloudflare API Token to use             | None                          | `GAWnixPCAADXRAjoKSxiKsIhe7pJqMmAzkhZc33w` |
-| **CDDNS_INVENTORY** or **CDDNS_INVENTORY_PATH** | The path to your inventory file                     | `inventory.yaml`              | `MyInventory.yml`                          |
-| **CDDNS_LIST_INCLUDE_ZONES**                    | Regex filters for zones to include in CLI usage     | `.*` (Match all)              | `imbleau.com,imbleau.dev`                  |
-| **CDDNS_LIST_INCLUDE_RECORDS**                  | Regex filters for records to include in CLI usage   | `.*` (Match all)              | `.*\.imbleau.com`                          |
-| **CDDNS_LIST_IGNORE_ZONES**                     | Regex filters for zones to ignore in CLI usage      | None                          | `imbleau.com`                              |
-| **CDDNS_LIST_IGNORE_RECORDS**                   | Regex filters for records to ignore in CLI usage    | None                          | `shop\..+\.com`                            |
-| **CDDNS_COMMIT_FORCE**                          | Force commit (Do not prompt) for `inventory commit` | `false`                       | `true`                                     |
-| **CDDNS_WATCH_INTERVAL**                        | The milliseconds between checking DNS records       | `5000` (5s)                   | `60000` (60s)                              |
+| Variable Name                                   | Description                                         | Default                            | Example                                    |
+| ----------------------------------------------- | --------------------------------------------------- | ---------------------------------- | ------------------------------------------ |
+| **CDDNS_CONFIG**                                | The path to your configuration file                 | [Varies by OS](#212-configuration) | `/etc/cddns/CDDNS.toml`                    |
+| **CDDNS_TOKEN** or **CDDNS_VERIFY_TOKEN**       | The default Cloudflare API Token to use             | None                               | `GAWnixPCAADXRAjoKSxiKsIhe7pJqMmAzkhZc33w` |
+| **CDDNS_INVENTORY** or **CDDNS_INVENTORY_PATH** | The path to your inventory file                     | `inventory.yaml`                   | `MyInventory.yml`                          |
+| **CDDNS_LIST_INCLUDE_ZONES**                    | Regex filters for zones to include in CLI usage     | `.*` (Match all)                   | `imbleau.com,imbleau.dev`                  |
+| **CDDNS_LIST_INCLUDE_RECORDS**                  | Regex filters for records to include in CLI usage   | `.*` (Match all)                   | `.*\.imbleau.com`                          |
+| **CDDNS_LIST_IGNORE_ZONES**                     | Regex filters for zones to ignore in CLI usage      | None                               | `imbleau.com`                              |
+| **CDDNS_LIST_IGNORE_RECORDS**                   | Regex filters for records to ignore in CLI usage    | None                               | `shop\..+\.com`                            |
+| **CDDNS_COMMIT_FORCE**                          | Force commit (Do not prompt) for `inventory commit` | `false`                            | `true`                                     |
+| **CDDNS_WATCH_INTERVAL**                        | The milliseconds between checking DNS records       | `5000` (5s)                        | `60000` (60s)                              |
 
 ### 2.1.4 Inventory
 cddns uses [YAML files](https://yaml.org/) to save which DNS records to watch.
@@ -151,7 +151,7 @@ Example:
 cddns config build
 ```
 
-By default, cddns checks `$XDG_CONFIG_HOME/cddns/config.toml` for saved configuration ([More](#212-configuration)).
+By default, cddns checks your [local configuration folder](#212-configuration) for saved configuration ([More](#212-configuration)).
 
 ### 2.2.3 List
 **Help: `cddns list --help`**

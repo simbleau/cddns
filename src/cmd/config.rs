@@ -1,9 +1,11 @@
 use crate::{
-    config::models::{
-        ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
-        ConfigOptsVerify, ConfigOptsWatch,
+    config::{
+        default_config_path,
+        models::{
+            ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
+            ConfigOptsVerify, ConfigOptsWatch,
+        },
     },
-    config::DEFAULT_CONFIG_PATH,
     io::{self, Scanner},
 };
 use anyhow::Result;
@@ -41,17 +43,19 @@ impl ConfigCmd {
                 };
 
                 // Save
+                let default_path = default_config_path()
+                    .unwrap_or(PathBuf::from("config.toml"));
                 let path = scanner
                     .prompt_path(format!(
                         "Save location [default: {}]",
-                        DEFAULT_CONFIG_PATH
+                        default_path.display()
                     ))
                     .await?
                     .map(|p| match p.extension() {
                         Some(_) => p,
                         None => p.with_extension("toml"),
                     })
-                    .unwrap_or(DEFAULT_CONFIG_PATH.into());
+                    .unwrap_or(default_path);
                 if path.exists() {
                     io::fs::remove_interactive(&path, &mut scanner).await?;
                 }
