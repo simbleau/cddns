@@ -64,6 +64,7 @@ impl ConfigCmd {
                 println!("✅ Saved");
             }
             ConfigSubcommands::Show => {
+                // TODO: Need to show this in a better format and with defaults.
                 let toml_cfg = ConfigOpts::from_file(config)?;
                 let env_cfg = ConfigOpts::from_env()?;
                 let cfg = toml_cfg.merge(env_cfg);
