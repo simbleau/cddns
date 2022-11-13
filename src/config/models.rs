@@ -153,17 +153,33 @@ impl ConfigOpts {
 #[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
     /// Include cloudflare zones by regex [default: all]
-    #[clap(long, value_name = "pattern")]
+    #[clap(
+        long,
+        value_name = "pattern1,pattern2,..",
+        env = "CDDNS_LIST_INCLUDE_ZONES"
+    )]
     pub include_zones: Option<Vec<String>>,
     /// Ignore cloudflare zones by regex [default: none]
-    #[clap(long, value_name = "pattern")]
+    #[clap(
+        long,
+        value_name = "pattern1,pattern2,..",
+        env = "CDDNS_LIST_IGNORE_ZONES"
+    )]
     pub ignore_zones: Option<Vec<String>>,
 
     /// Include cloudflare zone records by regex [default: all]
-    #[clap(long, value_name = "pattern")]
+    #[clap(
+        long,
+        value_name = "pattern1,pattern2,..",
+        env = "CDDNS_LIST_INCLUDE_RECORDS"
+    )]
     pub include_records: Option<Vec<String>>,
     /// Ignore cloudflare zone records by regex [default: none]
-    #[clap(long, value_name = "pattern")]
+    #[clap(
+        long,
+        value_name = "pattern1,pattern2,..",
+        env = "CDDNS_LIST_IGNORE_RECORDS"
+    )]
     pub ignore_records: Option<Vec<String>>,
 }
 /// Default configuration for list.
@@ -212,7 +228,7 @@ impl Default for ConfigOptsInventory {
 #[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsCommit {
     /// Do not prompt, forcibly commit.
-    #[clap(short, long)]
+    #[clap(short, long, env = "CDDNS_COMMIT_FORCE")]
     pub force: Option<bool>,
 }
 /// Default configuration for inventory commit.
@@ -225,8 +241,8 @@ impl Default for ConfigOptsCommit {
 /// Config options for `inventory watch`.
 #[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsWatch {
-    /// The interval for refreshing inventory records.
-    #[clap(short, long, value_name = "milliseconds")]
+    /// The interval for refreshing inventory records in milliseconds.
+    #[clap(short, long, value_name = "ms", env = "CDDNS_WATCH_INTERVAL")]
     pub interval: Option<u64>,
 }
 /// Default configuration for inventory watch.
