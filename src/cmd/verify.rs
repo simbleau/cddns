@@ -2,7 +2,7 @@ use crate::{
     cloudflare,
     config::models::{ConfigOpts, ConfigOptsVerify},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Args;
 use std::path::PathBuf;
 
@@ -16,28 +16,29 @@ pub struct VerifyCmd {
 
 impl VerifyCmd {
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
-        let toml_cfg = ConfigOpts::from_file(config)?;
-        let env_cfg = ConfigOpts::from_env()?;
         let cli_cfg = ConfigOpts {
             verify: Some(self.cfg),
             ..Default::default()
         };
-        // Apply layering to configuration data (TOML < ENV < CLI)
-        let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
+        let opts = ConfigOpts::full(config, Some(cli_cfg))?;
 
-        if let Some(token) = opts.verify.map(|opts| opts.token).flatten() {
-            println!("Verifying...");
-            let login_messages = cloudflare::endpoints::verify(&token).await?;
-            if let Some(message_stack) = login_messages
-                .into_iter()
-                .map(|msg| msg.message)
-                .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
-            {
-                println!("{}", message_stack);
-            }
-            Ok(())
-        } else {
-            anyhow::bail!("no token was provided")
+        // Get token
+        let token = opts
+            .verify
+            .as_ref()
+            .map(|opts| opts.token.clone())
+            .flatten()
+            .context("no token was provided")?;
+
+        println!("Verifying...");
+        let login_messages = cloudflare::endpoints::verify(&token).await?;
+        if let Some(message_stack) = login_messages
+            .into_iter()
+            .map(|msg| msg.message)
+            .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
+        {
+            println!("{}", message_stack);
         }
+        Ok(())
     }
 }

@@ -1,11 +1,11 @@
-use crate::config::default_config_path;
+use crate::{config::default_config_path, inventory::default_inventory_path};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// A model of all potential configuration options for the CDDNS CLI system.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
@@ -14,29 +14,55 @@ pub struct ConfigOpts {
     pub watch: Option<ConfigOptsWatch>,
 }
 
-impl ConfigOpts {
-    /// Read runtime config from a target path.
-    pub fn from_file(path: Option<PathBuf>) -> Result<Self> {
-        let mut config_path = match path.or(default_config_path()) {
-            Some(path) => path,
-            None => {
-                println!("No configuration path identified. Using defaults...");
-                return Ok(Default::default());
-            }
-        };
-        if !config_path.exists() {
-            return Ok(Default::default());
+/// All defaults for potential configuration options.
+impl Default for ConfigOpts {
+    fn default() -> Self {
+        Self {
+            verify: Some(ConfigOptsVerify::default()),
+            list: Some(ConfigOptsList::default()),
+            inventory: Some(ConfigOptsInventory::default()),
+            commit: Some(ConfigOptsCommit::default()),
+            watch: Some(ConfigOptsWatch::default()),
         }
-        if !config_path.is_absolute() {
-            config_path = config_path.canonicalize().with_context(|| {
+    }
+}
+
+impl ConfigOpts {
+    /// Return runtime layered configuration.
+    /// Configuration data precedence: Default < TOML < ENV < CLI
+    pub fn full(
+        toml: Option<PathBuf>,
+        cli_cfg: Option<ConfigOpts>,
+    ) -> Result<Self> {
+        // Start with base layer (Defaults)
+        let mut cfg = ConfigOpts::default();
+        // Apply TOML > Default
+        if let Some(path) = toml.or(default_config_path()) {
+            let canonical_path = path.canonicalize().with_context(|| {
                 format!(
-                    "could not canonicalize path to CDDNS config file {:?}",
-                    &config_path
+                    "could not canonicalize path to config file {:?}",
+                    &path
                 )
             })?;
+            if canonical_path.exists() {
+                let toml_cfg = ConfigOpts::from_file(canonical_path)?;
+                cfg = cfg.merge(toml_cfg);
+            }
+        };
+        // Apply ENV > TOML
+        let env_cfg = ConfigOpts::from_env()?;
+        cfg = cfg.merge(env_cfg);
+        // Apply CLI > ENV
+        if let Some(cli_cfg) = cli_cfg {
+            cfg = cfg.merge(cli_cfg);
         }
-        let cfg_bytes =
-            std::fs::read(&config_path).context("reading config file")?;
+        // Return layers
+        Ok(cfg)
+    }
+
+    /// Read runtime config from a target path.
+    pub fn from_file(path: PathBuf) -> Result<Self> {
+        let cfg_bytes = std::fs::read(&path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;
         Ok(cfg)
@@ -107,15 +133,15 @@ impl ConfigOpts {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
-                g.force = g.force || l.force;
+                g.force = g.force.or(l.force);
                 Some(g)
             }
         };
         greater.watch = match (self.watch.take(), greater.watch.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
-            (Some(_l), Some(mut g)) => {
-                g.interval = g.interval; // Redundant until new variables are provided
+            (Some(l), Some(mut g)) => {
+                g.interval = g.interval.or(l.interval);
                 Some(g)
             }
         };
@@ -124,7 +150,7 @@ impl ConfigOpts {
 }
 
 /// Config options for the list system.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
     /// Include cloudflare zones by regex [default: all]
     #[clap(long, value_name = "pattern")]
@@ -140,21 +166,46 @@ pub struct ConfigOptsList {
     #[clap(long, value_name = "pattern")]
     pub ignore_records: Option<Vec<String>>,
 }
+/// Default configuration for list.
+impl Default for ConfigOptsList {
+    fn default() -> Self {
+        Self {
+            include_zones: Some(vec![".*".to_string()]),
+            ignore_zones: None,
+            include_records: Some(vec![".*".to_string()]),
+            ignore_records: None,
+        }
+    }
+}
 
 /// Config options for the verify system.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
     // Your Cloudflare API key token
     #[clap(short, long, env = "CDDNS_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }
+/// Default configuration for verify.
+impl Default for ConfigOptsVerify {
+    fn default() -> Self {
+        Self { token: None }
+    }
+}
 
 /// Config options for the inventory system.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
     /// The path to the inventory file.
     #[clap(short, long, env = "CDDNS_INVENTORY", value_name = "file")]
     pub path: Option<PathBuf>,
+}
+/// Default configuration for inventory.
+impl Default for ConfigOptsInventory {
+    fn default() -> Self {
+        Self {
+            path: Some(default_inventory_path()),
+        }
+    }
 }
 
 /// Config options for `inventory commit`.
@@ -162,12 +213,12 @@ pub struct ConfigOptsInventory {
 pub struct ConfigOptsCommit {
     /// Do not prompt, forcibly commit.
     #[clap(short, long)]
-    #[serde(default)]
-    pub force: bool,
+    pub force: Option<bool>,
 }
+/// Default configuration for inventory commit.
 impl Default for ConfigOptsCommit {
     fn default() -> Self {
-        Self { force: false }
+        Self { force: Some(false) }
     }
 }
 
@@ -176,11 +227,13 @@ impl Default for ConfigOptsCommit {
 pub struct ConfigOptsWatch {
     /// The interval for refreshing inventory records.
     #[clap(short, long, value_name = "milliseconds")]
-    #[serde(default)]
-    pub interval: u64,
+    pub interval: Option<u64>,
 }
+/// Default configuration for inventory watch.
 impl Default for ConfigOptsWatch {
     fn default() -> Self {
-        Self { interval: 5000 }
+        Self {
+            interval: Some(5000),
+        }
     }
 }

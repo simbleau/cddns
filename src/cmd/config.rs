@@ -1,10 +1,7 @@
 use crate::{
     config::{
         default_config_path,
-        models::{
-            ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
-            ConfigOptsVerify, ConfigOptsWatch,
-        },
+        models::{ConfigOpts, ConfigOptsVerify},
     },
     io::{self, Scanner},
 };
@@ -37,10 +34,7 @@ impl ConfigCmd {
                 // Package config
                 let config = ConfigOpts {
                     verify: Some(ConfigOptsVerify { token: Some(token) }),
-                    list: Some(ConfigOptsList::default()),
-                    inventory: Some(ConfigOptsInventory::default()),
-                    commit: Some(ConfigOptsCommit::default()),
-                    watch: Some(ConfigOptsWatch::default()),
+                    ..Default::default()
                 };
 
                 // Save
@@ -64,10 +58,8 @@ impl ConfigCmd {
                 println!("✅ Saved");
             }
             ConfigSubcommands::Show => {
-                // TODO: Need to show this in a better format and with defaults.
-                let toml_cfg = ConfigOpts::from_file(config)?;
-                let env_cfg = ConfigOpts::from_env()?;
-                let cfg = toml_cfg.merge(env_cfg);
+                // TODO: Need to show this in a better format.
+                let cfg = ConfigOpts::full(config, None)?;
                 println!("{:#?}", cfg);
             }
         }

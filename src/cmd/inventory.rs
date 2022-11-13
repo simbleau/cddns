@@ -59,14 +59,11 @@ enum InventorySubcommands {
 
 impl InventoryCmd {
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
-        let toml_cfg = ConfigOpts::from_file(config)?;
-        let env_cfg = ConfigOpts::from_env()?;
         let cli_cfg = ConfigOpts {
             inventory: Some(self.cfg),
             ..Default::default()
         };
-        // Apply layering to configuration data (TOML < ENV < CLI)
-        let opts = toml_cfg.merge(env_cfg).merge(cli_cfg);
+        let opts = ConfigOpts::full(config, Some(cli_cfg))?;
 
         match self.action {
             InventorySubcommands::Build => build(&opts).await,
@@ -328,7 +325,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             );
         }
         // Ask to fix records
-        let fix = force
+        let fix = force.is_some_and(|f| *f)
             || 'fix: loop {
                 match scanner
                     .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
@@ -387,7 +384,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             println!("INVALID: {} | {}", inv_zone, inv_record);
         }
         // Ask to prune records
-        let prune = force
+        let prune = force.is_some_and(|f| *f)
             || 'prune: loop {
                 match scanner
                     .prompt(format!(
@@ -457,7 +454,12 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         opts.watch
             .as_ref()
             .map(|opts| opts.interval)
-            .unwrap_or(ConfigOptsWatch::default().interval),
+            .flatten()
+            .unwrap_or(
+                ConfigOptsWatch::default()
+                    .interval
+                    .expect("no default interval"),
+            ),
     );
 
     if interval.is_zero() {
