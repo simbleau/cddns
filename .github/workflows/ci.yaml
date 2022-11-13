@@ -1,0 +1,106 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-lint-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-
+
+      - name: Setup | Toolchain (clippy)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+          components: clippy
+
+      - name: Build | Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-targets -- -D warnings
+
+      - name: Setup | Toolchain (rustfmt)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          default: true
+          components: rustfmt
+
+      - name: Build | Rustfmt
+        run: cargo fmt -- --check
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-check-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-check-
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Build | Check
+        run: cargo check --all
+
+  test:
+    needs: check # Ensure check is run first.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            binPath: target/debug/cddns
+          - os: macos-latest
+            binPath: target/debug/cddns
+          - os: windows-latest
+            binPath: target/debug/cddns.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Build | Test
+        run: cargo test
