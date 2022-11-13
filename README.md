@@ -5,8 +5,7 @@
 
 ---
 [![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
-[![Build Status](https://github.com/simbleau/cddns/workflows/build/badge.svg)](https://github.com/simbleau/cddns/actions/workflows/build.yml)
-[![dependency status](https://deps.rs/repo/github/simbleau/cddns/status.svg)](https://deps.rs/repo/github/simbleau/cddns)
+[![dependency status](https://deps.rs/repo/github/simbleau/cddns/status.svg)](https://deps.rs/repo/github/simbleau/cddns)[![CI](https://github.com/simbleau/cddns/actions/workflows/ci.yaml/badge.svg)](https://github.com/simbleau/cddns/actions/workflows/ci.yaml)
 
 # Table of Contents
 - [CDDNS : Cloudflare Dynamic DNS](#cddns--cloudflare-dynamic-dns)
