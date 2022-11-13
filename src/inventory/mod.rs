@@ -10,10 +10,11 @@
 //! imbleau.com:
 //!   - *.imbleau.com
 //! ```
-
-/// The default location to inventory.
-pub const DEFAULT_INVENTORY_PATH: &str = "inventory.yaml";
-/// The default interval for record checking.
-pub const DEFAULT_WATCH_INTERVAL: u64 = 5000;
+use std::path::PathBuf;
 
 pub mod models;
+
+/// Return the default inventory path.
+pub fn default_inventory_path() -> PathBuf {
+    PathBuf::from("inventory.yaml")
+}

@@ -3,8 +3,7 @@ use crate::{
     config::models::{
         ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
     },
-    inventory::models::Inventory,
-    inventory::{DEFAULT_INVENTORY_PATH, DEFAULT_WATCH_INTERVAL},
+    inventory::{default_inventory_path, models::Inventory},
     io::{self, Scanner},
 };
 use anyhow::{Context, Result};
@@ -188,14 +187,14 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     let path = scanner
         .prompt_path(format!(
             "Save location [default: {}]",
-            DEFAULT_INVENTORY_PATH
+            default_inventory_path().display()
         ))
         .await?
         .map(|p| match p.extension() {
             Some(_) => p,
             None => p.with_extension("yaml"),
         })
-        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+        .unwrap_or(default_inventory_path());
     if path.exists() {
         io::fs::remove_interactive(&path, &mut scanner).await?;
     }
@@ -211,7 +210,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten()
-        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+        .unwrap_or(default_inventory_path());
     let inventory = Inventory::from_file(inventory_path).await?;
     if inventory.is_empty() {
         println!("Inventory file is empty.");
@@ -250,7 +249,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten()
-        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+        .unwrap_or(default_inventory_path());
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
@@ -300,10 +299,14 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten()
-        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+        .unwrap_or(default_inventory_path());
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
-    let force = opts.commit.as_ref().map(|opts| opts.force).unwrap_or(false);
+    let force = opts
+        .commit
+        .as_ref()
+        .map(|opts| opts.force)
+        .unwrap_or(ConfigOptsCommit::default().force);
 
     // Check records
     println!("Checking Cloudflare resources...");
@@ -446,7 +449,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.path.clone())
         .flatten()
-        .unwrap_or(DEFAULT_INVENTORY_PATH.into());
+        .unwrap_or(default_inventory_path());
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
     // Get watch interval
@@ -454,8 +457,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         opts.watch
             .as_ref()
             .map(|opts| opts.interval)
-            .flatten()
-            .unwrap_or(DEFAULT_WATCH_INTERVAL),
+            .unwrap_or(ConfigOptsWatch::default().interval),
     );
 
     if interval.is_zero() {

@@ -42,7 +42,7 @@ impl ConfigOpts {
         Ok(cfg)
     }
 
-    /// Read runtime config from environment variables
+    /// Read runtime config from environment variables.
     pub fn from_env() -> Result<Self> {
         Ok(ConfigOpts {
             verify: Some(
@@ -114,8 +114,8 @@ impl ConfigOpts {
         greater.watch = match (self.watch.take(), greater.watch.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
-            (Some(l), Some(mut g)) => {
-                g.interval = g.interval.or(l.interval);
+            (Some(_l), Some(mut g)) => {
+                g.interval = g.interval; // Redundant until new variables are provided
                 Some(g)
             }
         };
@@ -158,18 +158,29 @@ pub struct ConfigOptsInventory {
 }
 
 /// Config options for `inventory commit`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsCommit {
     /// Do not prompt, forcibly commit.
     #[clap(short, long)]
     #[serde(default)]
     pub force: bool,
 }
+impl Default for ConfigOptsCommit {
+    fn default() -> Self {
+        Self { force: false }
+    }
+}
 
 /// Config options for `inventory watch`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
+#[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsWatch {
     /// The interval for refreshing inventory records.
     #[clap(short, long, value_name = "milliseconds")]
-    pub interval: Option<u64>,
+    #[serde(default)]
+    pub interval: u64,
+}
+impl Default for ConfigOptsWatch {
+    fn default() -> Self {
+        Self { interval: 5000 }
+    }
 }

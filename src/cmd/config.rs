@@ -8,7 +8,7 @@ use crate::{
     },
     io::{self, Scanner},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
@@ -28,10 +28,11 @@ impl ConfigCmd {
                 let mut scanner = Scanner::new(runtime);
 
                 // Build
+                // TODO: Prompt until answer
                 let token = scanner
                     .prompt("Cloudflare API token")
                     .await?
-                    .unwrap_or_default();
+                    .context("empty answer not allowed")?;
 
                 // Package config
                 let config = ConfigOpts {
