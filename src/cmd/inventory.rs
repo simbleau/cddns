@@ -303,6 +303,8 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or(DEFAULT_INVENTORY_PATH.into());
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
+    let force = opts.commit.as_ref().map(|opts| opts.force).unwrap_or(false);
+
     // Check records
     println!("Checking Cloudflare resources...");
     let ipv4 = public_ip::addr_v4().await;
@@ -323,19 +325,20 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             );
         }
         // Ask to fix records
-        let fix = 'fix: loop {
-            match scanner
-                .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
-                .await?
-            {
-                Some(input) => match input.to_lowercase().as_str() {
-                    "y" | "yes" => break true,
-                    "n" | "no" => break false,
-                    _ => continue 'fix,
-                },
-                None => break true,
-            }
-        };
+        let fix = force
+            || 'fix: loop {
+                match scanner
+                    .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
+                    .await?
+                {
+                    Some(input) => match input.to_lowercase().as_str() {
+                        "y" | "yes" => break true,
+                        "n" | "no" => break false,
+                        _ => continue 'fix,
+                    },
+                    None => break true,
+                }
+            };
         // Fix records
         let mut fixed = HashSet::new();
         if fix {
@@ -381,22 +384,23 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             println!("INVALID: {} | {}", inv_zone, inv_record);
         }
         // Ask to prune records
-        let prune = 'control: loop {
-            match scanner
-                .prompt(format!(
-                    "Prune {} invalid records? [Y/n]",
-                    invalid.len()
-                ))
-                .await?
-            {
-                Some(input) => match input.to_lowercase().as_str() {
-                    "n" | "no" => break false,
-                    "y" | "yes" => break true,
-                    _ => continue 'control,
-                },
-                None => break true,
-            }
-        };
+        let prune = force
+            || 'prune: loop {
+                match scanner
+                    .prompt(format!(
+                        "Prune {} invalid records? [Y/n]",
+                        invalid.len()
+                    ))
+                    .await?
+                {
+                    Some(input) => match input.to_lowercase().as_str() {
+                        "n" | "no" => break false,
+                        "y" | "yes" => break true,
+                        _ => continue 'prune,
+                    },
+                    None => break true,
+                }
+            };
         // Prune
         let mut pruned = HashSet::new();
         if prune {
