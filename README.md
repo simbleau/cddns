@@ -202,7 +202,7 @@ cddns inventory check
 To fix erroneous records discovered via `check`:
 Example:
 ```bash
-cddns inventory commit
+cddns inventory commit [--force]
 ```
 
 To continuously fix erroneous records:
@@ -309,7 +309,7 @@ sudo crontab -e
 ```
 4. Add crontab entry (e.g. every 10 minutes)
 ```
-*/10 * * * * "cfddns inventory commit -y"
+*/10 * * * * "cfddns inventory commit --force"
 ```
 
 ---

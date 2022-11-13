@@ -133,7 +133,7 @@ impl ConfigOpts {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
-                g.force = g.force.or(l.force);
+                g.force = g.force || l.force;
                 Some(g)
             }
         };
@@ -229,12 +229,13 @@ impl Default for ConfigOptsInventory {
 pub struct ConfigOptsCommit {
     /// Do not prompt, forcibly commit.
     #[clap(short, long, env = "CDDNS_COMMIT_FORCE")]
-    pub force: Option<bool>,
+    #[serde(default)]
+    pub force: bool,
 }
 /// Default configuration for inventory commit.
 impl Default for ConfigOptsCommit {
     fn default() -> Self {
-        Self { force: Some(false) }
+        Self { force: false }
     }
 }
 

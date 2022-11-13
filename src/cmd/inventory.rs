@@ -325,7 +325,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             );
         }
         // Ask to fix records
-        let fix = force.is_some_and(|f| *f)
+        let fix = force
             || 'fix: loop {
                 match scanner
                     .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
@@ -384,7 +384,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             println!("INVALID: {} | {}", inv_zone, inv_record);
         }
         // Ask to prune records
-        let prune = force.is_some_and(|f| *f)
+        let prune = force
             || 'prune: loop {
                 match scanner
                     .prompt(format!(
