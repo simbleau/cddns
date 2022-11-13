@@ -3,4 +3,4 @@
   - 5dba009abaa3ba5d3a624e87b37f941a
 # Or Cloudflare names
 imbleau.com:
-  - *.imbleau.com
+  - "*.imbleau.com"
