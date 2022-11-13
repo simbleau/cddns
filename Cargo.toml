@@ -3,7 +3,7 @@ name = "cddns"
 description = "A modern, hackable, green DDNS CLI and service for Cloudflare."
 version = "0.1.0"
 edition = "2021"
-license = "MIT or Apache 2.0"
+license = "MIT"
 repository = "https://github.com/simbleau/cddns"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
