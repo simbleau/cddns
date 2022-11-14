@@ -142,4 +142,3 @@ jobs:
           tags: |
             simbleau/cddns:latest
             simbleau/cddns:${{ env.RELEASE_VERSION }}
-            simbleau/cddns:${{ hashFiles('./src') }}
