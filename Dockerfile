@@ -1,3 +1,4 @@
-FROM rust
+FROM rustlang/rust:nightly
 RUN cargo install cddns
-ENTRYPOINT ["cddns inventory watch"]
+ENTRYPOINT ["cddns"]
+CMD ["inventory", "watch"]
