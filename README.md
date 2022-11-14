@@ -70,7 +70,7 @@ First test a Cloudflare API token with the following command:
 
 On success, you may see "`This API Token is valid and active`"
 
-You can also set the **CDDNS_TOKEN** environment variable to manually specify your token. [Click here](#213-environment-variables) for more environment variables.
+You can also set the **CDDNS_VERIFY_TOKEN** environment variable to manually specify your token. [Click here](#213-environment-variables) for more environment variables.
 
 ### 2.1.2 Configuration
 For CLI usage and testing, you may use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
@@ -90,17 +90,17 @@ You can set the **CDDNS_CONFIG** environment variable to manually specify the lo
 ### 2.1.3 Environment Variables
 Every value which can be stored in a [configuration file](#212-configuration) can be superseded or provided as an environment variable.
 
-| Variable Name                                   | Description                                         | Default                            | Example                  |
-| ----------------------------------------------- | --------------------------------------------------- | ---------------------------------- | ------------------------ |
-| **CDDNS_CONFIG**                                | The path to your configuration file                 | [Varies by OS](#212-configuration) | `/etc/cddns/config.toml` |
-| **CDDNS_TOKEN** or **CDDNS_VERIFY_TOKEN**       | The default Cloudflare API Token to use             | None                               | `GAWnixPCAADXRAjoK...`   |
-| **CDDNS_INVENTORY** or **CDDNS_INVENTORY_PATH** | The path to your inventory file                     | `inventory.yaml`                   | `MyInventory.yml`        |
-| **CDDNS_LIST_INCLUDE_ZONES**                    | Regex filters for zones to include in CLI usage     | `.*` (Match all)                   | `imbleau.com,.*\.dev`    |
-| **CDDNS_LIST_INCLUDE_RECORDS**                  | Regex filters for records to include in CLI usage   | `.*` (Match all)                   | `.*\.imbleau.com`        |
-| **CDDNS_LIST_IGNORE_ZONES**                     | Regex filters for zones to ignore in CLI usage      | None                               | `imbleau.com`            |
-| **CDDNS_LIST_IGNORE_RECORDS**                   | Regex filters for records to ignore in CLI usage    | None                               | `shop\..+\.com`          |
-| **CDDNS_COMMIT_FORCE**                          | Force commit (Do not prompt) for `inventory commit` | `false`                            | `true`                   |
-| **CDDNS_WATCH_INTERVAL**                        | The milliseconds between checking DNS records       | `5000` (5s)                        | `60000` (60s)            |
+| Variable Name                  | Description                                         | Default                            | Example                  |
+| ------------------------------ | --------------------------------------------------- | ---------------------------------- | ------------------------ |
+| **CDDNS_CONFIG**               | The path to your configuration file                 | [Varies by OS](#212-configuration) | `/etc/cddns/config.toml` |
+| **CDDNS_VERIFY_TOKEN**         | The default Cloudflare API Token to use             | None                               | `GAWnixPCAADXRAjoK...`   |
+| **CDDNS_INVENTORY_PATH**       | The path to your inventory file                     | `inventory.yaml`                   | `MyInventory.yml`        |
+| **CDDNS_LIST_INCLUDE_ZONES**   | Regex filters for zones to include in CLI usage     | `.*` (Match all)                   | `imbleau.com,.*\.dev`    |
+| **CDDNS_LIST_INCLUDE_RECORDS** | Regex filters for records to include in CLI usage   | `.*` (Match all)                   | `.*\.imbleau.com`        |
+| **CDDNS_LIST_IGNORE_ZONES**    | Regex filters for zones to ignore in CLI usage      | None                               | `imbleau.com`            |
+| **CDDNS_LIST_IGNORE_RECORDS**  | Regex filters for records to ignore in CLI usage    | None                               | `shop\..+\.com`          |
+| **CDDNS_COMMIT_FORCE**         | Force commit (Do not prompt) for `inventory commit` | `false`                            | `true`                   |
+| **CDDNS_WATCH_INTERVAL**       | The milliseconds between checking DNS records       | `5000` (5s)                        | `60000` (60s)            |
 
 ### 2.1.4 Inventory
 cddns uses [YAML files](https://yaml.org/) to save which DNS records to watch.
@@ -127,7 +127,7 @@ You can set the **CDDNS_INVENTORY** environment variable to manually specify the
 
 The `verify` command will attempt to authenticate using your Cloudflare API token.
 
-If you do not provide `--token ...`, the token will be obtained from your [configuration file](#212-configuration) or the [**CDDNS_TOKEN**](#213-environment-variables) environment variable.
+If you do not provide `--token ...`, the token will be obtained from your [configuration file](#212-configuration) or the [**CDDNS_VERIFY_TOKEN**](#213-environment-variables) environment variable.
 
 Example:
 ```bash
@@ -218,11 +218,17 @@ cddns will work as a service daemon to keep DNS records up to date. The default 
 Once you have tested your token and built an inventory file with the CLI, you can deploy via Docker.
 1. Ensure your token is valid with the CLI ([Help](#211-getting-started)).
 ```bash
-cddns verify --token 'YOUR_CLOUDFLARE_TOKEN'
+docker run  \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  simbleau/cddns:latest verify
 ```
 2. Ensure your inventory is valid with the CLI ([Help](#214-inventory)).
 ```bash
-cddns inventory --path '/to/your/inventory.yaml'  show
+docker run \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -e CDDNS_INVENTORY_PATH='/opt/cddns/inventory.yaml' \
+  -v $(pwd)/inventory.yaml:/opt/cddns/inventory.yaml \
+  simbleau/cddns:latest inventory show
 ```
 3. Deploy with Docker
 ```bash
@@ -230,7 +236,7 @@ docker service create -d \
   --replicas=1 \
   --name cddns-service \
   --mount type=bind,source=/to/your/inventory.yaml,target=inventory.yaml \
-  -e CDDNS_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
   simbleau/cddns:latest
 ```
 
@@ -284,7 +290,7 @@ spec:
             mountPath: "inventory.yaml"
             readOnly: true
         env:
-        - name: CDDNS_TOKEN
+        - name: CDDNS_VERIFY_TOKEN
             valueFrom: # Cloudflare API token
             secretKeyRef:
                 name: cddns-api-token
