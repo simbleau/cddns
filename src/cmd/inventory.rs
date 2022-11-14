@@ -467,7 +467,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             if let Err(e) =
                 __watch(&token, &mut inventory, &inventory_path).await
             {
-                println!("{}", e.to_string());
+                println!("Error: {:?}", e);
             }
         }
     } else {
@@ -478,7 +478,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             if let Err(e) =
                 __watch(&token, &mut inventory, &inventory_path).await
             {
-                println!("{}", e.to_string());
+                println!("Error: {:?}", e);
             }
         }
     }
