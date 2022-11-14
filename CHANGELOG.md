@@ -18,6 +18,11 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### security
 - Placeholder
 
+## 0.1.2
+### security
+- Updated clap: 4.0.18 -> 4.0.23
+- Updated regex: 1.6.0 -> 1.7.0
+
 ## 0.1.1
 ### changed
 - Configuration path no longer needs to exist
