@@ -14,7 +14,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### removed
 - Placeholder
 ### fixed
-- Placeholder
+- Environment variables are now consistent and respected
 ### security
 - Placeholder
 
