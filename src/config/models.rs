@@ -5,26 +5,13 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// A model of all potential configuration options for the CDDNS CLI system.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
     pub inventory: Option<ConfigOptsInventory>,
     pub commit: Option<ConfigOptsCommit>,
     pub watch: Option<ConfigOptsWatch>,
-}
-
-/// All defaults for potential configuration options.
-impl Default for ConfigOpts {
-    fn default() -> Self {
-        Self {
-            verify: Some(ConfigOptsVerify::default()),
-            list: Some(ConfigOptsList::default()),
-            inventory: Some(ConfigOptsInventory::default()),
-            commit: Some(ConfigOptsCommit::default()),
-            watch: Some(ConfigOptsWatch::default()),
-        }
-    }
 }
 
 impl ConfigOpts {
@@ -35,11 +22,11 @@ impl ConfigOpts {
         cli_cfg: Option<ConfigOpts>,
     ) -> Result<Self> {
         // Start with base layer (Defaults)
-        let mut cfg = ConfigOpts::default();
+        let mut cfg = Self::new();
         // Apply TOML > Default
         if let Some(path) = toml.or(default_config_path()) {
             if path.exists() {
-                let toml_cfg = ConfigOpts::from_file(
+                let toml_cfg = Self::from_file(
                     path.canonicalize().with_context(|| {
                         format!(
                             "could not canonicalize path to config file {:?}",
@@ -51,7 +38,7 @@ impl ConfigOpts {
             }
         };
         // Apply ENV > TOML
-        let env_cfg = ConfigOpts::from_env()?;
+        let env_cfg = Self::from_env()?;
         cfg = cfg.merge(env_cfg);
         // Apply CLI > ENV
         if let Some(cli_cfg) = cli_cfg {
@@ -59,6 +46,17 @@ impl ConfigOpts {
         }
         // Return layers
         Ok(cfg)
+    }
+
+    /// New configuration, initialized to defaults.
+    pub fn new() -> Self {
+        Self {
+            verify: Some(ConfigOptsVerify::default()),
+            list: Some(ConfigOptsList::default()),
+            inventory: Some(ConfigOptsInventory::default()),
+            commit: Some(ConfigOptsCommit::default()),
+            watch: Some(ConfigOptsWatch::default()),
+        }
     }
 
     /// Read runtime config from a target path.
@@ -199,7 +197,7 @@ impl Default for ConfigOptsList {
 #[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
     // Your Cloudflare API key token
-    #[clap(short, long, env = "CDDNS_TOKEN", value_name = "token")]
+    #[clap(short, long, env = "CDDNS_VERIFY_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }
 /// Default configuration for verify.
@@ -213,7 +211,7 @@ impl Default for ConfigOptsVerify {
 #[derive(Clone, Debug, Serialize, Deserialize, Args)]
 pub struct ConfigOptsInventory {
     /// The path to the inventory file.
-    #[clap(short, long, env = "CDDNS_INVENTORY", value_name = "file")]
+    #[clap(short, long, env = "CDDNS_INVENTORY_PATH", value_name = "file")]
     pub path: Option<PathBuf>,
 }
 /// Default configuration for inventory.
