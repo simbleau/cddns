@@ -26,8 +26,7 @@ impl VerifyCmd {
         let token = opts
             .verify
             .as_ref()
-            .map(|opts| opts.token.clone())
-            .flatten()
+            .and_then(|opts| opts.token.clone())
             .context("no token was provided")?;
 
         println!("Verifying...");

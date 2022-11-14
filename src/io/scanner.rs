@@ -31,7 +31,7 @@ impl Scanner {
         &mut self,
         prompt: impl Display,
     ) -> Result<Option<String>> {
-        std::io::stdout().write(format!("{}: > ", prompt).as_bytes())?;
+        std::io::stdout().write_all(format!("{}: > ", prompt).as_bytes())?;
         std::io::stdout().flush()?;
 
         tokio::select! {
@@ -74,6 +74,5 @@ impl Drop for Scanner {
     /// messages.
     fn drop(&mut self) {
         self.rx.close();
-        drop(self);
     }
 }

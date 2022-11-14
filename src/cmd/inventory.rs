@@ -92,19 +92,18 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     let token = opts
         .verify
         .as_ref()
-        .map(|opts| opts.token.clone())
-        .flatten()
+        .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
     // Get zones and records to build inventory from
     println!("Retrieving Cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     crate::cmd::list::filter_zones(&mut zones, opts)?;
-    anyhow::ensure!(zones.len() > 0, "no zones to build inventory from");
+    anyhow::ensure!(!zones.is_empty(), "no zones to build inventory from");
 
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::filter_records(&mut records, opts)?;
-    anyhow::ensure!(records.len() > 0, "no records to build inventory from");
+    anyhow::ensure!(!records.is_empty(), "no records to build inventory from");
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -121,8 +120,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             if let Some(idx) = scanner
                 .prompt("(Step 1 of 2) Choose a zone")
                 .await?
-                .map(|s| s.parse::<usize>().ok())
-                .flatten()
+                .and_then(|s| s.parse::<usize>().ok())
             {
                 if idx > 0 && idx <= zones.len() {
                     break idx;
@@ -137,7 +135,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             .filter(|r| r.zone_id == selected_zone.id)
             .collect::<Vec<&Record>>();
 
-        if zone_records.len() > 0 {
+        if !zone_records.is_empty() {
             let record_idx = 'record: loop {
                 for (i, record) in zone_records.iter().enumerate() {
                     println!("[{}] {}", i + 1, record);
@@ -145,8 +143,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
                 if let Some(idx) = scanner
                     .prompt("(Step 2 of 2) Choose a record")
                     .await?
-                    .map(|s| s.parse::<usize>().ok())
-                    .flatten()
+                    .and_then(|s| s.parse::<usize>().ok())
                 {
                     if idx > 0 && idx <= zone_records.len() {
                         break idx;
@@ -191,7 +188,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             Some(_) => p,
             None => p.with_extension("yaml"),
         })
-        .unwrap_or(default_inventory_path());
+        .unwrap_or_else(default_inventory_path);
     if path.exists() {
         io::fs::remove_interactive(&path, &mut scanner).await?;
     }
@@ -205,9 +202,8 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory_path = opts
         .inventory
         .as_ref()
-        .map(|opts| opts.path.clone())
-        .flatten()
-        .unwrap_or(default_inventory_path());
+        .and_then(|opts| opts.path.clone())
+        .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
     if inventory.is_empty() {
         println!("Inventory file is empty.");
@@ -236,17 +232,15 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let token = opts
         .verify
         .as_ref()
-        .map(|opts| opts.token.clone())
-        .flatten()
+        .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
     // Get inventory
     let inventory_path = opts
         .inventory
         .as_ref()
-        .map(|opts| opts.path.clone())
-        .flatten()
-        .unwrap_or(default_inventory_path());
+        .and_then(|opts| opts.path.clone())
+        .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
@@ -286,17 +280,15 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     let token = opts
         .verify
         .as_ref()
-        .map(|opts| opts.token.clone())
-        .flatten()
+        .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
     // Get inventory
     let inventory_path = opts
         .inventory
         .as_ref()
-        .map(|opts| opts.path.clone())
-        .flatten()
-        .unwrap_or(default_inventory_path());
+        .and_then(|opts| opts.path.clone())
+        .unwrap_or_else(default_inventory_path);
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
     let force = opts
@@ -310,13 +302,13 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
     let (_good, mut bad, mut invalid) =
-        check_records(&token, &inventory, ipv4.clone(), ipv6.clone()).await?;
+        check_records(&token, &inventory, ipv4, ipv6).await?;
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
 
     // Print records
-    if bad.len() > 0 {
+    if !bad.is_empty() {
         // Print bad records
         for cf_record in &bad {
             println!(
@@ -343,7 +335,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let mut fixed = HashSet::new();
         if fix {
             for cf_record in &bad {
-                if let Ok(_) = match cf_record.record_type.as_str() {
+                if match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
                         Some(ip) => {
                             update_record(
@@ -370,7 +362,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                             "unexpected record type: {}",
                             cf_record.record_type
                         ),
-                } {
+                }.is_ok() {
                     fixed.insert(cf_record.id.clone());
                 }
             }
@@ -378,7 +370,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         bad.retain_mut(|r| !fixed.contains(&r.id));
     }
 
-    if invalid.len() > 0 {
+    if !invalid.is_empty() {
         // Print invalid records
         for (inv_zone, inv_record) in &invalid {
             println!("INVALID: {} | {}", inv_zone, inv_record);
@@ -419,7 +411,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     }
 
     // Print summary
-    if bad.len() == 0 && invalid.len() == 0 {
+    if bad.is_empty() && invalid.is_empty() {
         println!("✅ No bad or invalid records.");
     } else {
         println!(
@@ -436,30 +428,27 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     let token = opts
         .verify
         .as_ref()
-        .map(|opts| opts.token.clone())
-        .flatten()
+        .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
     // Get inventory
     let inventory_path = opts
         .inventory
         .as_ref()
-        .map(|opts| opts.path.clone())
-        .flatten()
-        .unwrap_or(default_inventory_path());
+        .and_then(|opts| opts.path.clone())
+        .unwrap_or_else(default_inventory_path);
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
     // Get watch interval
     let interval = Duration::from_millis(
         opts.watch
             .as_ref()
-            .map(|opts| opts.interval)
-            .flatten()
-            .unwrap_or(
+            .and_then(|opts| opts.interval)
+            .unwrap_or_else(|| {
                 ConfigOptsWatch::default()
                     .interval
-                    .expect("no default interval"),
-            ),
+                    .expect("no default interval")
+            }),
     );
 
     if interval.is_zero() {
@@ -555,10 +544,10 @@ where
     let ipv4 = public_ip::addr_v4().await;
     let ipv6 = public_ip::addr_v6().await;
     let (_good, mut bad, mut invalid) =
-        check_records(&token, &inventory, ipv4.clone(), ipv6.clone()).await?;
+        check_records(&token, inventory, ipv4, ipv6).await?;
 
     // Print records
-    if bad.len() > 0 {
+    if !bad.is_empty() {
         // Fix records
         let mut fixed = HashSet::new();
         for cf_record in &bad {
@@ -566,7 +555,7 @@ where
                 "MISMATCH: {} ({}) => {}",
                 cf_record.name, cf_record.id, cf_record.content
             );
-            if let Ok(_) = match cf_record.record_type.as_str() {
+            if match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
                         Some(ip) => {
                             update_record(
@@ -593,7 +582,7 @@ where
                             "unexpected record type: {}",
                             cf_record.record_type
                         ),
-                } {
+                }.is_ok() {
                     fixed.insert(cf_record.id.clone());
                 }
         }
@@ -602,7 +591,7 @@ where
 
     // Prune
     let mut pruned = HashSet::new();
-    if invalid.len() > 0 {
+    if !invalid.is_empty() {
         // Print invalid records
         for (inv_zone, inv_record) in &invalid {
             println!("INVALID: {} | {}", inv_zone, inv_record);
@@ -621,7 +610,7 @@ where
     }
 
     // Print summary
-    if bad.len() == 0 && invalid.len() == 0 {
+    if bad.is_empty() && invalid.is_empty() {
         println!("✅ No bad or invalid records.");
     } else {
         println!(

@@ -24,7 +24,7 @@ impl ConfigOpts {
         // Start with base layer (Defaults)
         let mut cfg = Self::new();
         // Apply TOML > Default
-        if let Some(path) = toml.or(default_config_path()) {
+        if let Some(path) = toml.or_else(default_config_path) {
             if path.exists() {
                 let toml_cfg = Self::from_file(
                     path.canonicalize().with_context(|| {
@@ -61,7 +61,7 @@ impl ConfigOpts {
 
     /// Read runtime config from a target path.
     pub fn from_file(path: PathBuf) -> Result<Self> {
-        let cfg_bytes = std::fs::read(&path).context("reading config file")?;
+        let cfg_bytes = std::fs::read(path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;
         Ok(cfg)
