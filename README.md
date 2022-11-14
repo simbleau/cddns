@@ -216,27 +216,24 @@ cddns will work as a service daemon to keep DNS records up to date. The default 
 
 ### 2.3.1 Docker
 Once you have tested your token and built an inventory file with the CLI, you can deploy via Docker.
-1. Ensure your token is valid with the CLI ([Help](#211-getting-started)).
+1. Test your token ([Help](#211-getting-started)).
 ```bash
 docker run  \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
   simbleau/cddns:latest verify
 ```
-2. Ensure your inventory is valid with the CLI ([Help](#214-inventory)).
+2. Test your inventory ([Help](#214-inventory)).
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
-  -e CDDNS_INVENTORY_PATH='/opt/cddns/inventory.yaml' \
-  -v $(pwd)/inventory.yaml:/opt/cddns/inventory.yaml \
+  -v $(pwd)/inventory.yaml:/inventory.yaml \
   simbleau/cddns:latest inventory show
 ```
-3. Deploy with Docker
+3. Deploy
 ```bash
-docker service create -d \
-  --replicas=1 \
-  --name cddns-service \
-  --mount type=bind,source=/to/your/inventory.yaml,target=inventory.yaml \
+docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -v $(pwd)/inventory.yaml:/inventory.yaml \
   simbleau/cddns:latest
 ```
 
