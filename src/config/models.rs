@@ -38,14 +38,15 @@ impl ConfigOpts {
         let mut cfg = ConfigOpts::default();
         // Apply TOML > Default
         if let Some(path) = toml.or(default_config_path()) {
-            let canonical_path = path.canonicalize().with_context(|| {
-                format!(
-                    "could not canonicalize path to config file {:?}",
-                    &path
-                )
-            })?;
-            if canonical_path.exists() {
-                let toml_cfg = ConfigOpts::from_file(canonical_path)?;
+            if path.exists() {
+                let toml_cfg = ConfigOpts::from_file(
+                    path.canonicalize().with_context(|| {
+                        format!(
+                            "could not canonicalize path to config file {:?}",
+                            &path
+                        )
+                    })?,
+                )?;
                 cfg = cfg.merge(toml_cfg);
             }
         };

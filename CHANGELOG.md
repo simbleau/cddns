@@ -18,5 +18,9 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### security
 - Placeholder
 
+## 0.1.1
+### changed
+- Configuration path no longer needs to exist
+
 ## 0.1.0
 - Initialize release.
