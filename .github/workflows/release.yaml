@@ -118,6 +118,9 @@ jobs:
       - name: Setup | Checkout
         uses: actions/checkout@v2
 
+      - name: Setup | Get version tag
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
       - name: Setup | QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -137,6 +140,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            simbleau/cddns:${{ hashFiles('./src') }}
             simbleau/cddns:latest
-            # TODO: Add v*.*.* Tags
+            simbleau/cddns:${{ env.RELEASE_VERSION }}
+            simbleau/cddns:${{ hashFiles('./src') }}
