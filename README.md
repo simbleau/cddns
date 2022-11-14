@@ -42,8 +42,9 @@
   - Native (Windows / MacOS / Unix)
 - Service
   - Docker
+  - Docker Swarm (TODO: Instructions)
   - Kubernetes
-  - Crontab (Native)
+  - Crontab
 
 ## 1.2 Requirements
 - Cloudflare Account ([Help](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
