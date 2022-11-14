@@ -8,7 +8,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### added
 - Placeholder
 ### changed
-- Placeholder
+- Improved readability of errors with `inventory watch`
 ### deprecated
 - Placeholder
 ### removed
