@@ -318,19 +318,13 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         }
         // Ask to fix records
         let fix = force
-            || 'fix: loop {
-                match scanner
-                    .prompt(format!("Fix {} bad records? [Y/n]", bad.len()))
-                    .await?
-                {
-                    Some(input) => match input.to_lowercase().as_str() {
-                        "y" | "yes" => break true,
-                        "n" | "no" => break false,
-                        _ => continue 'fix,
-                    },
-                    None => break true,
-                }
-            };
+            || scanner
+                .prompt_yes_or_no(format!(
+                    "Fix {} bad records? [Y/n]",
+                    bad.len()
+                ))
+                .await?
+                .unwrap_or(true);
         // Fix records
         let mut fixed = HashSet::new();
         if fix {
@@ -377,22 +371,13 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         }
         // Ask to prune records
         let prune = force
-            || 'prune: loop {
-                match scanner
-                    .prompt(format!(
-                        "Prune {} invalid records? [Y/n]",
-                        invalid.len()
-                    ))
-                    .await?
-                {
-                    Some(input) => match input.to_lowercase().as_str() {
-                        "n" | "no" => break false,
-                        "y" | "yes" => break true,
-                        _ => continue 'prune,
-                    },
-                    None => break true,
-                }
-            };
+            || scanner
+                .prompt_yes_or_no(format!(
+                    "Prune {} invalid records? [Y/n]",
+                    invalid.len()
+                ))
+                .await?
+                .unwrap_or(true);
         // Prune
         let mut pruned = HashSet::new();
         if prune {

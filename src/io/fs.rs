@@ -18,22 +18,13 @@ pub async fn remove_interactive<P>(path: P, scanner: &mut Scanner) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    let overwrite = loop {
-        match scanner
-            .prompt(format!(
-                "Path '{}' exists, remove? [y/N]",
-                path.as_ref().display()
-            ))
-            .await?
-        {
-            Some(input) => match input.to_lowercase().as_str() {
-                "y" | "yes" => break true,
-                "n" | "no" => break false,
-                _ => continue,
-            },
-            None => break false,
-        }
-    };
+    let overwrite = scanner
+        .prompt_yes_or_no(format!(
+            "Path '{}' exists, remove? [y/N]",
+            path.as_ref().display()
+        ))
+        .await?
+        .unwrap_or(false);
     if overwrite {
         remove_force(path).await?;
     } else {

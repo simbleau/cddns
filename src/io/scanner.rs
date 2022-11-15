@@ -51,6 +51,40 @@ impl Scanner {
         }
     }
 
+    /// Prompt the user until the answer is Some.
+    pub async fn prompt_some(
+        &mut self,
+        prompt: impl Display,
+    ) -> Result<String> {
+        let prompt_str = prompt.to_string();
+        let answer = 'control: loop {
+            match Self::prompt(self, &prompt_str).await? {
+                Some(a) => break a,
+                None => continue 'control,
+            }
+        };
+        Ok(answer)
+    }
+
+    /// Prompt the user until the answer is yes (true) or no (false).
+    pub async fn prompt_yes_or_no(
+        &mut self,
+        prompt: impl Display,
+    ) -> Result<Option<bool>> {
+        let prompt_str = prompt.to_string();
+        let answer = 'control: loop {
+            match Self::prompt(self, &prompt_str).await? {
+                Some(input) => match input.to_lowercase().as_str() {
+                    "y" | "yes" => break Some(true),
+                    "n" | "no" => break Some(false),
+                    _ => continue 'control,
+                },
+                None => break None,
+            }
+        };
+        Ok(answer)
+    }
+
     /// Prompt the user for a path and collect it.
     pub async fn prompt_path(
         &mut self,
