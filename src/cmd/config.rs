@@ -1,11 +1,14 @@
 use crate::{
     config::{
         default_config_path,
-        models::{ConfigOpts, ConfigOptsVerify},
+        models::{
+            ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
+            ConfigOptsVerify, ConfigOptsWatch,
+        },
     },
     io::{self, Scanner},
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
@@ -39,12 +42,61 @@ async fn build() -> Result<()> {
     let mut scanner = Scanner::new(runtime);
 
     // Prompt
-    let token = scanner.prompt_some("Cloudflare API token").await?;
+    let token = scanner
+        .prompt("Cloudflare API token [default: skip]")
+        .await?;
+    let include_zones = scanner
+        .prompt("Ignore zone filters [default: skip]")
+        .await?
+        .map(|s| s.split_terminator(' ').map(str::to_owned).collect());
+    let ignore_zones = scanner
+        .prompt("Ignore zone filters [default: skip]")
+        .await?
+        .map(|s| s.split(' ').map(str::to_owned).collect());
+    let include_records = scanner
+        .prompt("Include record filters [default: skip]")
+        .await?
+        .map(|s| s.split(' ').map(str::to_owned).collect());
+    let ignore_records = scanner
+        .prompt("Ignore record filters [default: skip]")
+        .await?
+        .map(|s| s.split(' ').map(str::to_owned).collect());
+    let path = scanner
+        .prompt_path("Inventory path [default: skip]")
+        .await?;
+    let force = !scanner
+        .prompt_yes_or_no("Prompt for permission for `inventory commit` [Y/n]")
+        .await?
+        .unwrap_or(true);
+    let interval = 'interval: loop {
+        // Get zone choice
+        match scanner
+            .prompt("Interval for `inventory watch` in milliseconds [default: skip]")
+            .await?
+        {
+            Some(interval_str) => {
+                if let Ok(interval) = interval_str.parse::<u64>() {
+                    break Some(interval)
+                } else {
+                    continue 'interval;
+                }
+            },
+            None => break None,
+        }
+    };
 
     // Build
     let config = ConfigOpts {
-        verify: Some(ConfigOptsVerify { token: Some(token) }),
-        ..Default::default()
+        verify: Some(ConfigOptsVerify { token }),
+        list: Some(ConfigOptsList {
+            include_zones,
+            ignore_zones,
+            include_records,
+            ignore_records,
+        }),
+        inventory: Some(ConfigOptsInventory { path }),
+        commit: Some(ConfigOptsCommit { force }),
+        watch: Some(ConfigOptsWatch { interval }),
     };
 
     // Save
