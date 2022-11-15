@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::{fmt::Display, io::Write, path::PathBuf};
+use std::{fmt::Display, io::Write, str::FromStr};
 use tokio::runtime::Handle;
 
 /// A stdin scanner to collect user input on command line.
@@ -51,7 +51,7 @@ impl Scanner {
         }
     }
 
-    /// Prompt the user until the answer is yes (true) or no (false).
+    /// Prompt the user for a yes (true) or no (false).
     pub async fn prompt_yes_or_no(
         &mut self,
         prompt: impl Display,
@@ -70,14 +70,17 @@ impl Scanner {
         Ok(answer)
     }
 
-    /// Prompt the user for a path and collect it.
-    pub async fn prompt_path(
+    /// Prompt the user for a type and collect it.
+    pub async fn prompt_t<T>(
         &mut self,
         prompt: impl Display,
-    ) -> Result<Option<PathBuf>> {
+    ) -> Result<Option<T>>
+    where
+        T: FromStr,
+    {
         let path = loop {
             match self.prompt(&prompt).await? {
-                Some(input) => match input.parse::<PathBuf>() {
+                Some(input) => match input.parse::<T>() {
                     Ok(pb) => break Some(pb),
                     _ => continue,
                 },

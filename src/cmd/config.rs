@@ -62,28 +62,17 @@ async fn build() -> Result<()> {
         .await?
         .map(|s| s.split(' ').map(str::to_owned).collect());
     let path = scanner
-        .prompt_path("Inventory path [default: skip]")
+        .prompt_t::<PathBuf>("Inventory path [default: skip]")
         .await?;
     let force = !scanner
         .prompt_yes_or_no("Prompt for permission for `inventory commit` [Y/n]")
         .await?
         .unwrap_or(true);
-    let interval = 'interval: loop {
-        // Get zone choice
-        match scanner
-            .prompt("Interval for `inventory watch` in milliseconds [default: skip]")
-            .await?
-        {
-            Some(interval_str) => {
-                if let Ok(interval) = interval_str.parse::<u64>() {
-                    break Some(interval)
-                } else {
-                    continue 'interval;
-                }
-            },
-            None => break None,
-        }
-    };
+    let interval = scanner
+        .prompt_t::<u64>(
+            "Interval for `inventory watch` in milliseconds [default: skip]",
+        )
+        .await?;
 
     // Build
     let config = ConfigOpts {
@@ -103,7 +92,7 @@ async fn build() -> Result<()> {
     let default_path =
         default_config_path().unwrap_or_else(|| PathBuf::from("config.toml"));
     let path = scanner
-        .prompt_path(format!(
+        .prompt_t::<PathBuf>(format!(
             "Save location [default: {}]",
             default_path.display()
         ))

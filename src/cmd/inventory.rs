@@ -118,9 +118,8 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             }
             // Get zone choice
             if let Some(idx) = scanner
-                .prompt("(Step 1 of 2) Choose a zone")
+                .prompt_t::<usize>("(Step 1 of 2) Choose a zone")
                 .await?
-                .and_then(|s| s.parse::<usize>().ok())
             {
                 if idx > 0 && idx <= zones.len() {
                     break idx;
@@ -141,9 +140,8 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
                     println!("[{}] {}", i + 1, record);
                 }
                 if let Some(idx) = scanner
-                    .prompt("(Step 2 of 2) Choose a record")
+                    .prompt_t::<usize>("(Step 2 of 2) Choose a record")
                     .await?
-                    .and_then(|s| s.parse::<usize>().ok())
                 {
                     if idx > 0 && idx <= zone_records.len() {
                         break idx;
@@ -179,7 +177,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
 
     // Save
     let path = scanner
-        .prompt_path(format!(
+        .prompt_t::<PathBuf>(format!(
             "Save location [default: {}]",
             default_inventory_path().display()
         ))
