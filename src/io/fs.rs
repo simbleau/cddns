@@ -19,10 +19,10 @@ where
     P: AsRef<Path>,
 {
     let overwrite = scanner
-        .prompt_yes_or_no(format!(
-            "Path '{}' exists, remove? [y/N]",
-            path.as_ref().display()
-        ))
+        .prompt_yes_or_no(
+            format!("Path '{}' exists, remove?", path.as_ref().display()),
+            "y/N",
+        )
         .await?
         .unwrap_or(false);
     if overwrite {

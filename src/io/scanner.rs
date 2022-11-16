@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::de::DeserializeOwned;
 use std::{fmt::Display, io::Write, str::FromStr};
 use tokio::runtime::Handle;
 
@@ -30,8 +31,10 @@ impl Scanner {
     pub async fn prompt(
         &mut self,
         prompt: impl Display,
+        type_hint: impl Display,
     ) -> Result<Option<String>> {
-        std::io::stdout().write_all(format!("{}: > ", prompt).as_bytes())?;
+        std::io::stdout()
+            .write_all(format!("{} ~ ({}) > ", prompt, type_hint).as_bytes())?;
         std::io::stdout().flush()?;
 
         tokio::select! {
@@ -55,14 +58,19 @@ impl Scanner {
     pub async fn prompt_yes_or_no(
         &mut self,
         prompt: impl Display,
+        type_hint: impl Display,
     ) -> Result<Option<bool>> {
-        let prompt_str = prompt.to_string();
-        let answer = 'control: loop {
-            match Self::prompt(self, &prompt_str).await? {
+        let answer = loop {
+            match Self::prompt(self, &prompt, &type_hint).await? {
                 Some(input) => match input.to_lowercase().as_str() {
                     "y" | "yes" => break Some(true),
                     "n" | "no" => break Some(false),
-                    _ => continue 'control,
+                    _ => {
+                        println!(
+                            "Error parsing input. Expected 'yes' or 'no'. Try again."
+                        );
+                        continue;
+                    }
                 },
                 None => break None,
             }
@@ -74,20 +82,51 @@ impl Scanner {
     pub async fn prompt_t<T>(
         &mut self,
         prompt: impl Display,
+        type_hint: impl Display,
     ) -> Result<Option<T>>
     where
         T: FromStr,
     {
-        let path = loop {
-            match self.prompt(&prompt).await? {
+        let t = loop {
+            match self.prompt(&prompt, &type_hint).await? {
                 Some(input) => match input.parse::<T>() {
                     Ok(pb) => break Some(pb),
-                    _ => continue,
+                    _ => {
+                        println!(
+                            "Error parsing input. Expected '{}'. Try again.",
+                            std::any::type_name::<T>()
+                        );
+                        continue;
+                    }
                 },
                 None => break None,
             }
         };
-        Ok(path)
+        Ok(t)
+    }
+
+    /// Prompt the user for a type in RON notation (https://github.com/ron-rs/ron).
+    pub async fn prompt_ron<T>(
+        &mut self,
+        prompt: impl Display,
+        type_hint: impl Display,
+    ) -> Result<Option<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let ron = loop {
+            match self.prompt(&prompt, &type_hint).await? {
+                Some(input) => match ron::from_str(&input) {
+                    Ok(pb) => break Some(pb),
+                    _ => {
+                        println!("Error parsing input. Input should be in RON notation (https://github.com/ron-rs/ron/wiki/Specification)");
+                        continue;
+                    }
+                },
+                None => break None,
+            }
+        };
+        Ok(ron)
     }
 }
 

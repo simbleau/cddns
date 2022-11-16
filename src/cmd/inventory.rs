@@ -118,7 +118,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             }
             // Get zone choice
             if let Some(idx) = scanner
-                .prompt_t::<usize>("(Step 1 of 2) Choose a zone")
+                .prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")
                 .await?
             {
                 if idx > 0 && idx <= zones.len() {
@@ -140,7 +140,10 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
                     println!("[{}] {}", i + 1, record);
                 }
                 if let Some(idx) = scanner
-                    .prompt_t::<usize>("(Step 2 of 2) Choose a record")
+                    .prompt_t::<usize>(
+                        "(Step 2 of 2) Choose a record",
+                        "number",
+                    )
                     .await?
                 {
                     if idx > 0 && idx <= zone_records.len() {
@@ -161,7 +164,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         }
 
         let finished = 'finished: loop {
-            match scanner.prompt("Add another record? [Y/n]").await? {
+            match scanner.prompt("Add another record?", "Y/n").await? {
                 Some(input) => match input.to_lowercase().as_str() {
                     "y" | "yes" => break false,
                     "n" | "no" => break true,
@@ -177,10 +180,13 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
 
     // Save
     let path = scanner
-        .prompt_t::<PathBuf>(format!(
-            "Save location [default: {}]",
-            default_inventory_path().display()
-        ))
+        .prompt_t::<PathBuf>(
+            format!(
+                "Save location, default: `{}`",
+                default_inventory_path().display()
+            ),
+            "path",
+        )
         .await?
         .map(|p| match p.extension() {
             Some(_) => p,
@@ -317,10 +323,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Ask to fix records
         let fix = force
             || scanner
-                .prompt_yes_or_no(format!(
-                    "Fix {} bad records? [Y/n]",
-                    bad.len()
-                ))
+                .prompt_yes_or_no(
+                    format!("Fix {} bad records?", bad.len()),
+                    "Y/n",
+                )
                 .await?
                 .unwrap_or(true);
         // Fix records
@@ -370,10 +376,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Ask to prune records
         let prune = force
             || scanner
-                .prompt_yes_or_no(format!(
-                    "Prune {} invalid records? [Y/n]",
-                    invalid.len()
-                ))
+                .prompt_yes_or_no(
+                    format!("Prune {} invalid records?", invalid.len()),
+                    "Y/n",
+                )
                 .await?
                 .unwrap_or(true);
         // Prune
@@ -427,11 +433,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         opts.watch
             .as_ref()
             .and_then(|opts| opts.interval)
-            .unwrap_or_else(|| {
-                ConfigOptsWatch::default()
-                    .interval
-                    .expect("no default interval")
-            }),
+            .unwrap_or_else(|| ConfigOptsWatch::default().interval.unwrap()),
     );
 
     if interval.is_zero() {

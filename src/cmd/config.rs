@@ -42,35 +42,40 @@ async fn build() -> Result<()> {
     let mut scanner = Scanner::new(runtime);
 
     // Prompt
-    let token = scanner
-        .prompt("Cloudflare API token [default: skip]")
-        .await?;
+    println!("Welcome! This builder will build a CLI configuration file without needing to understand TOML.");
+    println!("For annotated examples of each field, please visit https://github.com/simbleau/cddns/blob/main/config.toml");
+    println!("You can skip any field for configuration defaults via enter (no answer.)");
+    println!();
+    let token = scanner.prompt("Cloudflare API token", "string").await?;
     let include_zones = scanner
-        .prompt("Ignore zone filters [default: skip]")
-        .await?
-        .map(|s| s.split_terminator(' ').map(str::to_owned).collect());
-    let ignore_zones = scanner
-        .prompt("Ignore zone filters [default: skip]")
-        .await?
-        .map(|s| s.split(' ').map(str::to_owned).collect());
-    let include_records = scanner
-        .prompt("Include record filters [default: skip]")
-        .await?
-        .map(|s| s.split(' ').map(str::to_owned).collect());
-    let ignore_records = scanner
-        .prompt("Ignore record filters [default: skip]")
-        .await?
-        .map(|s| s.split(' ').map(str::to_owned).collect());
-    let path = scanner
-        .prompt_t::<PathBuf>("Inventory path [default: skip]")
+        .prompt_ron("Include zone filters, e.g. `[\".*.com\"]`", "list[string]")
         .await?;
-    let force = !scanner
-        .prompt_yes_or_no("Prompt for permission for `inventory commit` [Y/n]")
+    let ignore_zones = scanner
+        .prompt_ron(
+            "Ignore zone filters, e.g. `[\"ex1.com\", \"ex2.com\"]`",
+            "list[string]",
+        )
+        .await?;
+    let include_records = scanner
+        .prompt_ron(
+            "Include record filters, e.g. `[\"shop.imbleau.com\"]`",
+            "list[string]",
+        )
+        .await?;
+    let ignore_records = scanner
+        .prompt_ron("Ignore record filters, e.g. `[]`", "list[string]")
+        .await?;
+    let path = scanner
+        .prompt_t::<PathBuf>("Inventory path", "path")
+        .await?;
+    let force = scanner
+        .prompt_yes_or_no("Force on `inventory commit`?", "y/N")
         .await?
-        .unwrap_or(true);
+        .unwrap_or(false);
     let interval = scanner
         .prompt_t::<u64>(
-            "Interval for `inventory watch` in milliseconds [default: skip]",
+            "Interval for `inventory watch`, in milliseconds",
+            "number",
         )
         .await?;
 
@@ -92,10 +97,10 @@ async fn build() -> Result<()> {
     let default_path =
         default_config_path().unwrap_or_else(|| PathBuf::from("config.toml"));
     let path = scanner
-        .prompt_t::<PathBuf>(format!(
-            "Save location [default: {}]",
-            default_path.display()
-        ))
+        .prompt_t::<PathBuf>(
+            format!("Save location [default: {}]", default_path.display()),
+            "path",
+        )
         .await?
         .map(|p| match p.extension() {
             Some(_) => p,
