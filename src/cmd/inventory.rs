@@ -158,9 +158,9 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             let zone_id = selected_zone.id.clone();
             let record_id = selected_record.id.clone();
             inventory.insert(zone_id, record_id);
-            println!("\n✅ Added '{}'.", selected_record.name);
+            println!("✅ Added '{}'.", selected_record.name);
         } else {
-            println!("\n❌ No records for this zone.")
+            println!("❌ No records for this zone.")
         }
 
         let finished = 'finished: loop {
@@ -454,6 +454,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             {
                 println!("Error: {:?}", e);
             }
+            println!("Sleeping...");
         }
     }
 }
