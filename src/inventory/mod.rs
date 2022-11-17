@@ -12,6 +12,7 @@
 //! ```
 use std::path::PathBuf;
 
+mod display;
 pub mod models;
 
 /// Return the default inventory path.

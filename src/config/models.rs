@@ -2,7 +2,7 @@ use crate::{config::default_config_path, inventory::default_inventory_path};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, fmt::Display, path::PathBuf};
+use std::{fmt::Debug, path::PathBuf};
 
 /// A model of all potential configuration options for the CDDNS CLI system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -12,52 +12,6 @@ pub struct ConfigOpts {
     pub inventory: Option<ConfigOptsInventory>,
     pub commit: Option<ConfigOptsCommit>,
     pub watch: Option<ConfigOptsWatch>,
-}
-
-fn encode_opt<T>(opt: Option<&T>) -> String
-where
-    T: Serialize + Debug,
-{
-    if let Some(opt) = opt {
-        match ron::to_string(opt) {
-            Ok(ron) => ron,
-            Err(_) => format!("{:?}", opt),
-        }
-    } else {
-        "None".to_string()
-    }
-}
-
-impl Display for ConfigOpts {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            r#"Token: {}
-Include zones: {}
-Ignore zones: {}
-Include records: {}
-Ignore records: {}
-Inventory path: {}
-Force commit: {}
-Watch interval: {}ms"#,
-            encode_opt(self.verify.as_ref().and_then(|v| v.token.as_ref())),
-            encode_opt(
-                self.list.as_ref().and_then(|l| l.include_zones.as_ref())
-            ),
-            encode_opt(
-                self.list.as_ref().and_then(|l| l.ignore_zones.as_ref())
-            ),
-            encode_opt(
-                self.list.as_ref().and_then(|l| l.include_records.as_ref())
-            ),
-            encode_opt(
-                self.list.as_ref().and_then(|l| l.ignore_records.as_ref())
-            ),
-            encode_opt(self.inventory.as_ref().and_then(|i| i.path.as_ref())),
-            encode_opt(self.commit.as_ref().map(|c| &c.force)),
-            encode_opt(self.watch.as_ref().and_then(|w| w.interval.as_ref()))
-        )
-    }
 }
 
 impl ConfigOpts {

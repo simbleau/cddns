@@ -212,21 +212,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     if inventory.is_empty() {
         println!("Inventory file is empty.");
     } else {
-        let pretty_print = inventory
-            .into_iter()
-            .map(|(zone, records)| {
-                format!(
-                    "{}:{}",
-                    zone,
-                    records
-                        .into_iter()
-                        .map(|r| format!("\n  - {}", r))
-                        .collect::<String>()
-                )
-            })
-            .intersperse("\n---\n".to_string())
-            .collect::<String>();
-        println!("{}", pretty_print);
+        println!("{}", inventory);
     }
     Ok(())
 }
