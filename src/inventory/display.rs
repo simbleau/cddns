@@ -6,7 +6,7 @@ impl Display for Inventory {
         write!(
             f,
             "{}",
-            self.clone()
+            self.clone() // TODO: Clone isn't necessary if traversed
                 .into_iter()
                 .map(|(zone, records)| {
                     format!(
