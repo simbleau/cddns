@@ -1,11 +1,14 @@
 use crate::{
     config::{
         default_config_path,
-        models::{ConfigOpts, ConfigOptsVerify},
+        models::{
+            ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
+            ConfigOptsVerify, ConfigOptsWatch,
+        },
     },
     io::{self, Scanner},
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
@@ -17,60 +20,105 @@ pub struct ConfigCmd {
     action: ConfigSubcommands,
 }
 
+#[derive(Clone, Debug, Subcommand)]
+enum ConfigSubcommands {
+    /// Build a configuration file.
+    Build,
+    /// Show the current configuration.
+    Show,
+}
+
 impl ConfigCmd {
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         match self.action {
-            ConfigSubcommands::Build => {
-                let runtime = tokio::runtime::Handle::current();
-                let mut scanner = Scanner::new(runtime);
-
-                // Build
-                // TODO: Prompt until answer
-                let token = scanner
-                    .prompt("Cloudflare API token")
-                    .await?
-                    .context("empty answer not allowed")?;
-
-                // Package config
-                let config = ConfigOpts {
-                    verify: Some(ConfigOptsVerify { token: Some(token) }),
-                    ..Default::default()
-                };
-
-                // Save
-                let default_path = default_config_path()
-                    .unwrap_or_else(|| PathBuf::from("config.toml"));
-                let path = scanner
-                    .prompt_path(format!(
-                        "Save location [default: {}]",
-                        default_path.display()
-                    ))
-                    .await?
-                    .map(|p| match p.extension() {
-                        Some(_) => p,
-                        None => p.with_extension("toml"),
-                    })
-                    .unwrap_or(default_path);
-                if path.exists() {
-                    io::fs::remove_interactive(&path, &mut scanner).await?;
-                }
-                io::fs::save_toml(&config, &path).await?;
-                println!("✅ Saved");
-            }
-            ConfigSubcommands::Show => {
-                // TODO: Need to show this in a better format.
-                let cfg = ConfigOpts::full(config, None)?;
-                println!("{:#?}", cfg);
-            }
+            ConfigSubcommands::Build => build().await,
+            ConfigSubcommands::Show => show(config).await,
         }
-        Ok(())
     }
 }
 
-#[derive(Clone, Debug, Subcommand)]
-enum ConfigSubcommands {
-    /// Build the CDDNS configuration file.
-    Build,
-    /// Show the current config pre-CLI.
-    Show,
+async fn build() -> Result<()> {
+    let runtime = tokio::runtime::Handle::current();
+    let mut scanner = Scanner::new(runtime);
+
+    // Prompt
+    println!("Welcome! This builder will build a CLI configuration file without needing to understand TOML.");
+    println!("For annotated examples of each field, please visit https://github.com/simbleau/cddns/blob/main/config.toml");
+    println!("You can skip any field for configuration defaults via enter (no answer.)");
+    println!();
+    let token = scanner.prompt("Cloudflare API token", "string").await?;
+    let include_zones = scanner
+        .prompt_ron("Include zone filters, e.g. `[\".*.com\"]`", "list[string]")
+        .await?;
+    let ignore_zones = scanner
+        .prompt_ron(
+            "Ignore zone filters, e.g. `[\"ex1.com\", \"ex2.com\"]`",
+            "list[string]",
+        )
+        .await?;
+    let include_records = scanner
+        .prompt_ron(
+            "Include record filters, e.g. `[\"shop.imbleau.com\"]`",
+            "list[string]",
+        )
+        .await?;
+    let ignore_records = scanner
+        .prompt_ron("Ignore record filters, e.g. `[]`", "list[string]")
+        .await?;
+    let path = scanner
+        .prompt_t::<PathBuf>("Inventory path", "path")
+        .await?;
+    let force = scanner
+        .prompt_yes_or_no("Force on `inventory commit`?", "y/N")
+        .await?
+        .unwrap_or(false);
+    let interval = scanner
+        .prompt_t::<u64>(
+            "Interval for `inventory watch`, in milliseconds",
+            "number",
+        )
+        .await?;
+
+    // Build
+    let config = ConfigOpts {
+        verify: Some(ConfigOptsVerify { token }),
+        list: Some(ConfigOptsList {
+            include_zones,
+            ignore_zones,
+            include_records,
+            ignore_records,
+        }),
+        inventory: Some(ConfigOptsInventory { path }),
+        commit: Some(ConfigOptsCommit { force }),
+        watch: Some(ConfigOptsWatch { interval }),
+    };
+
+    // Save
+    let default_path =
+        default_config_path().unwrap_or_else(|| PathBuf::from("config.toml"));
+    let path = scanner
+        .prompt_t::<PathBuf>(
+            format!("Save location [default: {}]", default_path.display()),
+            "path",
+        )
+        .await?
+        .map(|p| match p.extension() {
+            Some(_) => p,
+            None => p.with_extension("toml"),
+        })
+        .unwrap_or(default_path);
+    if path.exists() {
+        io::fs::remove_interactive(&path, &mut scanner).await?;
+    }
+    io::fs::save_toml(&config, &path).await?;
+    println!("✅ Saved");
+
+    Ok(())
+}
+
+async fn show(config: Option<PathBuf>) -> Result<()> {
+    // TODO: Need to show this in a better format.
+    let cfg = ConfigOpts::full(config, None)?;
+    println!("{:#?}", cfg);
+    Ok(())
 }
