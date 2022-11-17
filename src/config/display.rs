@@ -2,7 +2,7 @@ use crate::config::models::ConfigOpts;
 use serde::Serialize;
 use std::{fmt::Debug, fmt::Display};
 
-fn encode_opt<T>(opt: Option<&T>) -> String
+fn __display<T>(opt: Option<&T>) -> String
 where
     T: Serialize + Debug,
 {
@@ -23,35 +23,35 @@ impl Display for ConfigOpts {
             writeln!(
                 f,
                 "Token: {}",
-                encode_opt(self.verify.as_ref().and_then(|v| v.token.as_ref()))
+                __display(self.verify.as_ref().and_then(|v| v.token.as_ref()))
             )?;
 
             // List
             writeln!(
                 f,
                 "Include zones: {}",
-                encode_opt(
+                __display(
                     self.list.as_ref().and_then(|l| l.include_zones.as_ref())
                 )
             )?;
             writeln!(
                 f,
                 "Ignore zones: {}",
-                encode_opt(
+                __display(
                     self.list.as_ref().and_then(|l| l.ignore_zones.as_ref())
                 )
             )?;
             writeln!(
                 f,
                 "Include records: {}",
-                encode_opt(
+                __display(
                     self.list.as_ref().and_then(|l| l.include_records.as_ref())
                 )
             )?;
             writeln!(
                 f,
                 "Ignore records: {}",
-                encode_opt(
+                __display(
                     self.list.as_ref().and_then(|l| l.ignore_records.as_ref())
                 )
             )?;
@@ -60,19 +60,19 @@ impl Display for ConfigOpts {
             writeln!(
                 f,
                 "Inventory path: {}",
-                encode_opt(
+                __display(
                     self.inventory.as_ref().and_then(|i| i.path.as_ref())
                 )
             )?;
             writeln!(
                 f,
                 "Commit without user prompt (force): {}",
-                encode_opt(self.commit.as_ref().map(|c| &c.force))
+                __display(self.commit.as_ref().map(|c| &c.force))
             )?;
             writeln!(
                 f,
                 "Watch interval: {}",
-                encode_opt(
+                __display(
                     self.watch.as_ref().and_then(|w| w.interval.as_ref())
                 )
             )?;
