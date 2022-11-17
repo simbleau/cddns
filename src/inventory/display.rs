@@ -1,4 +1,4 @@
-use super::models::Inventory;
+use crate::inventory::models::Inventory;
 use std::fmt::Display;
 
 impl Display for Inventory {
