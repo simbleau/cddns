@@ -216,7 +216,7 @@ impl Display for ConfigOpts {
                 "Commit without user prompt (force): {}",
                 __display(self.commit.as_ref().map(|c| &c.force))
             )?;
-            writeln!(
+            write!(
                 f,
                 "Watch interval: {}",
                 __display(
