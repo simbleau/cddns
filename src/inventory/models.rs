@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     path::Path,
 };
 
@@ -99,6 +100,29 @@ impl Inventory {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
+    }
+}
+
+impl Display for Inventory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.clone() // TODO: Clone isn't necessary if traversed differently
+                .into_iter()
+                .map(|(zone, records)| {
+                    format!(
+                        "{}:{}",
+                        zone,
+                        records
+                            .into_iter()
+                            .map(|r| format!("\n  - {}", r))
+                            .collect::<String>()
+                    )
+                })
+                .intersperse("\n---\n".to_string())
+                .collect::<String>()
+        )
     }
 }
 
