@@ -9,6 +9,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - All configuration options are now built with `config build`
 ### changed
 - Improved readability of errors with `inventory watch`
+- Improved readability of `config show`
 ### deprecated
 - Placeholder
 ### removed
