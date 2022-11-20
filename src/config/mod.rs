@@ -3,8 +3,6 @@
 //! CDDNS takes the typical layered configuration approach. There are 3 layers.
 //! The config file is the base, which is then superseded by environment
 //! variables, which are finally superseded by CLI arguments and options.
-use std::path::PathBuf;
-
 pub mod models;
 
 /// Return the default configuration path, depending on the host OS. This may
@@ -15,7 +13,7 @@ pub mod models;
 /// - MacOS: $HOME/Library/Application Support/cddns/config.toml
 /// - Windows: {FOLDERID_RoamingAppData}/cddns/config.toml
 /// - Else: None
-pub fn default_config_path() -> Option<PathBuf> {
+pub fn default_config_path() -> Option<std::path::PathBuf> {
     if let Some(base_dirs) = directories::BaseDirs::new() {
         let mut config_path = base_dirs.config_dir().to_owned();
         config_path.push("cddns");

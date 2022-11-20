@@ -117,8 +117,7 @@ async fn build() -> Result<()> {
 }
 
 async fn show(config: Option<PathBuf>) -> Result<()> {
-    // TODO: Need to show this in a better format.
     let cfg = ConfigOpts::full(config, None)?;
-    println!("{:#?}", cfg);
+    println!("{}", cfg);
     Ok(())
 }

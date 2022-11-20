@@ -10,11 +10,9 @@
 //! imbleau.com:
 //!   - *.imbleau.com
 //! ```
-use std::path::PathBuf;
-
 pub mod models;
 
 /// Return the default inventory path.
-pub fn default_inventory_path() -> PathBuf {
-    PathBuf::from("inventory.yaml")
+pub fn default_inventory_path() -> std::path::PathBuf {
+    std::path::PathBuf::from("inventory.yaml")
 }
