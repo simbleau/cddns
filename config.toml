@@ -1,3 +1,11 @@
+# This is an example config file for cddns.
+#
+# cddns uses the typical layered approach. The config file is the base, which
+# is superseded by environment variables, which are superseded by CLI flags.
+#
+# With the CLI installed, you can use `cddns config build` to interactively
+# build this TOML file.
+
 [verify]
 # The API Token with permission to Edit DNS Zones.
 # Read more: https://dash.cloudflare.com/profile/api-tokens
