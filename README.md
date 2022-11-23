@@ -43,6 +43,7 @@
 - Service
   - Docker
   - Docker Swarm (TODO: Instructions)
+  - Docker Compose (TODO: Instructions)
   - Kubernetes
   - Crontab
 
