@@ -92,9 +92,9 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
 
     // Log zones, records
     for zone in zones.iter() {
-        info!("{}", zone);
+        println!("{}", zone);
         for record in records.iter().filter(|r| r.zone_id == zone.id) {
-            info!("  ↳ {}", record);
+            println!("  ↳ {}", record);
         }
     }
     Ok(())
@@ -123,7 +123,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
 
     // Log zones
     for zone in zones {
-        info!("{}", zone);
+        println!("{}", zone);
     }
     Ok(())
 }
@@ -160,7 +160,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
 
     // Log records
     for record in records {
-        info!("{}", record);
+        println!("{}", record);
     }
     Ok(())
 }
