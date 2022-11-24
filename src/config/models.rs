@@ -4,6 +4,7 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::{fmt::Debug, fmt::Display};
+use tracing::debug;
 
 /// A model of all potential configuration options for the CDDNS CLI system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -62,6 +63,7 @@ impl ConfigOpts {
 
     /// Read runtime config from a target path.
     pub fn from_file(path: PathBuf) -> Result<Self> {
+        debug!("Reading configuration path: {}", path.display());
         let cfg_bytes = std::fs::read(path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;

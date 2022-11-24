@@ -5,6 +5,7 @@ use crate::{
 use anyhow::{Context, Result};
 use clap::Args;
 use std::path::PathBuf;
+use tracing::info;
 
 /// Verify authentication to Cloudflare.
 #[derive(Debug, Args)]
@@ -36,7 +37,7 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
-    println!("Verifying...");
+    info!("Verifying...");
     let login_messages = cloudflare::endpoints::verify(&token).await?;
     if let Some(message_stack) = login_messages
         .into_iter()
@@ -44,6 +45,8 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
     {
         println!("{}", message_stack);
+    } else {
+        println!("Token is valid.");
     }
     Ok(())
 }

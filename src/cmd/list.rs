@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
 use std::path::PathBuf;
+use tracing::{debug, info};
 
 /// List available resources
 #[derive(Debug, Args)]
@@ -76,8 +77,8 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
-    println!("Retrieving Cloudflare resources...");
     // Get zones
+    info!("Retrieving Cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     filter_zones(&mut zones, opts)?;
     // Get records
@@ -105,7 +106,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
-    println!("Retrieving Cloudflare resources...");
+    info!("Retrieving Cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     // Filter zones
     if let Some(ref zone_filter) = cmd_args.zone {
@@ -113,6 +114,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
             Regex::new(zone_filter).context("compiling zone regex filter")?;
         zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
         anyhow::ensure!(!zones.is_empty(), "no results with that zone filter");
+        zones = zones.first().cloned().into_iter().collect();
     } else {
         filter_zones(&mut zones, opts)?;
     }
@@ -135,13 +137,14 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones
-    println!("Retrieving Cloudflare resources...");
+    info!("Retrieving Cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     if let Some(ref zone_filter) = cmd_args.zone {
         let pattern =
             Regex::new(zone_filter).context("compiling zone regex filter")?;
         zones.retain(|z| pattern.is_match(&z.id) || pattern.is_match(&z.name));
         anyhow::ensure!(!zones.is_empty(), "no results with that zone filter");
+        zones = zones.first().cloned().into_iter().collect();
     } else {
         filter_zones(&mut zones, opts)?;
     }
@@ -158,6 +161,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
             !records.is_empty(),
             "no results with that record filter"
         );
+        records = records.first().cloned().into_iter().collect();
     } else {
         filter_records(&mut records, opts)?;
     }
@@ -170,6 +174,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
 }
 
 pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
+    let beginning_amt = zones.len();
     // Filter zones by configuration options
     if let Some(ref list_opts) = opts.list {
         if let Some(include_filters) = list_opts.include_zones.as_ref() {
@@ -191,6 +196,9 @@ pub fn filter_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
             }
         }
     }
+    if zones.len() - beginning_amt > 0 {
+        debug!("Filtered {} zones", zones.len() - beginning_amt);
+    }
     Ok(())
 }
 
@@ -198,6 +206,7 @@ pub fn filter_records(
     records: &mut Vec<Record>,
     opts: &ConfigOpts,
 ) -> Result<()> {
+    let beginning_amt = records.len();
     // Filter records by configuration options
     if let Some(ref list_opts) = opts.list {
         if let Some(include_filters) = list_opts.include_records.as_ref() {
@@ -218,6 +227,9 @@ pub fn filter_records(
                 });
             }
         }
+    }
+    if records.len() - beginning_amt > 0 {
+        debug!("Filtered {} records", records.len() - beginning_amt);
     }
     Ok(())
 }

@@ -16,6 +16,7 @@ use std::{
     vec,
 };
 use tokio::time::{self, Duration, MissedTickBehavior};
+use tracing::{debug, error, info};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -98,7 +99,6 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones and records to build inventory from
-    println!("Retrieving Cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     crate::cmd::list::filter_zones(&mut zones, opts)?;
     anyhow::ensure!(!zones.is_empty(), "no zones to build inventory from");
@@ -159,8 +159,12 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
 
             let zone_id = selected_zone.id.clone();
             let record_id = selected_record.id.clone();
-            inventory.insert(zone_id, record_id);
-            println!("✅ Added '{}'.", selected_record.name);
+            if inventory.contains(&zone_id, &record_id) {
+                println!("✅ You already added '{}'.", selected_record.name)
+            } else {
+                inventory.insert(zone_id, record_id);
+                println!("✅ Added '{}'.", selected_record.name);
+            }
         } else {
             println!("❌ No records for this zone.")
         }
@@ -199,7 +203,6 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         io::fs::remove_interactive(&path, &mut scanner).await?;
     }
     io::fs::save_yaml(&inventory, path).await?;
-    println!("✅ Saved");
 
     Ok(())
 }
@@ -212,6 +215,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.path.clone())
         .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
+
     if inventory.is_empty() {
         println!("Inventory file is empty.");
     } else {
@@ -230,6 +234,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get inventory
+    info!("Reading inventory...");
     let inventory_path = opts
         .inventory
         .as_ref()
@@ -238,9 +243,12 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
-    println!("Checking Cloudflare resources...");
+    info!("Resolving public IP...");
     let ipv4 = public_ip::addr_v4().await;
+    debug!("IPv4: {:?}", ipv4);
     let ipv6 = public_ip::addr_v6().await;
+    debug!("IPv6: {:?}", ipv4);
+    info!("Checking Cloudflare resources...");
     let (good, bad, invalid) =
         check_records(token, &inventory, ipv4, ipv6).await?;
 
@@ -279,6 +287,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get inventory
+    info!("Reading inventory...");
     let inventory_path = opts
         .inventory
         .as_ref()
@@ -293,9 +302,12 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or(ConfigOptsCommit::default().force);
 
     // Check records
-    println!("Checking Cloudflare resources...");
+    info!("Resolving public IP...");
     let ipv4 = public_ip::addr_v4().await;
+    debug!("IPv4: {:?}", ipv4);
     let ipv6 = public_ip::addr_v6().await;
+    debug!("IPv6: {:?}", ipv4);
+    info!("Checking Cloudflare resources...");
     let (_good, mut bad, mut invalid) =
         check_records(&token, &inventory, ipv4, ipv6).await?;
 
@@ -323,6 +335,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Fix records
         let mut fixed = HashSet::new();
         if fix {
+            info!("Fixing erroneous records...");
             for cf_record in &bad {
                 if match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
@@ -352,7 +365,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                             cf_record.record_type
                         ),
                 }.is_ok() {
+                    debug!("Updated '{}'", &cf_record.id);
                     fixed.insert(cf_record.id.clone());
+                } else {
+                    error!("Couldn't update '{}'", &cf_record.id)
                 }
             }
         }
@@ -376,11 +392,15 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Prune
         let mut pruned = HashSet::new();
         if prune {
+            info!("Pruning invalid records...");
             for (zone_id, record_id) in invalid.iter() {
                 let removed =
                     inventory.remove(zone_id.to_owned(), record_id.to_owned());
                 if let Ok(true) = removed {
+                    debug!("Pruned '{} | {}'", &zone_id, &record_id);
                     pruned.insert((zone_id.clone(), record_id.clone()));
+                } else {
+                    error!("Could not prune '{} | {}'", &zone_id, &record_id);
                 }
             }
             invalid.retain_mut(|(z, r)| {
@@ -433,7 +453,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             if let Err(e) =
                 __watch(&token, &mut inventory, &inventory_path).await
             {
-                println!("Error: {:?}", e);
+                error!("{:?}", e);
             }
         }
     } else {
@@ -441,12 +461,13 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
         loop {
             timer.tick().await;
+            debug!("Awake");
             if let Err(e) =
                 __watch(&token, &mut inventory, &inventory_path).await
             {
-                println!("Error: {:?}", e);
+                error!("{:?}", e);
             }
-            println!("Sleeping...");
+            debug!("Sleeping...");
         }
     }
 }
@@ -519,9 +540,12 @@ where
     let token = token.to_string();
 
     // Check records
-    println!("Checking Cloudflare resources...");
+    info!("Resolving public IP...");
     let ipv4 = public_ip::addr_v4().await;
+    debug!("IPv4: {:?}", ipv4);
     let ipv6 = public_ip::addr_v6().await;
+    debug!("IPv6: {:?}", ipv4);
+    info!("Checking Cloudflare resources...");
     let (_good, mut bad, mut invalid) =
         check_records(&token, inventory, ipv4, ipv6).await?;
 

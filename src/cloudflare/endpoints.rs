@@ -6,6 +6,7 @@ use crate::cloudflare::requests;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;
+use tracing::{debug, info};
 
 /// Return a list of login messages if the token is verifiable.
 pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
@@ -17,6 +18,7 @@ pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
 
 /// Return all known Cloudfare zones.
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
+    info!("Retrieving Cloudflare zones...");
     let mut zones = vec![];
     let mut page_cursor = 1;
     loop {
@@ -37,6 +39,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
             break;
         }
     }
+    debug!("Found {} zones", zones.len());
     Ok(zones)
 }
 
@@ -45,6 +48,7 @@ pub async fn records(
     zones: &Vec<Zone>,
     token: impl Display,
 ) -> Result<Vec<Record>> {
+    info!("Retrieving Cloudflare records...");
     let mut records = vec![];
     for zone in zones {
         let mut page_cursor = 1;
@@ -73,6 +77,7 @@ pub async fn records(
             }
         }
     }
+    debug!("Found {} records", records.len());
     Ok(records)
 }
 

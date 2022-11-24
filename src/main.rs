@@ -27,7 +27,6 @@ struct Args {
     /// A config file to use. [default: $XDG_CONFIG_HOME/cddns/config.toml]
     #[clap(short, long, env = "CDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
-    /// TODO: Enable verbose logging.
     #[clap(short)]
     pub v: bool,
 }
@@ -65,9 +64,9 @@ async fn main() -> Result<()> {
     tracing_subscriber::registry()
         // Filter spans based on the RUST_LOG env var.
         .with(tracing_subscriber::EnvFilter::new(if args.v {
-            "error,trunk=debug"
+            "error,debug"
         } else {
-            "error,trunk=info"
+            "error,info"
         }))
         // Send a copy of all spans to stdout as JSON.
         .with(

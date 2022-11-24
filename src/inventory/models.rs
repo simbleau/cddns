@@ -5,6 +5,7 @@ use std::{
     fmt::Display,
     path::Path,
 };
+use tracing::debug;
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,6 +29,10 @@ impl Inventory {
     where
         P: AsRef<Path>,
     {
+        debug!(
+            "Reading inventory path: {}",
+            inventory_path.as_ref().display()
+        );
         let inventory_path =
             inventory_path.as_ref().canonicalize().with_context(|| {
                 format!(
@@ -44,15 +49,19 @@ impl Inventory {
         Ok(cfg)
     }
 
-    /// Save the inventory file at the given path.
+    /// Save the inventory file at the given path, overwriting if necessary.
     pub async fn save<P>(&self, path: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
-        let path = path.as_ref();
-        crate::io::fs::remove_force(path).await.with_context(|| {
-            format!("path could not be overwritten '{}'", path.display())
-        })?;
+        crate::io::fs::remove_force(path.as_ref())
+            .await
+            .with_context(|| {
+                format!(
+                    "path could not be overwritten '{}'",
+                    path.as_ref().display()
+                )
+            })?;
         crate::io::fs::save_yaml(&self, path).await?;
         Ok(())
     }

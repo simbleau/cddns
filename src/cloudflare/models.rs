@@ -32,7 +32,7 @@ pub struct ResultInfo {
     pub total_pages: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Zone {
     pub id: String,
     pub name: String,
