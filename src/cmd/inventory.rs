@@ -217,7 +217,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     if inventory.is_empty() {
-        println!("inventory is empty");
+        println!("Inventory is empty.");
     } else {
         println!("{}", inventory);
     }
