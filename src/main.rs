@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
         eprintln!("error enabling ANSI support: {:?}", err);
     }
 
-    // Enable logger
+    // Enable tracing/logging
     tracing_subscriber::registry()
         // Filter spans based on the RUST_LOG env var.
         .with(tracing_subscriber::EnvFilter::new(if args.v {
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
         } else {
             "error,info"
         }))
-        // Send a copy of all spans to stdout as JSON.
+        // Format tracing
         .with(
             tracing_subscriber::fmt::layer()
                 .with_target(false)
