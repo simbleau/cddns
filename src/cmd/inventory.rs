@@ -249,14 +249,17 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let ipv6 = public_ip::addr_v6().await;
     debug!("v6 ip: {:?}", ipv4);
     info!("retrieving cloudflare resources...");
-    let (good, bad, invalid) =
-        check_records(token, &inventory, ipv4, ipv6).await?;
+    let CheckResult {
+        matches,
+        mismatches,
+        invalid,
+    } = check_records(token, &inventory, ipv4, ipv6).await?;
 
     // Print records
-    for cf_record in &good {
+    for cf_record in &matches {
         info!("match: {} ({})", cf_record.name, cf_record.id);
     }
-    for cf_record in &bad {
+    for cf_record in &mismatches {
         info!(
             "mismatch: {} ({}) => {}",
             cf_record.name, cf_record.id, cf_record.content
@@ -269,8 +272,8 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     // Print summary
     info!(
         "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
-        good.len(),
-        bad.len(),
+        matches.len(),
+        mismatches.len(),
         invalid.len()
     );
 
@@ -309,16 +312,19 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     let ipv6 = public_ip::addr_v6().await;
     debug!("v6 ip: {:?}", ipv4);
     info!("retrieving cloudflare resources...");
-    let (_good, mut bad, mut invalid) =
-        check_records(&token, &inventory, ipv4, ipv6).await?;
+    let CheckResult {
+        mut mismatches,
+        mut invalid,
+        ..
+    } = check_records(&token, &inventory, ipv4, ipv6).await?;
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
 
     // Print records
-    if !bad.is_empty() {
+    if !mismatches.is_empty() {
         // Print bad records
-        for cf_record in &bad {
+        for cf_record in &mismatches {
             info!(
                 "mismatch: {} ({}) => {}",
                 cf_record.name, cf_record.id, cf_record.content
@@ -328,7 +334,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let fix = force
             || scanner
                 .prompt_yes_or_no(
-                    format!("Fix {} mismatched records?", bad.len()),
+                    format!("Fix {} mismatched records?", mismatches.len()),
                     "Y/n",
                 )
                 .await?
@@ -337,7 +343,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let mut fixed = HashSet::new();
         if fix {
             info!("fixing mismatched records...");
-            for cf_record in &bad {
+            for cf_record in &mismatches {
                 if match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
                         Some(ip) => {
@@ -373,7 +379,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                 }
             }
         }
-        bad.retain_mut(|r| !fixed.contains(&r.id));
+        mismatches.retain_mut(|r| !fixed.contains(&r.id));
     }
 
     if !invalid.is_empty() {
@@ -412,12 +418,12 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     }
 
     // Print summary
-    if bad.is_empty() && invalid.is_empty() {
+    if mismatches.is_empty() && invalid.is_empty() {
         info!("✅ no bad or invalid records");
     } else {
         info!(
-            "❌ {} bad, {} invalid records remain.",
-            bad.len(),
+            "❌ {} mismatched, {} invalid records",
+            mismatches.len(),
             invalid.len()
         );
     }
@@ -460,19 +466,26 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CheckResult {
+    matches: Vec<Record>,
+    mismatches: Vec<Record>,
+    invalid: Vec<(String, String)>,
+}
+
 #[tracing::instrument(level = "trace")]
 pub async fn check_records(
     token: impl Display + Debug,
     inventory: &Inventory,
     ipv4: Option<Ipv4Addr>,
     ipv6: Option<Ipv6Addr>,
-) -> Result<(Vec<Record>, Vec<Record>, Vec<(String, String)>)> {
+) -> Result<CheckResult> {
     let zones = cloudflare::endpoints::zones(token.to_string()).await?;
     let records =
         cloudflare::endpoints::records(&zones, token.to_string()).await?;
 
     // Check and collect records
-    let (mut good, mut bad, mut invalid) = (vec![], vec![], vec![]);
+    let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
     for (inv_zone, inv_records) in inventory.clone().into_iter() {
         for inv_record in inv_records {
             let cf_record = records.iter().find(|r| {
@@ -492,10 +505,10 @@ pub async fn check_records(
                     if let Some(ref ip) = ip {
                         if &cf_record.content == ip {
                             // IP Match
-                            good.push(cf_record.clone());
+                            matches.push(cf_record.clone());
                         } else {
                             // IP mismatch
-                            bad.push(cf_record.clone());
+                            mismatches.push(cf_record.clone());
                         }
                     } else {
                         anyhow::bail!(
@@ -512,5 +525,9 @@ pub async fn check_records(
         }
     }
 
-    Ok((good, bad, invalid))
+    Ok(CheckResult {
+        matches,
+        mismatches,
+        invalid,
+    })
 }
