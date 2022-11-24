@@ -57,6 +57,23 @@ impl Inventory {
         Ok(())
     }
 
+    /// Returns whether a record exists.
+    pub fn contains<S>(&mut self, zone_id: S, record_id: S) -> bool
+    where
+        S: Into<String>,
+    {
+        let zone_id = zone_id.into();
+        let record_id = InventoryRecord(record_id.into());
+
+        // Magic that checks whether the record exists
+        self.0
+            .as_ref()
+            .and_then(|map| map.get(&zone_id))
+            .and_then(|zone| zone.0.as_ref())
+            .map(|records| records.contains(&record_id))
+            .unwrap_or(false)
+    }
+
     /// Insert a record into the inventory.
     pub fn insert<S>(&mut self, zone_id: S, record_id: S)
     where
