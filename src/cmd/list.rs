@@ -172,7 +172,7 @@ pub fn find_zone(
 ) -> Result<Option<Zone>> {
     let id_str = id.into();
     for z in zones {
-        if &id_str == &z.id || &id_str == &z.name {
+        if id_str == z.id || id_str == z.name {
             return Ok(Some(z.clone()));
         }
     }
@@ -217,7 +217,7 @@ pub fn find_record(
 ) -> Result<Option<Record>> {
     let id_str = id.into();
     for r in records {
-        if &id_str == &r.id || &id_str == &r.name {
+        if id_str == r.id || id_str == r.name {
             return Ok(Some(r.clone()));
         }
     }

@@ -435,7 +435,8 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         opts.watch
             .as_ref()
             .and_then(|opts| opts.interval)
-            .unwrap_or_else(|| ConfigOptsWatch::default().interval.unwrap()),
+            .or(ConfigOptsWatch::default().interval)
+            .context("no default interval")?,
     );
     debug!("interval: {}ms", interval.as_millis());
 

@@ -183,10 +183,10 @@ impl IntoIterator for Inventory {
         let mut items: HashMap<String, Vec<String>> = HashMap::new();
         if let Some(map) = self.0 {
             for (key, value) in map {
-                items.entry(key.to_owned()).or_default();
+                let entry = items.entry(key.clone()).or_default();
                 if let Some(record_set) = value.0 {
                     for record in record_set {
-                        items.get_mut(&key).unwrap().push(record.0.clone());
+                        entry.push(record.0.clone());
                     }
                 }
             }
