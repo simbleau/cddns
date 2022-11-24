@@ -10,7 +10,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::{
     collections::HashSet,
-    fmt::Display,
+    fmt::{Debug, Display},
     net::{Ipv4Addr, Ipv6Addr},
     path::{Path, PathBuf},
     vec,
@@ -58,6 +58,7 @@ enum InventorySubcommands {
 }
 
 impl InventoryCmd {
+    #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         let cli_cfg = ConfigOpts {
             inventory: Some(self.cfg),
@@ -87,6 +88,7 @@ impl InventoryCmd {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn build(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -202,6 +204,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory_path = opts
         .inventory
@@ -217,6 +220,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn check(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -265,6 +269,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn commit(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -398,6 +403,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -445,8 +451,9 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     }
 }
 
+#[tracing::instrument(level = "trace")]
 pub async fn check_records(
-    token: impl Display,
+    token: impl Display + Debug,
     inventory: &Inventory,
     ipv4: Option<Ipv4Addr>,
     ipv6: Option<Ipv6Addr>,
@@ -502,7 +509,7 @@ pub async fn check_records(
 /// This would be fantastic as an async closure when that becomes stabalized.
 /// For now, this is a helper to perform the commits without interaction.
 async fn __watch<P>(
-    token: impl Display,
+    token: impl Display + Debug,
     inventory: &mut Inventory,
     inventory_path: P,
 ) -> Result<()>

@@ -29,6 +29,7 @@ enum ConfigSubcommands {
 }
 
 impl ConfigCmd {
+    #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         match self.action {
             ConfigSubcommands::Build => build().await,
@@ -37,6 +38,7 @@ impl ConfigCmd {
     }
 }
 
+#[tracing::instrument(level = "trace")]
 async fn build() -> Result<()> {
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -116,6 +118,7 @@ async fn build() -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace")]
 async fn show(config: Option<PathBuf>) -> Result<()> {
     let cfg = ConfigOpts::full(config, None)?;
     println!("{}", cfg);

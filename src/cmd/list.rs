@@ -46,6 +46,7 @@ pub struct RecordArgs {
 }
 
 impl ListCmd {
+    #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         let cli_cfg = ConfigOpts {
             list: Some(self.cfg),
@@ -66,6 +67,7 @@ impl ListCmd {
 }
 
 /// Print all zones and records.
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn print_all(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -93,6 +95,7 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
 }
 
 /// Print only zones.
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
     // Get token
     let token = opts
@@ -122,6 +125,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
 }
 
 /// Print only records.
+#[tracing::instrument(level = "trace", skip(opts))]
 async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     // Get token
     let token = opts
