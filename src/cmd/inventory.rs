@@ -16,7 +16,7 @@ use std::{
     vec,
 };
 use tokio::time::{self, Duration, MissedTickBehavior};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 /// Build or manage your DNS record inventory.
 #[derive(Debug, Args)]
@@ -260,17 +260,17 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         info!("match: {} ({})", cf_record.name, cf_record.id);
     }
     for cf_record in &mismatches {
-        info!(
+        warn!(
             "mismatch: {} ({}) => {}",
             cf_record.name, cf_record.id, cf_record.content
         );
     }
     for (inv_zone, inv_record) in &invalid {
-        info!("invalid: {} | {}", inv_zone, inv_record);
+        warn!("invalid: {} | {}", inv_zone, inv_record);
     }
 
     // Print summary
-    info!(
+    println!(
         "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
         matches.len(),
         mismatches.len(),
@@ -325,7 +325,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     if !mismatches.is_empty() {
         // Print bad records
         for cf_record in &mismatches {
-            info!(
+            warn!(
                 "mismatch: {} ({}) => {}",
                 cf_record.name, cf_record.id, cf_record.content
             );
@@ -385,7 +385,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     if !invalid.is_empty() {
         // Print invalid records
         for (inv_zone, inv_record) in &invalid {
-            info!("invalid: {} | {}", inv_zone, inv_record);
+            warn!("invalid: {} | {}", inv_zone, inv_record);
         }
         // Ask to prune records
         let prune = force
