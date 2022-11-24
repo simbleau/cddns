@@ -37,16 +37,11 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
-    info!("Verifying...");
-    let login_messages = cloudflare::endpoints::verify(&token).await?;
-    if let Some(message_stack) = login_messages
-        .into_iter()
-        .map(|msg| msg.message)
-        .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
-    {
-        println!("{}", message_stack);
-    } else {
-        println!("Token is valid.");
+    info!("validating...");
+    let cf_messages = cloudflare::endpoints::verify(&token).await?;
+    info!("received successful response");
+    for (i, msg) in cf_messages.iter().enumerate() {
+        info!("message [{}/{}]: {}", i + 1, cf_messages.len(), msg.message);
     }
     Ok(())
 }

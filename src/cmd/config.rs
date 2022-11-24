@@ -113,7 +113,6 @@ async fn build() -> Result<()> {
         io::fs::remove_interactive(&path, &mut scanner).await?;
     }
     io::fs::save_toml(&config, &path).await?;
-    println!("✅ Saved");
 
     Ok(())
 }

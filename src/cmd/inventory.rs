@@ -12,7 +12,7 @@ use std::{
     collections::HashSet,
     fmt::{Debug, Display},
     net::{Ipv4Addr, Ipv6Addr},
-    path::{Path, PathBuf},
+    path::PathBuf,
     vec,
 };
 use tokio::time::{self, Duration, MissedTickBehavior};
@@ -99,12 +99,12 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get zones and records to build inventory from
+    info!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
-    crate::cmd::list::filter_zones(&mut zones, opts)?;
+    crate::cmd::list::retain_zones(&mut zones, opts)?;
     anyhow::ensure!(!zones.is_empty(), "no zones to build inventory from");
-
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
-    crate::cmd::list::filter_records(&mut records, opts)?;
+    crate::cmd::list::retain_records(&mut records, opts)?;
     anyhow::ensure!(!records.is_empty(), "no records to build inventory from");
 
     let runtime = tokio::runtime::Handle::current();
@@ -217,7 +217,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     if inventory.is_empty() {
-        println!("Inventory file is empty.");
+        println!("inventory is empty");
     } else {
         println!("{}", inventory);
     }
@@ -234,7 +234,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get inventory
-    info!("Reading inventory...");
+    info!("reading inventory...");
     let inventory_path = opts
         .inventory
         .as_ref()
@@ -243,32 +243,32 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // Check records
-    info!("Resolving public IP...");
+    info!("resolving public ip...");
     let ipv4 = public_ip::addr_v4().await;
-    debug!("IPv4: {:?}", ipv4);
+    debug!("v4 ip: {:?}", ipv4);
     let ipv6 = public_ip::addr_v6().await;
-    debug!("IPv6: {:?}", ipv4);
-    info!("Checking Cloudflare resources...");
+    debug!("v6 ip: {:?}", ipv4);
+    info!("retrieving cloudflare resources...");
     let (good, bad, invalid) =
         check_records(token, &inventory, ipv4, ipv6).await?;
 
     // Print records
     for cf_record in &good {
-        println!("MATCH: {} ({})", cf_record.name, cf_record.id);
+        info!("match: {} ({})", cf_record.name, cf_record.id);
     }
     for cf_record in &bad {
-        println!(
-            "MISMATCH: {} ({}) => {}",
+        info!(
+            "mismatch: {} ({}) => {}",
             cf_record.name, cf_record.id, cf_record.content
         );
     }
     for (inv_zone, inv_record) in &invalid {
-        println!("INVALID: {} | {}", inv_zone, inv_record);
+        info!("invalid: {} | {}", inv_zone, inv_record);
     }
 
     // Print summary
-    println!(
-        "✅ {} GOOD, ❌ {} BAD, ❓ {} INVALID",
+    info!(
+        "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
         good.len(),
         bad.len(),
         invalid.len()
@@ -287,7 +287,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .context("no token was provided")?;
 
     // Get inventory
-    info!("Reading inventory...");
+    info!("reading inventory...");
     let inventory_path = opts
         .inventory
         .as_ref()
@@ -300,14 +300,15 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .as_ref()
         .map(|opts| opts.force)
         .unwrap_or(ConfigOptsCommit::default().force);
+    debug!("force flag: {}", force);
 
     // Check records
-    info!("Resolving public IP...");
+    info!("resolving public ip...");
     let ipv4 = public_ip::addr_v4().await;
-    debug!("IPv4: {:?}", ipv4);
+    debug!("v4 ip: {:?}", ipv4);
     let ipv6 = public_ip::addr_v6().await;
-    debug!("IPv6: {:?}", ipv4);
-    info!("Checking Cloudflare resources...");
+    debug!("v6 ip: {:?}", ipv4);
+    info!("retrieving cloudflare resources...");
     let (_good, mut bad, mut invalid) =
         check_records(&token, &inventory, ipv4, ipv6).await?;
 
@@ -318,8 +319,8 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     if !bad.is_empty() {
         // Print bad records
         for cf_record in &bad {
-            println!(
-                "MISMATCH: {} ({}) => {}",
+            info!(
+                "mismatch: {} ({}) => {}",
                 cf_record.name, cf_record.id, cf_record.content
             );
         }
@@ -327,7 +328,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         let fix = force
             || scanner
                 .prompt_yes_or_no(
-                    format!("Fix {} bad records?", bad.len()),
+                    format!("Fix {} mismatched records?", bad.len()),
                     "Y/n",
                 )
                 .await?
@@ -335,7 +336,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Fix records
         let mut fixed = HashSet::new();
         if fix {
-            info!("Fixing erroneous records...");
+            info!("fixing mismatched records...");
             for cf_record in &bad {
                 if match cf_record.record_type.as_str() {
                     "A" => match ipv4 {
@@ -348,7 +349,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                             )
                             .await
                         }
-                        None => Err(anyhow::anyhow!("no discovered IPv4 address needed to patch A record")),
+                        None => Err(anyhow::anyhow!("no discovered ipv4 address needed to patch A record")),
                     },
                     "AAAA" => match ipv6 {
                         Some(ip) => update_record(
@@ -358,17 +359,17 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                                 ip,
                             )
                             .await,
-                        None => Err(anyhow::anyhow!("no discovered IPv6 address needed to patch AAAA record")),
+                        None => Err(anyhow::anyhow!("no discovered ipv6 address needed to patch AAAA record")),
                     },
                     _ => unimplemented!(
                             "unexpected record type: {}",
                             cf_record.record_type
                         ),
                 }.is_ok() {
-                    debug!("Updated '{}'", &cf_record.id);
+                    debug!("updated '{}'", &cf_record.id);
                     fixed.insert(cf_record.id.clone());
                 } else {
-                    error!("Couldn't update '{}'", &cf_record.id)
+                    error!("unsuccessful update of '{}'", &cf_record.id)
                 }
             }
         }
@@ -378,7 +379,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     if !invalid.is_empty() {
         // Print invalid records
         for (inv_zone, inv_record) in &invalid {
-            println!("INVALID: {} | {}", inv_zone, inv_record);
+            info!("invalid: {} | {}", inv_zone, inv_record);
         }
         // Ask to prune records
         let prune = force
@@ -392,15 +393,15 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Prune
         let mut pruned = HashSet::new();
         if prune {
-            info!("Pruning invalid records...");
+            info!("pruning invalid records...");
             for (zone_id, record_id) in invalid.iter() {
                 let removed =
                     inventory.remove(zone_id.to_owned(), record_id.to_owned());
                 if let Ok(true) = removed {
-                    debug!("Pruned '{} | {}'", &zone_id, &record_id);
+                    debug!("pruned '{} | {}'", &zone_id, &record_id);
                     pruned.insert((zone_id.clone(), record_id.clone()));
                 } else {
-                    error!("Could not prune '{} | {}'", &zone_id, &record_id);
+                    error!("could not prune '{} | {}'", &zone_id, &record_id);
                 }
             }
             invalid.retain_mut(|(z, r)| {
@@ -412,9 +413,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 
     // Print summary
     if bad.is_empty() && invalid.is_empty() {
-        println!("✅ No bad or invalid records.");
+        info!("✅ no bad or invalid records");
     } else {
-        println!(
+        info!(
             "❌ {} bad, {} invalid records remain.",
             bad.len(),
             invalid.len()
@@ -425,20 +426,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
-    // Get token
-    let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
-
-    // Get inventory
-    let inventory_path = opts
-        .inventory
-        .as_ref()
-        .and_then(|opts| opts.path.clone())
-        .unwrap_or_else(default_inventory_path);
-    let mut inventory = Inventory::from_file(&inventory_path).await?;
+    // Override force flag with true; watch is non-interactive
+    let mut opts = opts.clone();
+    opts.commit.replace(ConfigOptsCommit { force: true });
 
     // Get watch interval
     let interval = Duration::from_millis(
@@ -447,12 +437,11 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
             .and_then(|opts| opts.interval)
             .unwrap_or_else(|| ConfigOptsWatch::default().interval.unwrap()),
     );
+    debug!("interval: {}ms", interval.as_millis());
 
     if interval.is_zero() {
         loop {
-            if let Err(e) =
-                __watch(&token, &mut inventory, &inventory_path).await
-            {
+            if let Err(e) = commit(&opts).await {
                 error!("{:?}", e);
             }
         }
@@ -461,13 +450,11 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
         loop {
             timer.tick().await;
-            debug!("Awake");
-            if let Err(e) =
-                __watch(&token, &mut inventory, &inventory_path).await
-            {
+            debug!("awoken");
+            if let Err(e) = commit(&opts).await {
                 error!("{:?}", e);
             }
-            debug!("Sleeping...");
+            debug!("sleeping...");
         }
     }
 }
@@ -525,103 +512,4 @@ pub async fn check_records(
     }
 
     Ok((good, bad, invalid))
-}
-
-/// This would be fantastic as an async closure when that becomes stabalized.
-/// For now, this is a helper to perform the commits without interaction.
-async fn __watch<P>(
-    token: impl Display + Debug,
-    inventory: &mut Inventory,
-    inventory_path: P,
-) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let token = token.to_string();
-
-    // Check records
-    info!("Resolving public IP...");
-    let ipv4 = public_ip::addr_v4().await;
-    debug!("IPv4: {:?}", ipv4);
-    let ipv6 = public_ip::addr_v6().await;
-    debug!("IPv6: {:?}", ipv4);
-    info!("Checking Cloudflare resources...");
-    let (_good, mut bad, mut invalid) =
-        check_records(&token, inventory, ipv4, ipv6).await?;
-
-    // Print records
-    if !bad.is_empty() {
-        // Fix records
-        let mut fixed = HashSet::new();
-        for cf_record in &bad {
-            println!(
-                "MISMATCH: {} ({}) => {}",
-                cf_record.name, cf_record.id, cf_record.content
-            );
-            if match cf_record.record_type.as_str() {
-                    "A" => match ipv4 {
-                        Some(ip) => {
-                            update_record(
-                                token.clone(),
-                                cf_record.zone_id.clone(),
-                                cf_record.id.clone(),
-                                ip,
-                            )
-                            .await
-                        }
-                        None => Err(anyhow::anyhow!("no discovered IPv4 address needed to patch A record")),
-                    },
-                    "AAAA" => match ipv6 {
-                        Some(ip) => update_record(
-                                token.clone(),
-                                cf_record.zone_id.clone(),
-                                cf_record.id.clone(),
-                                ip,
-                            )
-                            .await,
-                        None => Err(anyhow::anyhow!("no discovered IPv6 address needed to patch AAAA record")),
-                    },
-                    _ => unimplemented!(
-                            "unexpected record type: {}",
-                            cf_record.record_type
-                        ),
-                }.is_ok() {
-                    fixed.insert(cf_record.id.clone());
-                }
-        }
-        bad.retain_mut(|r| !fixed.contains(&r.id));
-    }
-
-    // Prune
-    let mut pruned = HashSet::new();
-    if !invalid.is_empty() {
-        // Print invalid records
-        for (inv_zone, inv_record) in &invalid {
-            println!("INVALID: {} | {}", inv_zone, inv_record);
-        }
-        for (zone_id, record_id) in invalid.iter() {
-            let removed =
-                inventory.remove(zone_id.to_owned(), record_id.to_owned());
-            if let Ok(true) = removed {
-                pruned.insert((zone_id.clone(), record_id.clone()));
-            }
-        }
-        invalid.retain_mut(|(z, r)| {
-            !pruned.contains(&(z.to_owned(), r.to_owned()))
-        });
-        inventory.save(inventory_path).await?;
-    }
-
-    // Print summary
-    if bad.is_empty() && invalid.is_empty() {
-        println!("✅ No bad or invalid records.");
-    } else {
-        println!(
-            "❌ {} bad, {} invalid records remain.",
-            bad.len(),
-            invalid.len()
-        );
-    }
-
-    Ok(())
 }

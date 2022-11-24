@@ -6,7 +6,7 @@ use crate::cloudflare::requests;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;
-use tracing::{debug, info};
+use tracing::{debug, trace};
 
 /// Return a list of login messages if the token is verifiable.
 pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
@@ -18,10 +18,10 @@ pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
 
 /// Return all known Cloudfare zones.
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
-    info!("Retrieving Cloudflare zones...");
     let mut zones = vec![];
     let mut page_cursor = 1;
     loop {
+        trace!("retrieving zones from page {}", page_cursor);
         let endpoint = format!("/zones?order=name&page={}", page_cursor);
         let resp: ListZonesResponse =
             requests::get(endpoint, token.to_string())
@@ -39,7 +39,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
             break;
         }
     }
-    debug!("Found {} zones", zones.len());
+    debug!("collected {} zones", zones.len());
     Ok(zones)
 }
 
@@ -48,11 +48,13 @@ pub async fn records(
     zones: &Vec<Zone>,
     token: impl Display,
 ) -> Result<Vec<Record>> {
-    info!("Retrieving Cloudflare records...");
     let mut records = vec![];
     for zone in zones {
+        trace!("retrieving records from zone '{}'", zone.id);
         let mut page_cursor = 1;
+        let beginning_amt = records.len();
         loop {
+            trace!("retrieving records from page {}", page_cursor);
             let endpoint = format!(
                 "/zones/{}/dns_records?order=name&page={}",
                 zone.id, page_cursor
@@ -76,8 +78,13 @@ pub async fn records(
                 break;
             }
         }
+        debug!(
+            "received {} records from zone '{}'",
+            records.len() - beginning_amt,
+            zone.id
+        );
     }
-    debug!("Found {} records", records.len());
+    debug!("collected {} records", records.len());
     Ok(records)
 }
 

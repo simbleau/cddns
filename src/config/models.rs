@@ -28,6 +28,7 @@ impl ConfigOpts {
         // Apply TOML > Default
         if let Some(path) = toml.or_else(default_config_path) {
             if path.exists() {
+                debug!("configuration file found");
                 let toml_cfg = Self::from_file(
                     path.canonicalize().with_context(|| {
                         format!(
@@ -37,7 +38,11 @@ impl ConfigOpts {
                     })?,
                 )?;
                 cfg = cfg.merge(toml_cfg);
+            } else {
+                debug!("configuration file not found");
             }
+        } else {
+            debug!("no default configuration file path");
         };
         // Apply ENV > TOML
         let env_cfg = Self::from_env()?;
@@ -63,7 +68,7 @@ impl ConfigOpts {
 
     /// Read runtime config from a target path.
     pub fn from_file(path: PathBuf) -> Result<Self> {
-        debug!("Reading configuration path: {}", path.display());
+        debug!("reading configuration path: {}", path.display());
         let cfg_bytes = std::fs::read(path).context("reading config file")?;
         let cfg: Self = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;

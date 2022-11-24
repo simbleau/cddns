@@ -30,7 +30,7 @@ impl Inventory {
         P: AsRef<Path>,
     {
         debug!(
-            "Reading inventory path: {}",
+            "reading inventory path: {}",
             inventory_path.as_ref().display()
         );
         let inventory_path =
