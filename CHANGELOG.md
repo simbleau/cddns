@@ -7,15 +7,19 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ## Unreleased
 ### added
 - All configuration options are now built with `config build`
+- Added verbose logging with `-v`
 ### changed
 - Improved readability of errors with `inventory watch`
 - Improved readability of `config show`
+- `cddns list zones -z <name|id>` now only matches one zone result
+- `cddns list records -z <name|id>` now only matches one zone result
+- `cddns list records -r <name|id>` now only matches one record result
 ### deprecated
 - Placeholder
 ### removed
 - Placeholder
 ### fixed
-- Environment variables are now consistent and respected
+- Environment variables work for all commands
 ### security
 - Placeholder
 

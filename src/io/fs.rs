@@ -1,6 +1,7 @@
 use crate::io::Scanner;
 use anyhow::{Context, Result};
 use std::path::Path;
+use tracing::debug;
 
 /// Remove a file by force, without user interaction
 pub async fn remove_force<P>(path: P) -> Result<()>
@@ -8,7 +9,8 @@ where
     P: AsRef<Path>,
 {
     if path.as_ref().exists() {
-        tokio::fs::remove_file(&path).await?;
+        tokio::fs::remove_file(path.as_ref()).await?;
+        debug!("removed: {}", path.as_ref().display());
     }
     Ok(())
 }
@@ -39,12 +41,18 @@ where
     T: ?Sized + serde::Serialize,
     P: AsRef<Path>,
 {
+    if let Some(parent) = path.as_ref().parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .context("could not create parent directory")?;
+    }
     tokio::fs::write(
-        path,
+        path.as_ref(),
         toml::to_string(&contents).context("encoding to TOML")?,
     )
     .await
     .context("saving TOML contents")?;
+    debug!("wrote: {}", path.as_ref().display());
     Ok(())
 }
 
@@ -54,11 +62,17 @@ where
     T: ?Sized + serde::Serialize,
     P: AsRef<Path>,
 {
+    if let Some(parent) = path.as_ref().parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .context("could not create parent directory")?;
+    }
     tokio::fs::write(
-        path,
+        path.as_ref(),
         serde_yaml::to_string(&contents).context("encoding to YAML")?,
     )
     .await
     .context("saving YAML contents")?;
+    debug!("wrote: {}", path.as_ref().display());
     Ok(())
 }

@@ -5,6 +5,7 @@ use std::{
     fmt::Display,
     path::Path,
 };
+use tracing::debug;
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,6 +29,10 @@ impl Inventory {
     where
         P: AsRef<Path>,
     {
+        debug!(
+            "reading inventory path: {}",
+            inventory_path.as_ref().display()
+        );
         let inventory_path =
             inventory_path.as_ref().canonicalize().with_context(|| {
                 format!(
@@ -44,17 +49,38 @@ impl Inventory {
         Ok(cfg)
     }
 
-    /// Save the inventory file at the given path.
+    /// Save the inventory file at the given path, overwriting if necessary.
     pub async fn save<P>(&self, path: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
-        let path = path.as_ref();
-        crate::io::fs::remove_force(path).await.with_context(|| {
-            format!("path could not be overwritten '{}'", path.display())
-        })?;
+        crate::io::fs::remove_force(path.as_ref())
+            .await
+            .with_context(|| {
+                format!(
+                    "path could not be overwritten '{}'",
+                    path.as_ref().display()
+                )
+            })?;
         crate::io::fs::save_yaml(&self, path).await?;
         Ok(())
+    }
+
+    /// Returns whether a record exists.
+    pub fn contains<S>(&mut self, zone_id: S, record_id: S) -> bool
+    where
+        S: Into<String>,
+    {
+        let zone_id = zone_id.into();
+        let record_id = InventoryRecord(record_id.into());
+
+        // Magic that checks whether the record exists
+        self.0
+            .as_ref()
+            .and_then(|map| map.get(&zone_id))
+            .and_then(|zone| zone.0.as_ref())
+            .map(|records| records.contains(&record_id))
+            .unwrap_or(false)
     }
 
     /// Insert a record into the inventory.
@@ -157,10 +183,10 @@ impl IntoIterator for Inventory {
         let mut items: HashMap<String, Vec<String>> = HashMap::new();
         if let Some(map) = self.0 {
             for (key, value) in map {
-                items.entry(key.to_owned()).or_default();
+                let entry = items.entry(key.clone()).or_default();
                 if let Some(record_set) = value.0 {
                     for record in record_set {
-                        items.get_mut(&key).unwrap().push(record.0.clone());
+                        entry.push(record.0.clone());
                     }
                 }
             }
