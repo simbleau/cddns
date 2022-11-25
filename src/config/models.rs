@@ -2,7 +2,7 @@ use crate::{config::default_config_path, inventory::default_inventory_path};
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fmt::Debug, fmt::Display};
 use tracing::debug;
 
@@ -153,6 +153,20 @@ impl ConfigOpts {
             }
         };
         greater
+    }
+
+    /// Save the config file at the given path, overwriting if necessary.
+    pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
+        crate::io::fs::remove_force(path.as_ref())
+            .await
+            .with_context(|| {
+                format!(
+                    "path could not be overwritten '{}'",
+                    path.as_ref().display()
+                )
+            })?;
+        crate::io::fs::save_toml(&self, path).await?;
+        Ok(())
     }
 }
 

@@ -25,10 +25,7 @@ impl Inventory {
         Self(None)
     }
     /// Read inventory from a target path.
-    pub async fn from_file<P>(inventory_path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub async fn from_file(inventory_path: impl AsRef<Path>) -> Result<Self> {
         debug!(
             "reading inventory path: {}",
             inventory_path.as_ref().display()
@@ -50,10 +47,7 @@ impl Inventory {
     }
 
     /// Save the inventory file at the given path, overwriting if necessary.
-    pub async fn save<P>(&self, path: P) -> Result<()>
-    where
-        P: AsRef<Path>,
-    {
+    pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
         crate::io::fs::remove_force(path.as_ref())
             .await
             .with_context(|| {
@@ -67,10 +61,11 @@ impl Inventory {
     }
 
     /// Returns whether a record exists.
-    pub fn contains<S>(&mut self, zone_id: S, record_id: S) -> bool
-    where
-        S: Into<String>,
-    {
+    pub fn contains(
+        &mut self,
+        zone_id: impl Into<String>,
+        record_id: impl Into<String>,
+    ) -> bool {
         let zone_id = zone_id.into();
         let record_id = InventoryRecord(record_id.into());
 
@@ -84,10 +79,11 @@ impl Inventory {
     }
 
     /// Insert a record into the inventory.
-    pub fn insert<S>(&mut self, zone_id: S, record_id: S)
-    where
-        S: Into<String>,
-    {
+    pub fn insert(
+        &mut self,
+        zone_id: impl Into<String>,
+        record_id: impl Into<String>,
+    ) {
         let zone_id = zone_id.into();
         let record_id = record_id.into();
 
@@ -103,10 +99,11 @@ impl Inventory {
 
     /// Remove a record from the inventory. Returns whether the value was
     /// present in the set.
-    pub fn remove<S>(&mut self, zone_id: S, record_id: S) -> Result<bool>
-    where
-        S: Into<String>,
-    {
+    pub fn remove(
+        &mut self,
+        zone_id: impl Into<String>,
+        record_id: impl Into<String>,
+    ) -> Result<bool> {
         let zone_id = zone_id.into();
         let record = InventoryRecord(record_id.into());
 

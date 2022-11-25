@@ -109,10 +109,8 @@ async fn build() -> Result<()> {
             None => p.with_extension("toml"),
         })
         .unwrap_or(default_path);
-    if path.exists() {
-        io::fs::remove_interactive(&path, &mut scanner).await?;
-    }
-    io::fs::save_toml(&config, &path).await?;
+    io::fs::remove_interactive(&path, &mut scanner).await?;
+    config.save(path).await?;
 
     Ok(())
 }

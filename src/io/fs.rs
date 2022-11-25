@@ -3,11 +3,8 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use tracing::debug;
 
-/// Remove a file by force, without user interaction
-pub async fn remove_force<P>(path: P) -> Result<()>
-where
-    P: AsRef<Path>,
-{
+/// If a file exists, remove it by force without user interaction
+pub async fn remove_force(path: impl AsRef<Path>) -> Result<()> {
     if path.as_ref().exists() {
         tokio::fs::remove_file(path.as_ref()).await?;
         debug!("removed: {}", path.as_ref().display());
@@ -15,31 +12,33 @@ where
     Ok(())
 }
 
-/// Remove a file only after user grants permission
-pub async fn remove_interactive<P>(path: P, scanner: &mut Scanner) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let overwrite = scanner
-        .prompt_yes_or_no(
-            format!("Path '{}' exists, remove?", path.as_ref().display()),
-            "y/N",
-        )
-        .await?
-        .unwrap_or(false);
-    if overwrite {
-        remove_force(path).await?;
-    } else {
-        anyhow::bail!("aborted")
+/// If a file exists, remove it only after user grants permission
+pub async fn remove_interactive(
+    path: impl AsRef<Path>,
+    scanner: &mut Scanner,
+) -> Result<()> {
+    if path.as_ref().exists() {
+        let overwrite = scanner
+            .prompt_yes_or_no(
+                format!("Path '{}' exists, remove?", path.as_ref().display()),
+                "y/N",
+            )
+            .await?
+            .unwrap_or(false);
+        if overwrite {
+            remove_force(path).await?;
+        } else {
+            anyhow::bail!("aborted")
+        }
     }
     Ok(())
 }
 
-/// Save a serializable object as a TOML file.
-pub async fn save_toml<T, P>(contents: &T, path: P) -> Result<()>
+/// Save a serializable object as a TOML file, creating directories if
+/// necessary.
+pub async fn save_toml<T>(contents: &T, path: impl AsRef<Path>) -> Result<()>
 where
     T: ?Sized + serde::Serialize,
-    P: AsRef<Path>,
 {
     if let Some(parent) = path.as_ref().parent() {
         tokio::fs::create_dir_all(parent)
@@ -56,11 +55,11 @@ where
     Ok(())
 }
 
-/// Save a serializable object as a YAML file.
-pub async fn save_yaml<T, P>(contents: &T, path: P) -> Result<()>
+/// Save a serializable object as a YAML file, creating directories if
+/// necessary.
+pub async fn save_yaml<T>(contents: &T, path: impl AsRef<Path>) -> Result<()>
 where
     T: ?Sized + serde::Serialize,
-    P: AsRef<Path>,
 {
     if let Some(parent) = path.as_ref().parent() {
         tokio::fs::create_dir_all(parent)

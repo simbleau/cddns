@@ -199,10 +199,8 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
             None => p.with_extension("yaml"),
         })
         .unwrap_or_else(default_inventory_path);
-    if path.exists() {
-        io::fs::remove_interactive(&path, &mut scanner).await?;
-    }
-    io::fs::save_yaml(&inventory, path).await?;
+    io::fs::remove_interactive(&path, &mut scanner).await?;
+    inventory.save(path).await?;
 
     Ok(())
 }
