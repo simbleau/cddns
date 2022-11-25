@@ -215,7 +215,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     if inventory.is_empty() {
-        println!("Inventory is empty.");
+        warn!("inventory is empty");
     } else {
         println!("{}", inventory);
     }
@@ -239,6 +239,12 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.path.clone())
         .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
+
+    // End early if inventory is empty
+    if inventory.is_empty() {
+        warn!("inventory is empty");
+        return Ok(());
+    }
 
     // Check records
     info!("resolving public ip...");
@@ -296,6 +302,12 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or_else(default_inventory_path);
     let mut inventory = Inventory::from_file(&inventory_path).await?;
 
+    // End early if inventory is empty
+    if inventory.is_empty() {
+        warn!("inventory is empty");
+        return Ok(());
+    }
+
     let force = opts
         .commit
         .as_ref()
@@ -311,9 +323,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     debug!("v6 ip: {:?}", ipv4);
     info!("retrieving cloudflare resources...");
     let CheckResult {
+        matches,
         mut mismatches,
         mut invalid,
-        ..
     } = check_records(&token, &inventory, ipv4, ipv6).await?;
 
     let runtime = tokio::runtime::Handle::current();
@@ -416,14 +428,14 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     }
 
     // Print summary
-    if mismatches.is_empty() && invalid.is_empty() {
-        info!("✅ no bad or invalid records");
-    } else {
-        info!(
-            "❌ {} mismatched, {} invalid records",
-            mismatches.len(),
-            invalid.len()
-        );
+    info!(
+        "{} matched, {} mismatched, {} invalid records",
+        matches.len(),
+        mismatches.len(),
+        invalid.len()
+    );
+    if !mismatches.is_empty() || !invalid.is_empty() {
+        error!("mismatching or invalid records remain");
     }
     Ok(())
 }
