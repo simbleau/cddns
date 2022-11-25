@@ -7,6 +7,7 @@
 #![feature(unwrap_infallible)]
 #![feature(iter_intersperse)]
 #![feature(exact_size_is_empty)]
+#![feature(is_some_and)]
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};

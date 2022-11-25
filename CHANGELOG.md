@@ -8,6 +8,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### added
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
+- Added warning for empty inventory
 ### changed
 - Improved readability of errors with `inventory watch`
 - Improved readability of `config show`

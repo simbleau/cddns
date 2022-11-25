@@ -205,7 +205,7 @@ pub fn retain_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
             }
         }
     }
-    debug!("filtered out {} zones", zones.len() - beginning_amt);
+    debug!("filtered out {} zones", beginning_amt - zones.len());
 
     Ok(())
 }
@@ -253,7 +253,7 @@ pub fn retain_records(
             }
         }
     }
-    debug!("filtered out {} records", records.len() - beginning_amt);
+    debug!("filtered out {} records", beginning_amt - records.len());
 
     Ok(())
 }
