@@ -121,8 +121,18 @@ impl Inventory {
             .remove(&record))
     }
 
+    /// Returns whether the inventory has no records
     pub fn is_empty(&self) -> bool {
-        self.0.is_none()
+        // Magic that checks whether there are records
+        !self
+            .0
+            .as_ref()
+            .map(|map| {
+                map.iter().fold(0, |items, (_, zone)| {
+                    items + zone.0.as_ref().map(|z| z.len()).unwrap_or(0)
+                })
+            })
+            .is_some_and(|len| len > 0)
     }
 }
 
