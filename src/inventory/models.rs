@@ -38,12 +38,13 @@ impl Inventory {
                 )
             })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
-        let cfg_bytes = tokio::fs::read(&inventory_path)
+        let inventory_bytes = tokio::fs::read(&inventory_path)
             .await
             .context("reading inventory file")?;
-        let cfg = serde_yaml::from_slice(&cfg_bytes)
-            .context("reading inventory file contents as YAML data")?;
-        Ok(cfg)
+        let inventory =
+            serde_yaml::from_slice::<Inventory>(&inventory_bytes)
+                .context("reading inventory file contents as YAML data")?;
+        Ok(inventory)
     }
 
     /// Save the inventory file at the given path, overwriting if necessary.
