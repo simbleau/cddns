@@ -12,6 +12,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use tracing::error;
 use tracing_subscriber::prelude::*;
 mod cloudflare;
 mod cmd;
@@ -80,5 +81,9 @@ async fn main() -> Result<()> {
         .try_init()
         .context("error initializing logging")?;
 
-    args.run().await
+    if let Err(e) = args.run().await {
+        error!("{:?}", e);
+        std::process::exit(1);
+    }
+    Ok(())
 }
