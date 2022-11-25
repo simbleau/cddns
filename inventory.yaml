@@ -3,7 +3,7 @@
 # With the CLI installed, you can use `cddns inventory build` to interactively
 # build this YAML file.
 
-# It is recommended to use Cloudfare IDs (try `cddns list`)
+# It is recommended to use Cloudflare IDs (try `cddns list`)
 9aad55f2e0a8d9373badd4361227cabe: # imbleau.com
   - 5dba009abaa3ba5d3a624e87b37f941a # shop.imbleau.com
   - cfaa931ig142b9a0lp84iqbzmc49ajza # blog.imbleau.com

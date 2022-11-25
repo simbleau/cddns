@@ -41,7 +41,12 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
     let cf_messages = cloudflare::endpoints::verify(&token).await?;
     info!("received successful response");
     for (i, msg) in cf_messages.iter().enumerate() {
-        info!("message [{}/{}]: {}", i + 1, cf_messages.len(), msg.message);
+        info!(
+            "cloudflare message [{}/{}]: {}",
+            i + 1,
+            cf_messages.len(),
+            msg.message
+        );
     }
     Ok(())
 }

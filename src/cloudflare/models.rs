@@ -2,28 +2,28 @@ use serde::Deserialize;
 use std::fmt;
 
 #[derive(Debug, Deserialize)]
-pub struct CloudfareError {
+pub struct CloudflareError {
     pub code: i32,
     pub message: String,
-    pub error_chain: Option<Vec<CloudfareMessage>>,
+    pub error_chain: Option<Vec<CloudflareMessage>>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CloudfareMessage {
+pub struct CloudflareMessage {
     pub code: i32,
     pub message: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CloudfareResponse {
+pub struct CloudflareResponse {
     pub success: bool,
-    pub errors: Vec<CloudfareError>,
+    pub errors: Vec<CloudflareError>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct VerifyResponse {
     pub success: bool,
-    pub messages: Vec<CloudfareMessage>,
+    pub messages: Vec<CloudflareMessage>,
 }
 
 #[derive(Debug, Deserialize)]

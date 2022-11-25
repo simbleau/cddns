@@ -1,5 +1,5 @@
 use crate::cloudflare::models::{
-    CloudfareMessage, ListRecordsResponse, ListZonesResponse,
+    CloudflareMessage, ListRecordsResponse, ListZonesResponse,
     PatchRecordResponse, Record, VerifyResponse, Zone,
 };
 use crate::cloudflare::requests;
@@ -9,14 +9,14 @@ use std::fmt::Display;
 use tracing::{debug, trace};
 
 /// Return a list of login messages if the token is verifiable.
-pub async fn verify(token: &str) -> Result<Vec<CloudfareMessage>> {
+pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
         .context("verifying API token")?;
     Ok(resp.messages)
 }
 
-/// Return all known Cloudfare zones.
+/// Return all known Cloudflare zones.
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     let mut zones = vec![];
     let mut page_cursor = 1;
@@ -27,7 +27,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
             requests::get(endpoint, token.to_string())
                 .await
                 .context("resolving zones endpoint")?;
-        anyhow::ensure!(resp.success, "cloudfare response indicated failure");
+        anyhow::ensure!(resp.success, "cloudflare response returned failure");
 
         zones.extend(resp.result.into_iter().filter(|zone| {
             &zone.status == "active"
@@ -43,7 +43,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     Ok(zones)
 }
 
-/// Return all known Cloudfare records.
+/// Return all known Cloudflare records.
 pub async fn records(
     zones: &Vec<Zone>,
     token: impl Display,
@@ -65,7 +65,7 @@ pub async fn records(
                     .context("resolving records endpoint")?;
             anyhow::ensure!(
                 resp.success,
-                "cloudfare response indicated failure"
+                "cloudflare response returned failure"
             );
 
             records.extend(resp.result.into_iter().filter(|record| {
@@ -88,7 +88,7 @@ pub async fn records(
     Ok(records)
 }
 
-/// Patch a cloudfare record.
+/// Patch a Cloudflare record.
 pub async fn update_record(
     token: impl Display,
     zone_id: impl Display,
@@ -103,6 +103,6 @@ pub async fn update_record(
     let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
         .await
         .context("resolving records endpoint")?;
-    anyhow::ensure!(resp.success, "cloudfare response indicated failure");
+    anyhow::ensure!(resp.success, "cloudflare response returned failure");
     Ok(())
 }

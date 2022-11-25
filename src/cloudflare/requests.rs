@@ -1,4 +1,4 @@
-use crate::cloudflare::models::CloudfareResponse;
+use crate::cloudflare::models::CloudflareResponse;
 use crate::cloudflare::API_BASE;
 use anyhow::{Context, Result};
 use core::slice::SlicePattern;
@@ -19,11 +19,11 @@ where
         .await
         .context("retrieving HTTP response")?;
 
-    let cf_resp: CloudfareResponse = serde_json::from_slice(bytes.as_slice())
-        .context("reading cloudfare response")?;
+    let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
+        .context("reading cloudflare response")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("deserializing cloudfare payload")?),
+            .context("deserializing cloudflare payload")?),
         false => {
             if let Some(error_stack) = cf_resp
                 .errors
@@ -76,11 +76,11 @@ where
         .bytes()
         .await
         .context("retrieving HTTP response")?;
-    let cf_resp: CloudfareResponse = serde_json::from_slice(bytes.as_slice())
-        .context("reading cloudfare response")?;
+    let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
+        .context("reading cloudflare response")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("deserializing cloudfare payload")?),
+            .context("deserializing cloudflare payload")?),
         false => {
             if let Some(error_stack) = cf_resp
                 .errors
