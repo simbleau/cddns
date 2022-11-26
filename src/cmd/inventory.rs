@@ -100,7 +100,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones and records to build inventory from
     info!("retrieving cloudflare resources...");
@@ -241,7 +241,7 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get inventory
     info!("reading inventory...");
@@ -306,7 +306,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get inventory
     info!("reading inventory...");

@@ -75,7 +75,7 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
     info!("retrieving cloudflare resources...");
@@ -108,7 +108,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
     info!("retrieving cloudflare resources...");
@@ -136,7 +136,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
     info!("retrieving cloudflare resources...");
