@@ -1,3 +1,4 @@
+use crate::io::encoding::PostProcessor;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -6,8 +7,6 @@ use std::{
     path::Path,
 };
 use tracing::debug;
-
-use crate::cloudflare::models::{Record, Zone};
 
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -26,6 +25,13 @@ impl Inventory {
     pub fn new() -> Self {
         Self(None)
     }
+
+    /// Read inventory from a string slice.
+    pub fn from_str(contents: &str) -> Result<Self> {
+        Ok(serde_yaml::from_slice(contents.as_bytes())
+            .context("deserializing inventory contents from string")?)
+    }
+
     /// Read inventory from a target path.
     pub async fn from_file(inventory_path: impl AsRef<Path>) -> Result<Self> {
         debug!(
@@ -40,27 +46,23 @@ impl Inventory {
                 )
             })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
-        let inventory_bytes = tokio::fs::read(&inventory_path)
+        let contents = tokio::fs::read_to_string(&inventory_path)
             .await
             .context("reading inventory file")?;
-        let inventory =
-            serde_yaml::from_slice::<Inventory>(&inventory_bytes)
-                .context("reading inventory file contents as YAML data")?;
-        Ok(inventory)
+        Ok(Self::from_str(&contents)?)
     }
 
     /// Save the inventory file at the given path, overwriting if necessary, and
     /// optionally with post-processed comments.
-    pub async fn save(
+    pub async fn save<P>(
         &self,
         path: impl AsRef<Path>,
-        post_processing: Option<(&Vec<Zone>, &Vec<Record>)>,
-    ) -> Result<()> {
-        let yaml = if let Some((zones, records)) = post_processing {
-            crate::io::encoding::as_inventory_yaml(self, zones, records)
-        } else {
-            crate::io::encoding::as_yaml(self)
-        }?;
+        post_processor: Option<P>,
+    ) -> Result<()>
+    where
+        P: PostProcessor,
+    {
+        let yaml = crate::io::encoding::as_yaml(self, post_processor)?;
         crate::io::fs::save(path, yaml).await?;
         Ok(())
     }

@@ -8,7 +8,7 @@ use crate::{
         ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
     },
     inventory::{default_inventory_path, models::Inventory},
-    io::{self, Scanner},
+    io::{self, encoding::InventoryPostProcessor, Scanner},
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -205,9 +205,14 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or_else(default_inventory_path);
     io::fs::remove_interactive(&path, &mut scanner).await?;
 
-    // Add post-processing comments to inventory
-    let post_processing = Some((&zones, &records));
-    inventory.save(&path, post_processing).await?;
+    // Best-effort attempt to post-process comments on inventory.
+    let post_processor = InventoryPostProcessor::from(&zones, &records);
+    if let Err(_) = inventory.save(&path, Some(post_processor)).await {
+        warn!("post-processing failed for inventory file");
+        inventory
+            .save::<InventoryPostProcessor>(&path, None)
+            .await?
+    };
 
     Ok(())
 }
@@ -436,9 +441,16 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             invalid.retain_mut(|(z, r)| {
                 !pruned.contains(&(z.to_owned(), r.to_owned()))
             });
-            // Add post-processing comments to inventory
-            let post_processing = Some((&zones, &records));
-            inventory.save(&inventory_path, post_processing).await?;
+            // Best-effort attempt to post-process comments on inventory.
+            let post_processor = InventoryPostProcessor::from(&zones, &records);
+            if let Err(_) =
+                inventory.save(&inventory_path, Some(post_processor)).await
+            {
+                // Save, without post-processing
+                inventory
+                    .save::<InventoryPostProcessor>(&inventory_path, None)
+                    .await?
+            };
         }
     }
 
