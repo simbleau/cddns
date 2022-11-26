@@ -165,7 +165,8 @@ impl ConfigOpts {
                     path.as_ref().display()
                 )
             })?;
-        crate::io::fs::save_toml(&self, path).await?;
+        let toml = crate::io::encoding::as_toml(&self)?;
+        crate::io::fs::save(path, toml).await?;
         Ok(())
     }
 }

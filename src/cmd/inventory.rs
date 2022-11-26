@@ -1,5 +1,9 @@
 use crate::{
-    cloudflare::{self, endpoints::update_record, models::Record},
+    cloudflare::{
+        self,
+        endpoints::update_record,
+        models::{Record, Zone},
+    },
     config::models::{
         ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
     },
@@ -200,7 +204,9 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         })
         .unwrap_or_else(default_inventory_path);
     io::fs::remove_interactive(&path, &mut scanner).await?;
-    inventory.save(path).await?;
+    inventory
+        .save_postprocessed(&path, &zones, &records)
+        .await?;
 
     Ok(())
 }
@@ -253,11 +259,14 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     let ipv6 = public_ip::addr_v6().await;
     debug!("v6 ip: {:?}", ipv4);
     info!("retrieving cloudflare resources...");
+    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
+    let records =
+        cloudflare::endpoints::records(&zones, token.to_string()).await?;
     let CheckResult {
         matches,
         mismatches,
         invalid,
-    } = check_records(token, &inventory, ipv4, ipv6).await?;
+    } = check_records(token, &inventory, &zones, &records, ipv4, ipv6).await?;
 
     // Print records
     for cf_record in &matches {
@@ -322,11 +331,14 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
     let ipv6 = public_ip::addr_v6().await;
     debug!("v6 ip: {:?}", ipv4);
     info!("retrieving cloudflare resources...");
+    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
+    let records =
+        cloudflare::endpoints::records(&zones, token.to_string()).await?;
     let CheckResult {
         matches,
         mut mismatches,
         mut invalid,
-    } = check_records(&token, &inventory, ipv4, ipv6).await?;
+    } = check_records(&token, &inventory, &zones, &records, ipv4, ipv6).await?;
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -423,7 +435,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             invalid.retain_mut(|(z, r)| {
                 !pruned.contains(&(z.to_owned(), r.to_owned()))
             });
-            inventory.save(inventory_path).await?;
+            inventory
+                .save_postprocessed(&inventory_path, &zones, &records)
+                .await?;
         }
     }
 
@@ -487,13 +501,11 @@ pub struct CheckResult {
 pub async fn check_records(
     token: impl Display + Debug,
     inventory: &Inventory,
+    zones: &Vec<Zone>,
+    records: &Vec<Record>,
     ipv4: Option<Ipv4Addr>,
     ipv6: Option<Ipv6Addr>,
 ) -> Result<CheckResult> {
-    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
-    let records =
-        cloudflare::endpoints::records(&zones, token.to_string()).await?;
-
     // Check and collect records
     let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
     for (inv_zone, inv_records) in inventory.clone().into_iter() {

@@ -7,6 +7,8 @@ use std::{
 };
 use tracing::debug;
 
+use crate::cloudflare::models::{Record, Zone};
+
 /// The model for DNS record inventory.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Inventory(Option<HashMap<String, InventoryZone>>);
@@ -47,8 +49,14 @@ impl Inventory {
         Ok(inventory)
     }
 
-    /// Save the inventory file at the given path, overwriting if necessary.
-    pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
+    /// Save the inventory file at the given path with post-processed comments,
+    /// overwriting if necessary.
+    pub async fn save_postprocessed(
+        &self,
+        path: impl AsRef<Path>,
+        zones: &Vec<Zone>,
+        records: &Vec<Record>,
+    ) -> Result<()> {
         crate::io::fs::remove_force(path.as_ref())
             .await
             .with_context(|| {
@@ -57,7 +65,9 @@ impl Inventory {
                     path.as_ref().display()
                 )
             })?;
-        crate::io::fs::save_yaml(&self, path).await?;
+        let yaml =
+            crate::io::encoding::as_inventory_yaml(self, zones, records)?;
+        crate::io::fs::save(path, yaml).await?;
         Ok(())
     }
 
