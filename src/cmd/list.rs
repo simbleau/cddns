@@ -115,7 +115,7 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     // Apply filtering
     if let Some(ref zone_id) = cmd_args.zone {
-        zones = vec![find_zone(&mut zones, zone_id)?
+        zones = vec![find_zone(&zones, zone_id)
             .context("no result with that zone id/name")?];
     } else {
         retain_zones(&mut zones, opts)?;
@@ -142,7 +142,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     info!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     if let Some(ref zone_id) = cmd_args.zone {
-        zones = vec![find_zone(&mut zones, zone_id)?
+        zones = vec![find_zone(&zones, zone_id)
             .context("no result with that zone id/name")?];
     } else {
         retain_zones(&mut zones, opts)?;
@@ -152,7 +152,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     // Apply filtering
     if let Some(ref record_id) = cmd_args.record {
-        records = vec![find_record(&mut records, record_id)?
+        records = vec![find_record(&records, record_id)
             .context("no result with that record id/name")?];
     } else {
         retain_records(&mut records, opts)?;
@@ -166,17 +166,14 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
 }
 
 /// Find a zone matching the given identifier.
-pub fn find_zone(
-    zones: &mut Vec<Zone>,
-    id: impl Into<String>,
-) -> Result<Option<Zone>> {
+pub fn find_zone(zones: &Vec<Zone>, id: impl Into<String>) -> Option<Zone> {
     let id_str = id.into();
     for z in zones {
         if id_str == z.id || id_str == z.name {
-            return Ok(Some(z.clone()));
+            return Some(z.clone());
         }
     }
-    Ok(None)
+    None
 }
 
 /// Retain zones matching the given configuration filters.
@@ -212,16 +209,16 @@ pub fn retain_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
 
 /// Find a record matching the given identifier.
 pub fn find_record(
-    records: &mut Vec<Record>,
+    records: &Vec<Record>,
     id: impl Into<String>,
-) -> Result<Option<Record>> {
+) -> Option<Record> {
     let id_str = id.into();
     for r in records {
         if id_str == r.id || id_str == r.name {
-            return Ok(Some(r.clone()));
+            return Some(r.clone());
         }
     }
-    Ok(None)
+    None
 }
 
 /// Retain records matching the given configuration filters.
