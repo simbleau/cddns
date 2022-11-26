@@ -45,6 +45,10 @@ pub async fn save(
             format!("unable to make directory '{}'", parent.display())
         })?;
     }
+    if path.as_ref().exists() {
+        debug!("overwriting '{}'...", path.as_ref().display());
+        remove_force(path.as_ref()).await?;
+    }
     tokio::fs::write(path.as_ref(), contents)
         .await
         .with_context(|| {

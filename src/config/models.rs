@@ -157,14 +157,6 @@ impl ConfigOpts {
 
     /// Save the config file at the given path, overwriting if necessary.
     pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
-        crate::io::fs::remove_force(path.as_ref())
-            .await
-            .with_context(|| {
-                format!(
-                    "path could not be overwritten '{}'",
-                    path.as_ref().display()
-                )
-            })?;
         let toml = crate::io::encoding::as_toml(&self)?;
         crate::io::fs::save(path, toml).await?;
         Ok(())

@@ -51,20 +51,12 @@ impl Inventory {
 
     /// Save the inventory file at the given path with post-processed comments,
     /// overwriting if necessary.
-    pub async fn save_postprocessed(
+    pub async fn save(
         &self,
         path: impl AsRef<Path>,
         zones: &Vec<Zone>,
         records: &Vec<Record>,
     ) -> Result<()> {
-        crate::io::fs::remove_force(path.as_ref())
-            .await
-            .with_context(|| {
-                format!(
-                    "path could not be overwritten '{}'",
-                    path.as_ref().display()
-                )
-            })?;
         let yaml =
             crate::io::encoding::as_inventory_yaml(self, zones, records)?;
         crate::io::fs::save(path, yaml).await?;
