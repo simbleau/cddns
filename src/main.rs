@@ -56,6 +56,7 @@ enum Subcommands {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+    let verbose = args.v;
 
     #[cfg(windows)]
     if let Err(err) = ansi_term::enable_ansi_support() {
@@ -65,7 +66,7 @@ async fn main() -> Result<()> {
     // Enable tracing/logging
     tracing_subscriber::registry()
         // Filter spans based on the RUST_LOG env var.
-        .with(tracing_subscriber::EnvFilter::new(if args.v {
+        .with(tracing_subscriber::EnvFilter::new(if verbose {
             "error,debug"
         } else {
             "error,info"
@@ -82,7 +83,12 @@ async fn main() -> Result<()> {
         .context("error initializing logging")?;
 
     if let Err(e) = args.run().await {
-        error!("{:?}", e);
+        if verbose {
+            error!("{:?}", e);
+        } else {
+            error!("{}", e);
+            eprintln!("Enable verbose logging (-v) for the full stack trace.");
+        }
         std::process::exit(1);
     }
     Ok(())
