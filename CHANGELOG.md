@@ -9,6 +9,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
 - Added warning for empty inventory
+- Provided README instructions for service deployment on Docker Compose
 ### changed
 - Improved readability of errors with `inventory watch`
 - Improved readability of `config show`
@@ -22,6 +23,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Placeholder
 ### fixed
 - Environment variables work for all commands
+- README documentation fixes
 ### security
 - Placeholder
 

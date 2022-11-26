@@ -1,7 +1,5 @@
 # CDDNS : Cloudflare Dynamic DNS
-**cddns** is a modern, green, hackable DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust, featuring interactive builders and layered configuration options.
-
-<TODO: GIF>
+**cddns** is a non-complicated, green DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust, featuring layered configuration and interactive file builders.
 
 ---
 [![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
@@ -30,8 +28,9 @@
     - [2.2.4 Inventory](#224-inventory)
   - [2.3 Service Deployment](#23-service-deployment)
     - [2.3.1 Docker](#231-docker)
-    - [2.3.2 Kubernetes](#232-kubernetes)
-    - [2.3.3 Crontab](#233-crontab)
+    - [2.3.2 Docker Compose](#232-docker-compose)
+    - [2.3.3 Kubernetes](#233-kubernetes)
+    - [2.3.4 Crontab](#234-crontab)
 - [3 Purpose](#3-purpose)
 - [4 License](#4-license)
 
@@ -42,8 +41,7 @@
   - Native (Windows / MacOS / Unix)
 - Service
   - Docker
-  - Docker Swarm (TODO: Instructions)
-  - Docker Compose (TODO: Instructions)
+  - Docker Compose
   - Kubernetes
   - Crontab
 
@@ -53,6 +51,8 @@
 - A/AAAA DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
 
 ## 1.3 CLI Download
+Installing the cddns CLI will provide the means to test your configuration locally and run interactive builders on your local machine.
+
 ### Option A: Cargo
 Cargo is the recommended way to install CDDNS as a CLI ([What is Cargo?](https://doc.rust-lang.org/cargo/)).
 - `cargo install cddns`
@@ -62,12 +62,14 @@ Cargo is the recommended way to install CDDNS as a CLI ([What is Cargo?](https:/
 # 2 Usage
 
 ## 2.1 Overview
-**cddns** uses a Cloudflare API token to see and edit your DNS records. In both usage as a CLI and a service, an inventory file is used to know which DNS records to watch. For configuration, cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
+**cddns** is the non-complicated DDNS tool for Cloudflare, only needing a Cloudflare API token to see and edit your DNS records. cddns can be deployed as a service or installed locally as a CLI, which is helpful in testing and building DNS inventory files.
+
+To operate, cddns needs an inventory file, which can be built on CLI (recommended) or written manually. For configuration, cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
 
 ### 2.1.1 Getting Started
-**Appending `--help` to any command or subcommand will provide additional information.**
+**Appending `--help` or `-h` to any command or subcommand will provide additional information.**
 
-First test a Cloudflare API token with the following command:
+First, test your Cloudflare API token ([How do I create an API token?](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)) with the following command:
 > `cddns verify --token <YOUR_CLOUDFLARE_TOKEN>`.
 
 On success, you may see "`This API Token is valid and active`"
@@ -75,14 +77,14 @@ On success, you may see "`This API Token is valid and active`"
 You can also set the **CDDNS_VERIFY_TOKEN** environment variable to manually specify your token. [Click here](#213-environment-variables) for more environment variables.
 
 ### 2.1.2 Configuration
-For CLI usage and testing, you may use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
+You may optionally use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
 
 By default, we check your local configuration directory for your configuration file.
 - On Linux, this would be `$XDG_CONFIG_HOME/cddns/config.toml` or `$HOME/.config/cddns/config.toml`
 - On MacOS, this would be `$HOME/Library/Application Support/cddns/config.toml`
 - On Windows, this would be `%AppData%\cddns\config.toml`
 
-To quickly get setup, we offer an interactive configuration file builder.
+To quickly get setup, the CLI offers an interactive configuration file builder.
 > `cddns config build`
 
 You can also visit [`config.toml`](config.toml) for an annotated example.
@@ -105,36 +107,37 @@ Every value which can be stored in a [configuration file](#212-configuration) ca
 | **CDDNS_WATCH_INTERVAL**       | The milliseconds between checking DNS records       | `5000` (5s)                        | `60000` (60s)            |
 
 ### 2.1.4 Inventory
-cddns uses [YAML files](https://yaml.org/) to save which DNS records to watch.
+To operate, cddns **needs** an inventory file in [YAML format](https://yaml.org/) containing the DNS records you want to watch.
+
+To quickly get setup, the CLI offers an interactive inventory file builder.
+> `cddns inventory build`
 
 - **Zones** are domains, subdomains, and identities managed by Cloudflare.
 - **Records** are A (IPv4) or AAAA (IPv6) DNS records managed by Cloudflare.
 
-To see DNS records managed by your API token, we offer a list command.
+To see DNS records managed by your API token, the CLI also offers a list command.
 > `cddns list [records/zones]`
-
-To quickly get setup, we offer an interactive inventory file builder.
-> `cddns inventory build`
 
 If you prefer, you can visit [`inventory.yaml`](inventory.yaml) for an annotated example.
 
 By default, we check the current directory for an `inventory.yaml` file.
 
-You can set the **CDDNS_INVENTORY** environment variable to manually specify the location of this file. [Click here](#213-environment-variables) for more environment variables.
+You can set the **CDDNS_INVENTORY_PATH** environment variable to manually specify the location of this file. [Click here](#213-environment-variables) for more environment variables.
 
 ## 2.2 CLI Commands
+The CLI is useful for testing and building files for your service deployment. Below is a reference of all commands in the CLI.
+
+*Reminder: you may add `-h` or `--help` to any subcommand to receive helpful usage information.*
 
 ### 2.2.1 Verify
 **Help: `cddns verify --help`**
 
-The `verify` command will attempt to authenticate using your Cloudflare API token.
+The `verify` command will validate your Cloudflare API token.
+```bash
+cddns verify [--token '<YOUR_CLOUDFLARE_TOKEN>']
+```
 
 If you do not provide `--token ...`, the token will be obtained from your [configuration file](#212-configuration) or the [**CDDNS_VERIFY_TOKEN**](#213-environment-variables) environment variable.
-
-Example:
-```bash
-cddns verify --token 'YOUR_CLOUDFLARE_TOKEN'
-```
 
 ### 2.2.2 Config
 **Help: `cddns config --help`**
@@ -142,13 +145,11 @@ cddns verify --token 'YOUR_CLOUDFLARE_TOKEN'
 The `config` command will help you build or manage your configuration ([Configuration help](#212-configuration)). cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
 
 To show your configuration:
-Example:
 ```bash
 cddns config show
 ```
 
 To build a configuration file:
-Example:
 ```bash
 cddns config build
 ```
@@ -158,22 +159,22 @@ By default, cddns checks your [local configuration folder](#212-configuration) f
 ### 2.2.3 List
 **Help: `cddns list --help`**
 
-The `list` command will print Cloudflare resources.
+The `list` command will print Cloudflare resources visible with your API token.
 
-To show your zones AND records:
-Example:
+- **Zones** are domains, subdomains, and identities managed by Cloudflare.
+- **Records** are A (IPv4) or AAAA (IPv6) DNS records managed by Cloudflare.
+
+To list your zones AND records:
 ```bash
 cddns list
 ```
 
-To show only zones:
-Example:
+To list only zones:
 ```bash
 cddns list zones
 ```
 
-To show only records:
-Example:
+To list only records:
 ```bash
 cddns list records
 ```
@@ -181,34 +182,33 @@ cddns list records
 ### 2.2.4 Inventory
 **Help: `cddns inventory --help`**
 
-The `inventory` command has several subcommands to manage, build, or show your inventory.
+The `inventory` command has several subcommands to build and control inventory.
 
 To build an inventory:
-Example:
 ```bash
 cddns inventory build
 ```
 
-To show or validate an inventory:
-Example:
+To show your inventory:
 ```bash
 cddns inventory [--path 'inventory.yaml'] show
 ```
 
-To check an inventory, without making any changes:
-Example:
+To check your DNS records, without committing any changes:
 ```bash
 cddns inventory check
 ```
 
-To fix erroneous records discovered via `check`:
-Example:
+To fix the mismatched DNS records found in `inventory check`:
+
+*`-f` or `--force` will attempt to fix records without prompting the user*
 ```bash
 cddns inventory commit [--force]
 ```
 
 To continuously fix erroneous records:
-Example:
+
+*`-i` or `--interval` is the number of **milliseconds** between DNS refresh*
 ```bash
 cddns inventory watch [--interval 5000]
 ```
@@ -217,13 +217,17 @@ cddns inventory watch [--interval 5000]
 cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
 
 ### 2.3.1 Docker
-Once you have tested your token and built an inventory file with the CLI, you can deploy via Docker.
-1. Test your token ([Help](#211-getting-started)).
+Running cddns on Docker is an easy 3 step process.
+
+*Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*
+
+1. Test your Cloudflare API token: ([Help](#211-getting-started))
 ```bash
 docker run  \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
   simbleau/cddns:latest verify
 ```
+
 2. Test your inventory ([Help](#214-inventory)).
 ```bash
 docker run \
@@ -231,7 +235,10 @@ docker run \
   -v $(pwd)/inventory.yaml:/inventory.yaml \
   simbleau/cddns:latest inventory show
 ```
+
 3. Deploy
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
@@ -239,28 +246,72 @@ docker run \
   simbleau/cddns:latest
 ```
 
-### 2.3.2 Kubernetes
-We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps:
+### 2.3.2 Docker Compose
+*Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*
 
-1. Ensure your token is valid with the CLI ([Help](#211-getting-started)).
+1. Test your Cloudflare API token in Docker: ([Help](#211-getting-started))
 ```bash
-cddns verify --token 'YOUR_CLOUDFLARE_TOKEN'
+docker run  \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  simbleau/cddns:latest verify
 ```
-2. Ensure your inventory is valid with the CLI ([Help](#214-inventory)).
+
+2. Test your inventory in Docker ([Help](#214-inventory)).
+```bash
+docker run \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -v $(pwd)/inventory.yaml:/inventory.yaml \
+  simbleau/cddns:latest inventory show
+```
+
+3. Create Compose file[[?](https://docs.docker.com/compose/compose-file/)]
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
+```yaml
+# docker-compose.yaml
+version: '3.3'
+services:
+    cddns:
+        environment:
+            - CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>'
+        volumes:
+            - '/host/path/to/inventory.yaml:/inventory.yaml'
+        image: 'simbleau/cddns:latest'
+```
+
+4. Deploy
+```bash
+docker-compose up
+```
+
+### 2.3.3 Kubernetes
+We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps with the help of the cddns [CLI](#13-cli-download):
+
+1. Test your Cloudflare API token: ([Help](#211-getting-started))
+```bash
+cddns verify --token '<YOUR_CLOUDFLARE_TOKEN>'
+```
+
+2. Test your inventory ([Help](#214-inventory)).
 ```bash
 cddns inventory --path '/to/your/inventory.yaml'  show
 ```
-3. Create secret for your API token:
+
+3. Create a Secret[[?](https://kubernetes.io/docs/concepts/configuration/secret/)] for your API token:
 ```
 kubectl create secret generic cddns-api-token \
   --from-literal=token='YOUR_CLOUDFLARE_API_TOKEN'
 ```
-1. Create config map from your DNS record inventory:
+
+4. Create a ConfigMap[[?](https://kubernetes.io/docs/concepts/configuration/configmap/)] for your inventory:
 ```
 kubectl create configmap cddns-inventory \
   --from-file '/to/your/inventory.yaml'
 ```
-5. Save deployment YAML
+
+5. Create a Deployment[[?](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)]:
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
 ```yaml
 # deployment.yaml
 apiVersion: apps/v1
@@ -295,24 +346,28 @@ spec:
                 name: cddns-api-token
                 key: token
 ```
-6. Apply deployment
+
+1. Deploy:
 ```
 kubectl apply -f deployment.yaml
 ```
-### 2.3.3 Crontab
-1. Ensure your token is valid ([Help](#211-getting-started)).
+### 2.3.4 Crontab
+1. Test your Cloudflare API token: ([Help](#211-getting-started))
 ```bash
 cddns verify
 ```
-2. Ensure your inventory is valid ([Help](#214-inventory)).
+
+1. Test your inventory ([Help](#214-inventory)).
 ```bash
 cddns inventory show
 ```
-3. Launch crontab editor
+
+1. Launch crontab editor
 ```bash
 sudo crontab -e
 ```
-4. Add crontab entry (e.g. every 10 minutes)
+
+1. Add crontab entry (e.g. every 10 minutes)
 ```
 */10 * * * * "cfddns inventory commit --force"
 ```
@@ -320,7 +375,7 @@ sudo crontab -e
 ---
 
 # 3 Purpose
-Dynamic DNS allows experts and home users to keep services available without a static IP address. CDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
+cddns allows experts and home users to keep services available without a static IP address. CDDNS will support low-end hardware and is uncompromisingly green, helping you minimize costs and maximize hardware.
 
 # 4 License
 This project is dual-licensed under both [Apache 2.0](LICENSE-APACHE) and [MIT](LICENSE-MIT) licenses.
