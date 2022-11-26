@@ -350,7 +350,7 @@ pub struct ConfigOptsWatch {
 impl Default for ConfigOptsWatch {
     fn default() -> Self {
         Self {
-            interval: Some(5000),
+            interval: Some(30000),
         }
     }
 }
