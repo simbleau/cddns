@@ -37,7 +37,7 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.token.clone())
         .context("no token was provided")?;
 
-    info!("validating...");
+    info!("verifying...");
     let cf_messages = cloudflare::endpoints::verify(&token).await?;
     for (i, msg) in cf_messages.iter().enumerate() {
         info!(
