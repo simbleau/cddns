@@ -28,8 +28,9 @@
     - [2.2.4 Inventory](#224-inventory)
   - [2.3 Service Deployment](#23-service-deployment)
     - [2.3.1 Docker](#231-docker)
-    - [2.3.2 Kubernetes](#232-kubernetes)
-    - [2.3.3 Crontab](#233-crontab)
+    - [2.3.2 Docker Compose](#232-docker-compose)
+    - [2.3.3 Kubernetes](#233-kubernetes)
+    - [2.3.4 Crontab](#234-crontab)
 - [3 Purpose](#3-purpose)
 - [4 License](#4-license)
 
@@ -236,6 +237,8 @@ docker run \
 ```
 
 3. Deploy
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
@@ -243,7 +246,45 @@ docker run \
   simbleau/cddns:latest
 ```
 
-### 2.3.2 Kubernetes
+### 2.3.2 Docker Compose
+*Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*
+
+1. Test your Cloudflare API token in Docker: ([Help](#211-getting-started))
+```bash
+docker run  \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  simbleau/cddns:latest verify
+```
+
+2. Test your inventory in Docker ([Help](#214-inventory)).
+```bash
+docker run \
+  -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
+  -v $(pwd)/inventory.yaml:/inventory.yaml \
+  simbleau/cddns:latest inventory show
+```
+
+3. Create Compose file[[?](https://docs.docker.com/compose/compose-file/)]
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
+```yaml
+# docker-compose.yaml
+version: '3.3'
+services:
+    cddns:
+        environment:
+            - CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>'
+        volumes:
+            - '/host/path/to/inventory.yaml:/inventory.yaml'
+        image: 'simbleau/cddns:latest'
+```
+
+4. Deploy
+```bash
+docker-compose up
+```
+
+### 2.3.3 Kubernetes
 We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps with the help of the cddns [CLI](#13-cli-download):
 
 1. Test your Cloudflare API token: ([Help](#211-getting-started))
@@ -269,6 +310,8 @@ kubectl create configmap cddns-inventory \
 ```
 
 5. Create a Deployment[[?](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)]:
+
+*All [environment variables](#213-environment-variables) can be used for additional configuration.*
 ```yaml
 # deployment.yaml
 apiVersion: apps/v1
@@ -304,27 +347,27 @@ spec:
                 key: token
 ```
 
-6. Deploy:
+1. Deploy:
 ```
 kubectl apply -f deployment.yaml
 ```
-### 2.3.3 Crontab
+### 2.3.4 Crontab
 1. Test your Cloudflare API token: ([Help](#211-getting-started))
 ```bash
 cddns verify
 ```
 
-2. Test your inventory ([Help](#214-inventory)).
+1. Test your inventory ([Help](#214-inventory)).
 ```bash
 cddns inventory show
 ```
 
-3. Launch crontab editor
+1. Launch crontab editor
 ```bash
 sudo crontab -e
 ```
 
-4. Add crontab entry (e.g. every 10 minutes)
+1. Add crontab entry (e.g. every 10 minutes)
 ```
 */10 * * * * "cfddns inventory commit --force"
 ```
