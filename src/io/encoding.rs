@@ -30,7 +30,7 @@ pub fn as_inventory_yaml(
             yaml.insert_str(
                 z_idx + zone_id.len() + ":".len(),
                 &format!(
-                    " # {}",
+                    " # '{}'",
                     if zone_id == zone.id {
                         zone.name
                     } else {
@@ -56,7 +56,7 @@ pub fn as_inventory_yaml(
                 yaml.insert_str(
                     r_idx + record_id.len(),
                     &format!(
-                        " # {}",
+                        " # '{}'",
                         if record_id == record.id {
                             record.name
                         } else {
