@@ -49,16 +49,18 @@ impl Inventory {
         Ok(inventory)
     }
 
-    /// Save the inventory file at the given path with post-processed comments,
-    /// overwriting if necessary.
+    /// Save the inventory file at the given path, overwriting if necessary, and
+    /// optionally with post-processed comments.
     pub async fn save(
         &self,
         path: impl AsRef<Path>,
-        zones: &Vec<Zone>,
-        records: &Vec<Record>,
+        post_processing: Option<(&Vec<Zone>, &Vec<Record>)>,
     ) -> Result<()> {
-        let yaml =
-            crate::io::encoding::as_inventory_yaml(self, zones, records)?;
+        let yaml = if let Some((zones, records)) = post_processing {
+            crate::io::encoding::as_inventory_yaml(self, zones, records)
+        } else {
+            crate::io::encoding::as_yaml(self)
+        }?;
         crate::io::fs::save(path, yaml).await?;
         Ok(())
     }

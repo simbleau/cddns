@@ -204,7 +204,10 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         })
         .unwrap_or_else(default_inventory_path);
     io::fs::remove_interactive(&path, &mut scanner).await?;
-    inventory.save(&path, &zones, &records).await?;
+
+    // Add post-processing comments to inventory
+    let post_processing = Some((&zones, &records));
+    inventory.save(&path, post_processing).await?;
 
     Ok(())
 }
@@ -433,7 +436,9 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             invalid.retain_mut(|(z, r)| {
                 !pruned.contains(&(z.to_owned(), r.to_owned()))
             });
-            inventory.save(&inventory_path, &zones, &records).await?;
+            // Add post-processing comments to inventory
+            let post_processing = Some((&zones, &records));
+            inventory.save(&inventory_path, post_processing).await?;
         }
     }
 
