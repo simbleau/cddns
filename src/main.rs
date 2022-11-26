@@ -47,10 +47,10 @@ impl Args {
 
 #[derive(Subcommand, Debug)]
 enum Subcommands {
-    Config(cmd::ConfigCmd),
-    Verify(cmd::VerifyCmd),
-    List(cmd::ListCmd),
-    Inventory(cmd::InventoryCmd),
+    Config(cmd::config::ConfigCmd),
+    Verify(cmd::verify::VerifyCmd),
+    List(cmd::list::ListCmd),
+    Inventory(cmd::inventory::InventoryCmd),
 }
 
 #[tokio::main]

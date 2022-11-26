@@ -1,3 +1,4 @@
+use crate::io::encoding::PostProcessor;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -24,6 +25,13 @@ impl Inventory {
     pub fn new() -> Self {
         Self(None)
     }
+
+    /// Read inventory from a string slice.
+    pub fn from_str(contents: &str) -> Result<Self> {
+        serde_yaml::from_slice(contents.as_bytes())
+            .context("deserializing inventory contents from string")
+    }
+
     /// Read inventory from a target path.
     pub async fn from_file(inventory_path: impl AsRef<Path>) -> Result<Self> {
         debug!(
@@ -38,26 +46,24 @@ impl Inventory {
                 )
             })?;
         anyhow::ensure!(inventory_path.exists(), "inventory was not found");
-        let inventory_bytes = tokio::fs::read(&inventory_path)
+        let contents = tokio::fs::read_to_string(&inventory_path)
             .await
             .context("reading inventory file")?;
-        let inventory =
-            serde_yaml::from_slice::<Inventory>(&inventory_bytes)
-                .context("reading inventory file contents as YAML data")?;
-        Ok(inventory)
+        Self::from_str(&contents)
     }
 
-    /// Save the inventory file at the given path, overwriting if necessary.
-    pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
-        crate::io::fs::remove_force(path.as_ref())
-            .await
-            .with_context(|| {
-                format!(
-                    "path could not be overwritten '{}'",
-                    path.as_ref().display()
-                )
-            })?;
-        crate::io::fs::save_yaml(&self, path).await?;
+    /// Save the inventory file at the given path, overwriting if necessary, and
+    /// optionally with post-processed comments.
+    pub async fn save<P>(
+        &self,
+        path: impl AsRef<Path>,
+        post_processor: Option<P>,
+    ) -> Result<()>
+    where
+        P: PostProcessor,
+    {
+        let yaml = crate::io::encoding::as_yaml(self, post_processor)?;
+        crate::io::fs::save(path, yaml).await?;
         Ok(())
     }
 
