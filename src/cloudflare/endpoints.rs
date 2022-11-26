@@ -80,7 +80,7 @@ pub async fn records(
         }
         debug!(
             "received {} records from zone '{}'",
-            beginning_amt - records.len(),
+            records.len() - beginning_amt,
             zone.id
         );
     }
