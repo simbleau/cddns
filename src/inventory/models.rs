@@ -28,8 +28,8 @@ impl Inventory {
 
     /// Read inventory from a string slice.
     pub fn from_str(contents: &str) -> Result<Self> {
-        Ok(serde_yaml::from_slice(contents.as_bytes())
-            .context("deserializing inventory contents from string")?)
+        serde_yaml::from_slice(contents.as_bytes())
+            .context("deserializing inventory contents from string")
     }
 
     /// Read inventory from a target path.
@@ -49,7 +49,7 @@ impl Inventory {
         let contents = tokio::fs::read_to_string(&inventory_path)
             .await
             .context("reading inventory file")?;
-        Ok(Self::from_str(&contents)?)
+        Self::from_str(&contents)
     }
 
     /// Save the inventory file at the given path, overwriting if necessary, and

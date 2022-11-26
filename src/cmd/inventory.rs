@@ -207,7 +207,7 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
 
     // Best-effort attempt to post-process comments on inventory.
     let post_processor = InventoryPostProcessor::from(&zones, &records);
-    if let Err(_) = inventory.save(&path, Some(post_processor)).await {
+    if inventory.save(&path, Some(post_processor)).await.is_err() {
         warn!("post-processing failed for inventory file");
         inventory
             .save::<InventoryPostProcessor>(&path, None)
@@ -443,8 +443,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
             });
             // Best-effort attempt to post-process comments on inventory.
             let post_processor = InventoryPostProcessor::from(&zones, &records);
-            if let Err(_) =
-                inventory.save(&inventory_path, Some(post_processor)).await
+            if inventory
+                .save(&inventory_path, Some(post_processor))
+                .await
+                .is_err()
             {
                 // Save, without post-processing
                 inventory

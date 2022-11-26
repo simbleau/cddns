@@ -50,7 +50,7 @@ impl<'p> InventoryPostProcessor<'p> {
 impl<'p> PostProcessor for InventoryPostProcessor<'p> {
     /// Annotate an inventory with zone and record ID/Name comments.
     fn post_process(&self, yaml: &mut String) -> Result<()> {
-        let inventory = Inventory::from_str(&yaml)?;
+        let inventory = Inventory::from_str(yaml)?;
 
         for (zone_id, record_ids) in inventory.into_iter() {
             // Post-process zone
