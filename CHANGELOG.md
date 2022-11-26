@@ -11,6 +11,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Added warning for empty inventory
 - Provided README instructions for service deployment on Docker Compose
 ### changed
+- The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
 - Improved readability of errors with `inventory watch`
 - Improved readability of `config show`
 - `cddns list zones -z <name|id>` now only matches one zone result

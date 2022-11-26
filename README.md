@@ -104,7 +104,7 @@ Every value which can be stored in a [configuration file](#212-configuration) ca
 | **CDDNS_LIST_IGNORE_ZONES**    | Regex filters for zones to ignore in CLI usage      | None                               | `imbleau.com`            |
 | **CDDNS_LIST_IGNORE_RECORDS**  | Regex filters for records to ignore in CLI usage    | None                               | `shop\..+\.com`          |
 | **CDDNS_COMMIT_FORCE**         | Force commit (Do not prompt) for `inventory commit` | `false`                            | `true`                   |
-| **CDDNS_WATCH_INTERVAL**       | The milliseconds between checking DNS records       | `5000` (5s)                        | `60000` (60s)            |
+| **CDDNS_WATCH_INTERVAL**       | The milliseconds between checking DNS records       | `30000` (30s)                      | `60000` (60s)            |
 
 ### 2.1.4 Inventory
 To operate, cddns **needs** an inventory file in [YAML format](https://yaml.org/) containing the DNS records you want to watch.
@@ -210,7 +210,7 @@ To continuously fix erroneous records:
 
 *`-i` or `--interval` is the number of **milliseconds** between DNS refresh*
 ```bash
-cddns inventory watch [--interval 5000]
+cddns inventory watch [--interval 30000]
 ```
 
 ## 2.3 Service Deployment
