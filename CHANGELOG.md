@@ -6,6 +6,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 
 ## Unreleased
 ### added
+- Inventory files now post-process zones and records with comments respective of their alternative name/id
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
 - Added warning for empty inventory
