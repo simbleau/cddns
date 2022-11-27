@@ -3,7 +3,7 @@ use crate::inventory::models::InventoryData;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-/// A builder for Inventsory models.
+/// A builder for an inventory.
 #[derive(Default)]
 pub struct InventoryBuilder {
     path: Option<PathBuf>,
