@@ -32,7 +32,7 @@ impl InventoryBuilder {
     }
 
     /// Initialize inventory data from bytes.
-    pub fn with_contents<'a>(
+    pub fn with_bytes<'a>(
         mut self,
         bytes: impl Into<&'a [u8]>,
     ) -> Result<Self> {

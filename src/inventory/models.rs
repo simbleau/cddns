@@ -41,7 +41,7 @@ impl Inventory {
             .context("reading inventory file")?;
         Inventory::builder()
             .path(path)
-            .with_contents(contents.as_bytes())?
+            .with_bytes(contents.as_bytes())?
             .build()
     }
 
