@@ -19,6 +19,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - `cddns list records -z <name|id>` now only matches one zone result
 - `cddns list records -r <name|id>` now only matches one record result
 - Output is now more clear with `verify`
+- Added help link when no token or inventory is provided
 ### deprecated
 - Placeholder
 ### removed

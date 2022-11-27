@@ -1,6 +1,6 @@
 use crate::cloudflare::models::CloudflareResponse;
 use crate::cloudflare::API_BASE;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use core::slice::SlicePattern;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Display;
@@ -48,10 +48,9 @@ where
                 })
                 .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
             {
-                Err(anyhow::anyhow!("{}", error_stack))
+                Err(anyhow!("{}", error_stack))
             } else {
-                Err(anyhow::anyhow!("unknown error")
-                    .context(format!("{:#?}", cf_resp)))
+                Err(anyhow!("unknown error").context(format!("{:#?}", cf_resp)))
             }
         }
     }
@@ -105,10 +104,9 @@ where
                 })
                 .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
             {
-                Err(anyhow::anyhow!("{}", error_stack))
+                Err(anyhow!("{}", error_stack))
             } else {
-                Err(anyhow::anyhow!("unknown error")
-                    .context(format!("{:#?}", cf_resp)))
+                Err(anyhow!("unknown error").context(format!("{:#?}", cf_resp)))
             }
         }
     }

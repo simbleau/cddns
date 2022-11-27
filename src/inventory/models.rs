@@ -1,5 +1,5 @@
 use crate::io::encoding::PostProcessor;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -34,19 +34,20 @@ impl Inventory {
 
     /// Read inventory from a target path.
     pub async fn from_file(inventory_path: impl AsRef<Path>) -> Result<Self> {
-        debug!(
-            "reading inventory path: {}",
-            inventory_path.as_ref().display()
-        );
-        let inventory_path =
-            inventory_path.as_ref().canonicalize().with_context(|| {
-                format!(
-                    "getting canonical path to inventory file {:?}",
-                    inventory_path.as_ref().display()
-                )
-            })?;
-        anyhow::ensure!(inventory_path.exists(), "inventory was not found");
-        let contents = tokio::fs::read_to_string(&inventory_path)
+        let path = inventory_path.as_ref();
+        if !path.exists() {
+            bail!("inventory file not found, need help? see https://github.com/simbleau/cddns#readme");
+        } else {
+            debug!("inventory file found");
+        }
+        let path = path.canonicalize().with_context(|| {
+            format!(
+                "getting canonical path to inventory file {:?}",
+                path.display()
+            )
+        })?;
+        debug!("reading inventory path: {}", path.display());
+        let contents = tokio::fs::read_to_string(path)
             .await
             .context("reading inventory file")?;
         Self::from_str(&contents)

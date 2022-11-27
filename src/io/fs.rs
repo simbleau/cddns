@@ -1,5 +1,5 @@
 use crate::io::Scanner;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use std::path::Path;
 use tracing::debug;
 
@@ -28,7 +28,7 @@ pub async fn remove_interactive(
         if overwrite {
             remove_force(path).await?;
         } else {
-            anyhow::bail!("aborted")
+            bail!("aborted")
         }
     }
     Ok(())

@@ -35,7 +35,7 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
-        .context("no token was provided")?;
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     info!("verifying...");
     let cf_messages = cloudflare::endpoints::verify(&token).await?;
