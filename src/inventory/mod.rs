@@ -10,6 +10,9 @@
 //! imbleau.com:
 //!   - *.imbleau.com
 //! ```
+
+pub mod builder;
+pub mod iter;
 pub mod models;
 
 /// Return the default inventory path.

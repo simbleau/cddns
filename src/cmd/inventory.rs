@@ -3,7 +3,10 @@ use crate::{
     config::models::{
         ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
     },
-    inventory::{default_inventory_path, models::Inventory},
+    inventory::{
+        default_inventory_path,
+        models::{Inventory, InventoryData},
+    },
     io::{self, encoding::InventoryPostProcessor, Scanner},
 };
 use anyhow::{ensure, Context, Result};
@@ -81,7 +84,6 @@ impl InventoryCmd {
             InventorySubcommands::Watch(cfg) => {
                 let cli_cfg = ConfigOpts {
                     watch: Some(cfg),
-                    commit: Some(ConfigOptsCommit { force: true }),
                     ..Default::default()
                 };
                 watch(&opts.merge(cli_cfg)).await
@@ -91,7 +93,7 @@ impl InventoryCmd {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn build(opts: &ConfigOpts) -> Result<()> {
+pub async fn build(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
         .verify
@@ -106,82 +108,80 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     ensure!(!zones.is_empty(), "no zones to build inventory from");
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::retain_records(&mut records, opts)?;
-    ensure!(!records.is_empty(), "no records to build inventory from");
 
-    let runtime = tokio::runtime::Handle::current();
-    let mut scanner = Scanner::new(runtime);
-
-    // Capture user input to build inventory map
-    let mut inventory = Inventory::new();
-    'control: loop {
-        let zone_idx = 'zone: loop {
-            // Print zone options
-            for (i, zone) in zones.iter().enumerate() {
-                println!("[{}] {}", i + 1, zone);
-            }
-            // Get zone choice
-            if let Some(idx) = scanner
-                .prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")
-                .await?
-            {
-                if idx > 0 && idx <= zones.len() {
-                    break idx;
-                } else {
-                    continue 'zone;
+    let mut data = InventoryData(None);
+    let mut scanner = Scanner::new(tokio::runtime::Handle::current());
+    if records.is_empty() {
+        warn!("there are no records visible to this token, but you may save an empty inventory");
+    } else {
+        records.sort_by_key(|r| r.id.to_owned());
+        // Capture user input to build inventory map
+        'control: loop {
+            let zone_idx = 'zone: loop {
+                // Print zone options
+                for (i, zone) in zones.iter().enumerate() {
+                    println!("[{}] {}", i + 1, zone);
                 }
-            }
-        };
-        let selected_zone = &zones[zone_idx - 1];
-        let zone_records = records
-            .iter()
-            .filter(|r| r.zone_id == selected_zone.id)
-            .collect::<Vec<&Record>>();
-
-        if !zone_records.is_empty() {
-            let record_idx = 'record: loop {
-                for (i, record) in zone_records.iter().enumerate() {
-                    println!("[{}] {}", i + 1, record);
-                }
+                // Get zone choice
                 if let Some(idx) = scanner
-                    .prompt_t::<usize>(
-                        "(Step 2 of 2) Choose a record",
-                        "number",
-                    )
+                    .prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")
                     .await?
                 {
-                    if idx > 0 && idx <= zone_records.len() {
+                    if idx > 0 && idx <= zones.len() {
                         break idx;
                     } else {
-                        continue 'record;
+                        continue 'zone;
                     }
                 }
             };
-            let selected_record = &zone_records[record_idx - 1];
+            let selected_zone = &zones[zone_idx - 1];
+            let zone_records = records
+                .iter()
+                .filter(|r| r.zone_id == selected_zone.id)
+                .collect::<Vec<&Record>>();
 
-            let zone_id = selected_zone.id.clone();
-            let record_id = selected_record.id.clone();
-            if inventory.contains(&zone_id, &record_id) {
-                println!("✅ You already added '{}'.", selected_record.name)
-            } else {
-                inventory.insert(zone_id, record_id);
+            if !zone_records.is_empty() {
+                let selected_record = 'record: loop {
+                    for (i, record) in zone_records.iter().enumerate() {
+                        println!("[{}] {}", i + 1, record);
+                    }
+                    if let Some(idx) = scanner
+                        .prompt_t::<usize>(
+                            "(Step 2 of 2) Choose a record",
+                            "number",
+                        )
+                        .await?
+                    {
+                        if idx > 0 && idx <= zone_records.len() {
+                            let r_idx = records
+                                .binary_search_by_key(
+                                    &zone_records[idx - 1].id,
+                                    |r| r.id.clone(),
+                                )
+                                .ok()
+                                .with_context(|| {
+                                    format!("option {} not found", idx)
+                                })?;
+                            records.remove(r_idx); // Remove for next query
+                            break &records[r_idx];
+                        } else {
+                            continue 'record;
+                        }
+                    }
+                };
+                data.insert(&selected_zone.id, &selected_record.id);
                 println!("✅ Added '{}'.", selected_record.name);
+            } else {
+                println!("❌ No records for this zone.")
             }
-        } else {
-            println!("❌ No records for this zone.")
-        }
 
-        let finished = 'finished: loop {
-            match scanner.prompt("Add another record?", "Y/n").await? {
-                Some(input) => match input.to_lowercase().as_str() {
-                    "y" | "yes" => break false,
-                    "n" | "no" => break true,
-                    _ => continue 'finished,
-                },
-                None => break false,
+            let add_more = scanner
+                .prompt_yes_or_no("Add another record?", "Y/n")
+                .await?
+                .unwrap_or(true);
+            if !add_more {
+                break 'control;
             }
-        };
-        if finished {
-            break 'control;
         }
     }
 
@@ -202,20 +202,24 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or_else(default_inventory_path);
     io::fs::remove_interactive(&path, &mut scanner).await?;
 
+    info!("saving inventory file...");
     // Best-effort attempt to post-process comments on inventory.
-    let post_processor = InventoryPostProcessor::from(&zones, &records);
-    if inventory.save(&path, Some(post_processor)).await.is_err() {
-        warn!("post-processing failed for inventory file");
-        inventory
-            .save::<InventoryPostProcessor>(&path, None)
-            .await?
-    };
+    let pp = InventoryPostProcessor::try_init(opts).await.ok();
+    if pp.is_none() {
+        warn!("failed to initialize post-processor")
+    }
+    Inventory::builder()
+        .path(path)
+        .with_data(data)
+        .build()?
+        .save(pp)
+        .await?;
 
     Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn show(opts: &ConfigOpts) -> Result<()> {
+pub async fn show(opts: &ConfigOpts) -> Result<()> {
     let inventory_path = opts
         .inventory
         .as_ref()
@@ -223,7 +227,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
 
-    if inventory.is_empty() {
+    if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
         println!("{}", inventory);
@@ -232,7 +236,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
+pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     // Get inventory
     info!("reading inventory...");
     let inventory_path = opts
@@ -243,7 +247,7 @@ async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     let inventory = Inventory::from_file(inventory_path).await?;
 
     // End early if inventory is empty
-    if inventory.is_empty() {
+    if inventory.data.is_empty() {
         warn!("inventory is empty");
         return Ok(CheckResult::default());
     }
@@ -264,7 +268,7 @@ async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     let mut ipv4: Option<Ipv4Addr> = None;
     let mut ipv6: Option<Ipv6Addr> = None;
     let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
-    for (ref inv_zone, ref inv_records) in inventory.into_iter() {
+    for (ref inv_zone, ref inv_records) in inventory.data.into_iter() {
         for inv_record in inv_records {
             let cf_record = records.iter().find(|r| {
                 (r.zone_id == *inv_zone || r.zone_name == *inv_zone)
@@ -324,150 +328,29 @@ async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         matches,
         mismatches,
         invalid,
-        ipv4,
-        ipv6,
     })
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn commit(opts: &ConfigOpts) -> Result<()> {
+pub async fn commit(opts: &ConfigOpts) -> Result<()> {
     let CheckResult {
         matches,
         mut mismatches,
         mut invalid,
-        ipv4,
-        ipv6,
     } = check(opts).await?;
-
-    let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
-        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
-
-    let force = opts
-        .commit
-        .as_ref()
-        .map(|opts| opts.force)
-        .unwrap_or(ConfigOptsCommit::default().force);
-    debug!("force flag: {}", force);
-
-    let mut scanner = Scanner::new(tokio::runtime::Handle::current());
 
     // Fix mismatched records
     if !mismatches.is_empty() {
-        // Ask to fix records
-        let fix = force
-            || scanner
-                .prompt_yes_or_no(
-                    format!("Fix {} mismatched records?", mismatches.len()),
-                    "Y/n",
-                )
-                .await?
-                .unwrap_or(true);
-        // Track fixed records
-        let mut fixed = HashSet::new();
-        if fix {
-            info!("fixing mismatched records...");
-            for cf_record in mismatches.iter() {
-                if match cf_record.record_type.as_str() {
-                    "A" => {
-                        update_record(
-                            &token,
-                            &cf_record.zone_id,
-                            &cf_record.id,
-                            ipv4.with_context(|| {
-                                format!("need ipv4 to patch '{}'", cf_record.id)
-                            })?,
-                        )
-                        .await
-                    }
-                    "AAAA" => {
-                        update_record(
-                            &token,
-                            &cf_record.zone_id,
-                            &cf_record.id,
-                            ipv6.with_context(|| {
-                                format!("need ipv6 to patch '{}'", cf_record.id)
-                            })?,
-                        )
-                        .await
-                    }
-                    _ => unimplemented!(),
-                }
-                .is_ok()
-                {
-                    debug!("updated '{}'", &cf_record.id);
-                    fixed.insert(cf_record.id.clone());
-                } else {
-                    error!("unsuccessful update of '{}'", &cf_record.id)
-                }
-            }
-        }
-        mismatches.retain_mut(|r| !fixed.contains(&r.id));
+        let fixed_record_ids = update(opts, &mismatches)
+            .await
+            .context("error updating mismatched records")?;
+        mismatches.retain_mut(|r| !fixed_record_ids.contains(&r.id));
     }
 
     // Prune invalid records
     if !invalid.is_empty() {
-        // Ask to prune records
-        let prune = force
-            || scanner
-                .prompt_yes_or_no(
-                    format!("Prune {} invalid records?", invalid.len()),
-                    "Y/n",
-                )
-                .await?
-                .unwrap_or(true);
-        // Prune
-        let mut pruned = HashSet::new();
-        if prune {
-            let inventory_path = opts
-                .inventory
-                .as_ref()
-                .and_then(|opts| opts.path.clone())
-                .unwrap_or_else(default_inventory_path);
-            let mut inventory = Inventory::from_file(&inventory_path).await?;
-            info!("removing invalid records...");
-            for (zone_id, record_id) in invalid.iter() {
-                let removed = inventory.remove(zone_id, record_id);
-                if let Ok(true) = removed {
-                    debug!("pruned '{} | {}'", &zone_id, &record_id);
-                    pruned.insert((zone_id.clone(), record_id.clone()));
-                } else {
-                    error!("could not prune '{} | {}'", &zone_id, &record_id);
-                }
-            }
-            invalid.retain_mut(|(z, r)| {
-                !pruned.contains(&(z.to_owned(), r.to_owned()))
-            });
-            // Best-effort attempt to post-process comments on inventory.
-            info!("saving inventory file...");
-            let result: Result<()> = try {
-                debug!("retrieving post-processing resources...");
-                let token = opts
-                    .verify
-                    .as_ref()
-                    .and_then(|opts| opts.token.clone())
-                    .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
-                let zones =
-                    cloudflare::endpoints::zones(token.to_string()).await?;
-                let records =
-                    cloudflare::endpoints::records(&zones, token.to_string())
-                        .await?;
-                info!("post-processing inventory...");
-                let post_processor =
-                    InventoryPostProcessor::from(&zones, &records);
-                inventory
-                    .save(&inventory_path, Some(post_processor))
-                    .await?;
-            };
-            if result.is_err() {
-                // Save, without post-processing
-                inventory
-                    .save::<InventoryPostProcessor>(&inventory_path, None)
-                    .await?
-            }
-        }
+        let new_inventory = prune(opts, &invalid).await?;
+        invalid.retain(|(z, r)| new_inventory.data.contains(z, r));
     }
 
     // Log summary
@@ -487,10 +370,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force flag with true; watch is non-interactive
-    ensure!(
-        opts.commit.as_ref().is_some_and(|commit| commit.force),
-        "force should be true, watch is non-interactive"
-    );
+    let opts = opts.clone().merge(ConfigOpts {
+        commit: Some(ConfigOptsCommit { force: true }),
+        ..Default::default()
+    });
 
     // Get watch interval
     let interval = Duration::from_millis(
@@ -504,7 +387,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
     if interval.is_zero() {
         loop {
-            if let Err(e) = commit(opts).await {
+            if let Err(e) = commit(&opts).await {
                 error!("{:?}", e);
             }
         }
@@ -514,7 +397,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         loop {
             timer.tick().await;
             debug!("awoken");
-            if let Err(e) = commit(opts).await {
+            if let Err(e) = commit(&opts).await {
                 error!("{:?}", e);
             }
             debug!("sleeping...");
@@ -527,6 +410,144 @@ pub struct CheckResult {
     matches: Vec<Record>,
     mismatches: Vec<Record>,
     invalid: Vec<(String, String)>,
-    ipv4: Option<Ipv4Addr>,
-    ipv6: Option<Ipv6Addr>,
+}
+
+/// Update a list of mismatching records, returning those ids which were
+/// successfully updated.
+pub async fn update(
+    opts: &ConfigOpts,
+    mismatches: &Vec<Record>,
+) -> Result<HashSet<String>> {
+    // Track fixed records
+    let mut updated_ids = HashSet::new();
+    // Fix mismatched records
+    if !mismatches.is_empty() {
+        let force = opts
+            .commit
+            .as_ref()
+            .map(|opts| opts.force)
+            .unwrap_or(ConfigOptsCommit::default().force);
+        debug!("force update: {}", force);
+
+        // Ask to fix records
+        let fix = force || {
+            let mut scanner = Scanner::new(tokio::runtime::Handle::current());
+            scanner
+                .prompt_yes_or_no(
+                    format!("Update {} mismatched records?", mismatches.len()),
+                    "Y/n",
+                )
+                .await?
+                .unwrap_or(true)
+        };
+        if fix {
+            info!("updating records...");
+            let token = opts
+        .verify
+        .as_ref()
+        .and_then(|opts| opts.token.clone())
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+            let mut ipv4: Option<Ipv4Addr> = None;
+            let mut ipv6: Option<Ipv6Addr> = None;
+            for cf_record in mismatches.iter() {
+                let updated = match cf_record.record_type.as_str() {
+                    "A" => {
+                        update_record(
+                            &token,
+                            &cf_record.zone_id,
+                            &cf_record.id,
+                            ipv4.get_or_insert({
+                                info!("resolving ipv4...");
+                                public_ip::addr_v4()
+                                    .await
+                                    .context("could not resolve ipv4 address")?
+                            })
+                            .to_string(),
+                        )
+                        .await
+                    }
+                    "AAAA" => {
+                        update_record(
+                            &token,
+                            &cf_record.zone_id,
+                            &cf_record.id,
+                            ipv6.get_or_insert({
+                                info!("resolving ipv6...");
+                                public_ip::addr_v6()
+                                    .await
+                                    .context("could not resolve ipv6 address")?
+                            })
+                            .to_string(),
+                        )
+                        .await
+                    }
+                    _ => unimplemented!(),
+                };
+                if updated.is_ok() {
+                    debug!("updated '{}'", &cf_record.id);
+                    updated_ids.insert(cf_record.id.clone());
+                } else {
+                    error!("unsuccessful update of '{}'", &cf_record.id)
+                }
+            }
+        }
+    }
+    Ok(updated_ids)
+}
+
+/// Prune invalid records, returning the resulting inventory.
+pub async fn prune(
+    opts: &ConfigOpts,
+    invalid: &Vec<(String, String)>,
+) -> Result<Inventory> {
+    // Get inventory
+    let inventory_path = opts
+        .inventory
+        .as_ref()
+        .and_then(|opts| opts.path.clone())
+        .unwrap_or_else(default_inventory_path);
+    let mut inventory = Inventory::from_file(&inventory_path).await?;
+
+    // Prune invalid records
+    if !invalid.is_empty() {
+        let force = opts
+            .commit
+            .as_ref()
+            .map(|opts| opts.force)
+            .unwrap_or(ConfigOptsCommit::default().force);
+        debug!("force prune: {}", force);
+
+        // Ask to prune records
+        let prune = force || {
+            let mut scanner = Scanner::new(tokio::runtime::Handle::current());
+            scanner
+                .prompt_yes_or_no(
+                    format!("Prune {} invalid records?", invalid.len()),
+                    "Y/n",
+                )
+                .await?
+                .unwrap_or(true)
+        };
+        // Prune
+        if prune {
+            info!("removing invalid records...");
+            for (zone_id, record_id) in invalid.iter() {
+                let removed = inventory.data.remove(zone_id, record_id);
+                if let Ok(true) = removed {
+                    debug!("pruned '{} | {}'", &zone_id, &record_id);
+                } else {
+                    error!("could not remove '{} | {}'", &zone_id, &record_id);
+                }
+            }
+        }
+        info!("updating inventory file...");
+        // Best-effort attempt to post-process comments on inventory.
+        let pp = InventoryPostProcessor::try_init(opts).await.ok();
+        if pp.is_none() {
+            warn!("failed to initialize post-processor")
+        }
+        inventory.save(pp).await?;
+    }
+
+    Ok(inventory)
 }
