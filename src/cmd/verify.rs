@@ -30,6 +30,8 @@ impl VerifyCmd {
 
 #[tracing::instrument(level = "trace", skip(opts))]
 async fn verify(opts: &ConfigOpts) -> Result<()> {
+    info!("verifying...");
+
     // Get token
     let token = opts
         .verify
@@ -37,7 +39,6 @@ async fn verify(opts: &ConfigOpts) -> Result<()> {
         .and_then(|opts| opts.token.clone())
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
-    info!("verifying...");
     let cf_messages = cloudflare::endpoints::verify(&token).await?;
     for (i, msg) in cf_messages.iter().enumerate() {
         info!(

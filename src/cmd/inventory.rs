@@ -1,20 +1,16 @@
 use crate::{
-    cloudflare::{
-        self,
-        endpoints::update_record,
-        models::{Record, Zone},
-    },
+    cloudflare::{self, endpoints::update_record, models::Record},
     config::models::{
         ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
     },
     inventory::{default_inventory_path, models::Inventory},
     io::{self, encoding::InventoryPostProcessor, Scanner},
 };
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
 use std::{
     collections::HashSet,
-    fmt::{Debug, Display},
+    fmt::Debug,
     net::{Ipv4Addr, Ipv6Addr},
     path::PathBuf,
     vec,
@@ -74,7 +70,7 @@ impl InventoryCmd {
         match self.action {
             InventorySubcommands::Build => build(&opts).await,
             InventorySubcommands::Show => show(&opts).await,
-            InventorySubcommands::Check => check(&opts).await,
+            InventorySubcommands::Check => check(&opts).await.map(|_| ()),
             InventorySubcommands::Commit(cfg) => {
                 let cli_cfg = ConfigOpts {
                     commit: Some(cfg),
@@ -85,6 +81,7 @@ impl InventoryCmd {
             InventorySubcommands::Watch(cfg) => {
                 let cli_cfg = ConfigOpts {
                     watch: Some(cfg),
+                    commit: Some(ConfigOptsCommit { force: true }),
                     ..Default::default()
                 };
                 watch(&opts.merge(cli_cfg)).await
@@ -235,14 +232,7 @@ async fn show(opts: &ConfigOpts) -> Result<()> {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn check(opts: &ConfigOpts) -> Result<()> {
-    // Get token
-    let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
-        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
-
+async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     // Get inventory
     info!("reading inventory...");
     let inventory_path = opts
@@ -255,73 +245,105 @@ async fn check(opts: &ConfigOpts) -> Result<()> {
     // End early if inventory is empty
     if inventory.is_empty() {
         warn!("inventory is empty");
-        return Ok(());
+        return Ok(CheckResult::default());
     }
 
-    // Check records
-    info!("resolving public ip...");
-    let ipv4 = public_ip::addr_v4().await;
-    debug!("v4 ip: {:?}", ipv4);
-    let ipv6 = public_ip::addr_v6().await;
-    debug!("v6 ip: {:?}", ipv4);
+    // Get cloudflare records and zones
     info!("retrieving cloudflare resources...");
-    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
-    let records =
-        cloudflare::endpoints::records(&zones, token.to_string()).await?;
-    let CheckResult {
-        matches,
-        mismatches,
-        invalid,
-    } = check_records(token, &inventory, &zones, &records, ipv4, ipv6).await?;
-
-    // Print records
-    for cf_record in &matches {
-        info!("match: {} ({})", cf_record.name, cf_record.id);
-    }
-    for cf_record in &mismatches {
-        warn!(
-            "mismatch: {} ({}) => {}",
-            cf_record.name, cf_record.id, cf_record.content
-        );
-    }
-    for (inv_zone, inv_record) in &invalid {
-        warn!("invalid: {} | {}", inv_zone, inv_record);
-    }
-
-    // Print summary
-    println!(
-        "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
-        matches.len(),
-        mismatches.len(),
-        invalid.len()
-    );
-
-    Ok(())
-}
-
-#[tracing::instrument(level = "trace", skip(opts))]
-async fn commit(opts: &ConfigOpts) -> Result<()> {
-    // Get token
     let token = opts
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
+    let records =
+        cloudflare::endpoints::records(&zones, token.to_string()).await?;
 
-    // Get inventory
-    info!("reading inventory...");
-    let inventory_path = opts
-        .inventory
-        .as_ref()
-        .and_then(|opts| opts.path.clone())
-        .unwrap_or_else(default_inventory_path);
-    let mut inventory = Inventory::from_file(&inventory_path).await?;
-
-    // End early if inventory is empty
-    if inventory.is_empty() {
-        warn!("inventory is empty");
-        return Ok(());
+    // Match zones and records
+    info!("matching records...");
+    let mut ipv4: Option<Ipv4Addr> = None;
+    let mut ipv6: Option<Ipv6Addr> = None;
+    let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
+    for (ref inv_zone, ref inv_records) in inventory.into_iter() {
+        for inv_record in inv_records {
+            let cf_record = records.iter().find(|r| {
+                (r.zone_id == *inv_zone || r.zone_name == *inv_zone)
+                    && (r.id == *inv_record || r.name == *inv_record)
+            });
+            match cf_record {
+                Some(cf_record) => {
+                    let ip = match cf_record.record_type.as_str() {
+                        "A" => ipv4
+                            .get_or_insert({
+                                info!("resolving ipv4...");
+                                public_ip::addr_v4()
+                                    .await
+                                    .context("could not resolve ipv4 address")?
+                            })
+                            .to_string(),
+                        "AAAA" => ipv6
+                            .get_or_insert({
+                                info!("resolving ipv6...");
+                                public_ip::addr_v6()
+                                    .await
+                                    .context("could not resolve ipv6 address")?
+                            })
+                            .to_string(),
+                        _ => unimplemented!(),
+                    };
+                    if cf_record.content == ip {
+                        // IP Match
+                        info!("match: {}", cf_record);
+                        matches.push(cf_record.clone());
+                    } else {
+                        // IP mismatch
+                        warn!("mismatch: {}", cf_record);
+                        mismatches.push(cf_record.clone());
+                    }
+                }
+                None => {
+                    // Invalid record, no match on zone and record
+                    warn!("invalid: {} | {}", inv_zone, inv_record);
+                    invalid.push((inv_zone.clone(), inv_record.clone()));
+                }
+            }
+        }
     }
+
+    // Log summary
+    info!(
+        "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
+        matches.len(),
+        mismatches.len(),
+        invalid.len()
+    );
+    if !mismatches.is_empty() || !invalid.is_empty() {
+        warn!("mismatching or invalid records exist");
+    }
+    Ok(CheckResult {
+        matches,
+        mismatches,
+        invalid,
+        ipv4,
+        ipv6,
+    })
+}
+
+#[tracing::instrument(level = "trace", skip(opts))]
+async fn commit(opts: &ConfigOpts) -> Result<()> {
+    let CheckResult {
+        matches,
+        mut mismatches,
+        mut invalid,
+        ipv4,
+        ipv6,
+    } = check(opts).await?;
+
+    let token = opts
+        .verify
+        .as_ref()
+        .and_then(|opts| opts.token.clone())
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     let force = opts
         .commit
@@ -330,34 +352,10 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         .unwrap_or(ConfigOptsCommit::default().force);
     debug!("force flag: {}", force);
 
-    // Check records
-    info!("resolving public ip...");
-    let ipv4 = public_ip::addr_v4().await;
-    debug!("v4 ip: {:?}", ipv4);
-    let ipv6 = public_ip::addr_v6().await;
-    debug!("v6 ip: {:?}", ipv4);
-    info!("retrieving cloudflare resources...");
-    let zones = cloudflare::endpoints::zones(token.to_string()).await?;
-    let records =
-        cloudflare::endpoints::records(&zones, token.to_string()).await?;
-    let CheckResult {
-        matches,
-        mut mismatches,
-        mut invalid,
-    } = check_records(&token, &inventory, &zones, &records, ipv4, ipv6).await?;
+    let mut scanner = Scanner::new(tokio::runtime::Handle::current());
 
-    let runtime = tokio::runtime::Handle::current();
-    let mut scanner = Scanner::new(runtime);
-
-    // Print records
+    // Fix mismatched records
     if !mismatches.is_empty() {
-        // Print bad records
-        for cf_record in &mismatches {
-            warn!(
-                "mismatch: {} ({}) => {}",
-                cf_record.name, cf_record.id, cf_record.content
-            );
-        }
         // Ask to fix records
         let fix = force
             || scanner
@@ -367,39 +365,38 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                 )
                 .await?
                 .unwrap_or(true);
-        // Fix records
+        // Track fixed records
         let mut fixed = HashSet::new();
         if fix {
             info!("fixing mismatched records...");
-            for cf_record in &mismatches {
+            for cf_record in mismatches.iter() {
                 if match cf_record.record_type.as_str() {
-                    "A" => match ipv4 {
-                        Some(ip) => {
-                            update_record(
-                                token.clone(),
-                                cf_record.zone_id.clone(),
-                                cf_record.id.clone(),
-                                ip,
-                            )
-                            .await
-                        }
-                        None => Err(anyhow!("no discovered ipv4 address needed to patch A record")),
-                    },
-                    "AAAA" => match ipv6 {
-                        Some(ip) => update_record(
-                                token.clone(),
-                                cf_record.zone_id.clone(),
-                                cf_record.id.clone(),
-                                ip,
-                            )
-                            .await,
-                        None => Err(anyhow!("no discovered ipv6 address needed to patch AAAA record")),
-                    },
-                    _ => unimplemented!(
-                            "unexpected record type: {}",
-                            cf_record.record_type
-                        ),
-                }.is_ok() {
+                    "A" => {
+                        update_record(
+                            &token,
+                            &cf_record.zone_id,
+                            &cf_record.id,
+                            ipv4.with_context(|| {
+                                format!("need ipv4 to patch '{}'", cf_record.id)
+                            })?,
+                        )
+                        .await
+                    }
+                    "AAAA" => {
+                        update_record(
+                            &token,
+                            &cf_record.zone_id,
+                            &cf_record.id,
+                            ipv6.with_context(|| {
+                                format!("need ipv6 to patch '{}'", cf_record.id)
+                            })?,
+                        )
+                        .await
+                    }
+                    _ => unimplemented!(),
+                }
+                .is_ok()
+                {
                     debug!("updated '{}'", &cf_record.id);
                     fixed.insert(cf_record.id.clone());
                 } else {
@@ -410,11 +407,8 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         mismatches.retain_mut(|r| !fixed.contains(&r.id));
     }
 
+    // Prune invalid records
     if !invalid.is_empty() {
-        // Print invalid records
-        for (inv_zone, inv_record) in &invalid {
-            warn!("invalid: {} | {}", inv_zone, inv_record);
-        }
         // Ask to prune records
         let prune = force
             || scanner
@@ -427,10 +421,15 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
         // Prune
         let mut pruned = HashSet::new();
         if prune {
-            info!("pruning invalid records...");
+            let inventory_path = opts
+                .inventory
+                .as_ref()
+                .and_then(|opts| opts.path.clone())
+                .unwrap_or_else(default_inventory_path);
+            let mut inventory = Inventory::from_file(&inventory_path).await?;
+            info!("removing invalid records...");
             for (zone_id, record_id) in invalid.iter() {
-                let removed =
-                    inventory.remove(zone_id.to_owned(), record_id.to_owned());
+                let removed = inventory.remove(zone_id, record_id);
                 if let Ok(true) = removed {
                     debug!("pruned '{} | {}'", &zone_id, &record_id);
                     pruned.insert((zone_id.clone(), record_id.clone()));
@@ -442,38 +441,56 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                 !pruned.contains(&(z.to_owned(), r.to_owned()))
             });
             // Best-effort attempt to post-process comments on inventory.
-            let post_processor = InventoryPostProcessor::from(&zones, &records);
-            if inventory
-                .save(&inventory_path, Some(post_processor))
-                .await
-                .is_err()
-            {
+            info!("saving inventory file...");
+            let result: Result<()> = try {
+                debug!("retrieving post-processing resources...");
+                let token = opts
+                    .verify
+                    .as_ref()
+                    .and_then(|opts| opts.token.clone())
+                    .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+                let zones =
+                    cloudflare::endpoints::zones(token.to_string()).await?;
+                let records =
+                    cloudflare::endpoints::records(&zones, token.to_string())
+                        .await?;
+                info!("post-processing inventory...");
+                let post_processor =
+                    InventoryPostProcessor::from(&zones, &records);
+                inventory
+                    .save(&inventory_path, Some(post_processor))
+                    .await?;
+            };
+            if result.is_err() {
                 // Save, without post-processing
                 inventory
                     .save::<InventoryPostProcessor>(&inventory_path, None)
                     .await?
-            };
+            }
         }
     }
 
-    // Print summary
+    // Log summary
     info!(
-        "{} matched, {} mismatched, {} invalid records",
+        "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
         matches.len(),
         mismatches.len(),
         invalid.len()
     );
     if !mismatches.is_empty() || !invalid.is_empty() {
-        error!("mismatching or invalid records remain");
+        warn!("mismatching or invalid records remain");
     }
+
     Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force flag with true; watch is non-interactive
-    let mut opts = opts.clone();
-    opts.commit.replace(ConfigOptsCommit { force: true });
+    ensure!(
+        opts.commit.as_ref().is_some_and(|commit| commit.force),
+        "force should be true, watch is non-interactive"
+    );
 
     // Get watch interval
     let interval = Duration::from_millis(
@@ -487,7 +504,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
     if interval.is_zero() {
         loop {
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) = commit(opts).await {
                 error!("{:?}", e);
             }
         }
@@ -497,7 +514,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         loop {
             timer.tick().await;
             debug!("awoken");
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) = commit(opts).await {
                 error!("{:?}", e);
             }
             debug!("sleeping...");
@@ -505,66 +522,11 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct CheckResult {
     matches: Vec<Record>,
     mismatches: Vec<Record>,
     invalid: Vec<(String, String)>,
-}
-
-#[tracing::instrument(level = "trace")]
-pub async fn check_records(
-    token: impl Display + Debug,
-    inventory: &Inventory,
-    zones: &Vec<Zone>,
-    records: &Vec<Record>,
     ipv4: Option<Ipv4Addr>,
     ipv6: Option<Ipv6Addr>,
-) -> Result<CheckResult> {
-    // Check and collect records
-    let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
-    for (inv_zone, inv_records) in inventory.clone().into_iter() {
-        for inv_record in inv_records {
-            let cf_record = records.iter().find(|r| {
-                (r.zone_id == inv_zone || r.zone_name == inv_zone)
-                    && (r.id == inv_record || r.name == inv_record)
-            });
-            match cf_record {
-                Some(cf_record) => {
-                    let ip = match cf_record.record_type.as_str() {
-                        "A" => ipv4.map(|ip| ip.to_string()),
-                        "AAAA" => ipv6.map(|ip| ip.to_string()),
-                        _ => unimplemented!(
-                            "unexpected record type: {}",
-                            cf_record.record_type
-                        ),
-                    };
-                    if let Some(ref ip) = ip {
-                        if &cf_record.content == ip {
-                            // IP Match
-                            matches.push(cf_record.clone());
-                        } else {
-                            // IP mismatch
-                            mismatches.push(cf_record.clone());
-                        }
-                    } else {
-                        bail!(
-                            "no address comparable for {} record",
-                            cf_record.record_type
-                        );
-                    }
-                }
-                None => {
-                    // Invalid record, no match on zone and record
-                    invalid.push((inv_zone.clone(), inv_record.clone()));
-                }
-            }
-        }
-    }
-
-    Ok(CheckResult {
-        matches,
-        mismatches,
-        invalid,
-    })
 }

@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::fmt;
+use std::fmt::{self, Display};
 
 #[derive(Debug, Deserialize)]
 pub struct CloudflareError {
@@ -8,10 +8,22 @@ pub struct CloudflareError {
     pub error_chain: Option<Vec<CloudflareMessage>>,
 }
 
+impl Display for CloudflareError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.code, self.message)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CloudflareMessage {
     pub code: i32,
     pub message: String,
+}
+
+impl Display for CloudflareMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.code, self.message)
+    }
 }
 
 #[derive(Debug, Deserialize)]

@@ -8,6 +8,7 @@
 #![feature(iter_intersperse)]
 #![feature(exact_size_is_empty)]
 #![feature(is_some_and)]
+#![feature(async_closure)]
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};

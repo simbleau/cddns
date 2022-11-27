@@ -12,7 +12,7 @@ use tracing::{debug, trace};
 pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
     let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
         .await
-        .context("verifying API token")?;
+        .context("error verifying API token")?;
     Ok(resp.messages)
 }
 
@@ -26,7 +26,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
         let resp: ListZonesResponse =
             requests::get(endpoint, token.to_string())
                 .await
-                .context("resolving zones endpoint")?;
+                .context("error resolving zones endpoint")?;
         ensure!(resp.success, "cloudflare response returned failure");
 
         zones.extend(resp.result.into_iter().filter(|zone| {
@@ -62,7 +62,7 @@ pub async fn records(
             let resp: ListRecordsResponse =
                 requests::get(endpoint, token.to_string())
                     .await
-                    .context("resolving records endpoint")?;
+                    .context("error resolving records endpoint")?;
             ensure!(resp.success, "cloudflare response returned failure");
 
             records.extend(resp.result.into_iter().filter(|record| {
@@ -99,7 +99,7 @@ pub async fn update_record(
 
     let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
         .await
-        .context("resolving records endpoint")?;
+        .context("error resolving records endpoint")?;
     ensure!(resp.success, "cloudflare response returned failure");
     Ok(())
 }

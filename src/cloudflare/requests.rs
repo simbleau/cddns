@@ -14,44 +14,28 @@ where
         .bearer_auth(token)
         .send()
         .await
-        .context("sending HTTP request")?
+        .context("error sending HTTP request")?
         .bytes()
         .await
-        .context("retrieving HTTP response")?;
+        .context("error retrieving HTTP response bytes")?;
 
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
-        .context("reading cloudflare response")?;
+        .context("error deserializing cloudflare metadata")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("deserializing cloudflare payload")?),
+            .context("error deserializing cloudflare payload")?),
         false => {
-            if let Some(error_stack) = cf_resp
-                .errors
-                .iter()
-                .map(|msg| {
-                    format!(
-                        "{}: {}{}",
-                        msg.code,
-                        msg.message,
-                        msg.error_chain
-                            // TODO: Make this cleaner
-                            .as_ref()
-                            .unwrap_or(&vec![])
-                            .iter()
-                            .map(|error| format!(
-                                "\n  - {}: {}",
-                                error.code, error.message
-                            ))
-                            .reduce(|cur: String, nxt: String| cur + &nxt)
-                            .unwrap_or_default()
-                    )
-                })
-                .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
-            {
-                Err(anyhow!("{}", error_stack))
-            } else {
-                Err(anyhow!("unknown error").context(format!("{:#?}", cf_resp)))
+            let mut context_chain = anyhow!("unsuccessful cloudflare status");
+            for err in cf_resp.errors {
+                context_chain = context_chain.context(format!("error {}", err));
+                while let Some(ref messages) = err.error_chain {
+                    for message in messages {
+                        context_chain = context_chain
+                            .context(format!("  - error {}", message));
+                    }
+                }
             }
+            Err(context_chain)
         }
     }
 }
@@ -71,43 +55,27 @@ where
         .json(json)
         .send()
         .await
-        .context("sending HTTP request")?
+        .context("error sending HTTP request")?
         .bytes()
         .await
-        .context("retrieving HTTP response")?;
+        .context("error retrieving HTTP response bytes")?;
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
-        .context("reading cloudflare response")?;
+        .context("error deserializing cloudflare metadata")?;
     match cf_resp.success {
         true => Ok(serde_json::from_slice(bytes.as_slice())
-            .context("deserializing cloudflare payload")?),
+            .context("error deserializing cloudflare payload")?),
         false => {
-            if let Some(error_stack) = cf_resp
-                .errors
-                .iter()
-                .map(|msg| {
-                    format!(
-                        "{}: {}{}",
-                        msg.code,
-                        msg.message,
-                        msg.error_chain
-                            // TODO: Make this cleaner
-                            .as_ref()
-                            .unwrap_or(&vec![])
-                            .iter()
-                            .map(|error| format!(
-                                "\n  - {}: {}",
-                                error.code, error.message
-                            ))
-                            .reduce(|cur: String, nxt: String| cur + &nxt)
-                            .unwrap_or_default()
-                    )
-                })
-                .reduce(|cur: String, nxt: String| cur + "\n" + &nxt)
-            {
-                Err(anyhow!("{}", error_stack))
-            } else {
-                Err(anyhow!("unknown error").context(format!("{:#?}", cf_resp)))
+            let mut context_chain = anyhow!("unsuccessful cloudflare status");
+            for err in cf_resp.errors {
+                context_chain = context_chain.context(format!("error {}", err));
+                while let Some(ref messages) = err.error_chain {
+                    for message in messages {
+                        context_chain = context_chain
+                            .context(format!("  - error {}", message));
+                    }
+                }
             }
+            Err(context_chain)
         }
     }
 }
