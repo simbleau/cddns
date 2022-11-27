@@ -10,7 +10,7 @@ use crate::{
     inventory::{default_inventory_path, models::Inventory},
     io::{self, encoding::InventoryPostProcessor, Scanner},
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use clap::{Args, Subcommand};
 use std::{
     collections::HashSet,
@@ -106,10 +106,10 @@ async fn build(opts: &ConfigOpts) -> Result<()> {
     info!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     crate::cmd::list::retain_zones(&mut zones, opts)?;
-    anyhow::ensure!(!zones.is_empty(), "no zones to build inventory from");
+    ensure!(!zones.is_empty(), "no zones to build inventory from");
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     crate::cmd::list::retain_records(&mut records, opts)?;
-    anyhow::ensure!(!records.is_empty(), "no records to build inventory from");
+    ensure!(!records.is_empty(), "no records to build inventory from");
 
     let runtime = tokio::runtime::Handle::current();
     let mut scanner = Scanner::new(runtime);
@@ -383,7 +383,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                             )
                             .await
                         }
-                        None => Err(anyhow::anyhow!("no discovered ipv4 address needed to patch A record")),
+                        None => Err(anyhow!("no discovered ipv4 address needed to patch A record")),
                     },
                     "AAAA" => match ipv6 {
                         Some(ip) => update_record(
@@ -393,7 +393,7 @@ async fn commit(opts: &ConfigOpts) -> Result<()> {
                                 ip,
                             )
                             .await,
-                        None => Err(anyhow::anyhow!("no discovered ipv6 address needed to patch AAAA record")),
+                        None => Err(anyhow!("no discovered ipv6 address needed to patch AAAA record")),
                     },
                     _ => unimplemented!(
                             "unexpected record type: {}",
@@ -548,7 +548,7 @@ pub async fn check_records(
                             mismatches.push(cf_record.clone());
                         }
                     } else {
-                        anyhow::bail!(
+                        bail!(
                             "no address comparable for {} record",
                             cf_record.record_type
                         );

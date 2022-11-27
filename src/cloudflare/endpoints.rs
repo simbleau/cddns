@@ -3,7 +3,7 @@ use crate::cloudflare::models::{
     PatchRecordResponse, Record, VerifyResponse, Zone,
 };
 use crate::cloudflare::requests;
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;
 use tracing::{debug, trace};
@@ -27,7 +27,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
             requests::get(endpoint, token.to_string())
                 .await
                 .context("resolving zones endpoint")?;
-        anyhow::ensure!(resp.success, "cloudflare response returned failure");
+        ensure!(resp.success, "cloudflare response returned failure");
 
         zones.extend(resp.result.into_iter().filter(|zone| {
             &zone.status == "active"
@@ -63,10 +63,7 @@ pub async fn records(
                 requests::get(endpoint, token.to_string())
                     .await
                     .context("resolving records endpoint")?;
-            anyhow::ensure!(
-                resp.success,
-                "cloudflare response returned failure"
-            );
+            ensure!(resp.success, "cloudflare response returned failure");
 
             records.extend(resp.result.into_iter().filter(|record| {
                 record.record_type == "A"
@@ -103,6 +100,6 @@ pub async fn update_record(
     let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
         .await
         .context("resolving records endpoint")?;
-    anyhow::ensure!(resp.success, "cloudflare response returned failure");
+    ensure!(resp.success, "cloudflare response returned failure");
     Ok(())
 }

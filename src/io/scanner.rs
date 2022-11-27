@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::de::DeserializeOwned;
 use std::{fmt::Display, io::Write, str::FromStr};
 use tokio::runtime::Handle;
@@ -41,7 +41,7 @@ impl Scanner {
                 Some(line) = self.rx.recv() => {
                     match line.to_lowercase().trim() {
                         "exit" | "quit" => {
-                            anyhow::bail!("aborted")
+                            bail!("aborted")
                         },
                         "" => {
                             Ok(None)
