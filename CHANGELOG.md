@@ -11,6 +11,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Added verbose logging with `-v`
 - Added warning for empty inventory
 - Provided README instructions for service deployment on Docker Compose
+- Inventories can be built without any records
 ### changed
 - The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
 - Improved readability of errors with `inventory watch`
@@ -20,6 +21,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - `cddns list records -r <name|id>` now only matches one record result
 - Output is now more clear with `verify`
 - Added help link when no token or inventory is provided
+- `inventory build` now removes records as you build
 ### deprecated
 - Placeholder
 ### removed
@@ -27,6 +29,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### fixed
 - Environment variables work for all commands
 - README documentation fixes
+- Token is no longer needed for `inventory` commands if no records exist
 ### security
 - Placeholder
 

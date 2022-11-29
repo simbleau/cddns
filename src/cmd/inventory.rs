@@ -9,7 +9,7 @@ use crate::{
     },
     io::{self, encoding::InventoryPostProcessor, Scanner},
 };
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::{
     collections::HashSet,
@@ -94,32 +94,35 @@ impl InventoryCmd {
 
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn build(opts: &ConfigOpts) -> Result<()> {
+    // Get zones and records to build inventory from
+    info!("retrieving cloudflare resources...");
     // Get token
     let token = opts
         .verify
         .as_ref()
         .and_then(|opts| opts.token.clone())
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+    let mut all_zones = cloudflare::endpoints::zones(&token).await?;
+    crate::cmd::list::retain_zones(&mut all_zones, opts)?;
+    let mut all_records =
+        cloudflare::endpoints::records(&all_zones, &token).await?;
+    crate::cmd::list::retain_records(&mut all_records, opts)?;
 
-    // Get zones and records to build inventory from
-    info!("retrieving cloudflare resources...");
-    let mut zones = cloudflare::endpoints::zones(&token).await?;
-    crate::cmd::list::retain_zones(&mut zones, opts)?;
-    ensure!(!zones.is_empty(), "no zones to build inventory from");
-    let mut records = cloudflare::endpoints::records(&zones, &token).await?;
-    crate::cmd::list::retain_records(&mut records, opts)?;
+    // Sort by name
+    all_zones.sort_by_key(|z| z.name.to_owned());
+    all_records.sort_by_key(|r| r.name.to_owned());
 
     let mut data = InventoryData(None);
     let mut scanner = Scanner::new(tokio::runtime::Handle::current());
-    if records.is_empty() {
+    if all_records.is_empty() {
         warn!("there are no records visible to this token, but you may save an empty inventory");
     } else {
-        records.sort_by_key(|r| r.id.to_owned());
         // Capture user input to build inventory map
         'control: loop {
-            let zone_idx = 'zone: loop {
+            // Get zone index
+            let zone_index = 'zone: loop {
                 // Print zone options
-                for (i, zone) in zones.iter().enumerate() {
+                for (i, zone) in all_zones.iter().enumerate() {
                     println!("[{}] {}", i + 1, zone);
                 }
                 // Get zone choice
@@ -127,60 +130,78 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                     .prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")
                     .await?
                 {
-                    if idx > 0 && idx <= zones.len() {
-                        break idx;
+                    if idx > 0 && idx <= all_zones.len() {
+                        debug!("input: {}", idx);
+                        break idx - 1;
                     } else {
+                        warn!("invalid option: {}", idx);
                         continue 'zone;
                     }
                 }
             };
-            let selected_zone = &zones[zone_idx - 1];
-            let zone_records = records
+
+            // Filter records
+            let record_options = all_records
                 .iter()
-                .filter(|r| r.zone_id == selected_zone.id)
+                .filter(|r| r.zone_id == all_zones[zone_index].id)
                 .collect::<Vec<&Record>>();
-
-            if !zone_records.is_empty() {
-                let selected_record = 'record: loop {
-                    for (i, record) in zone_records.iter().enumerate() {
-                        println!("[{}] {}", i + 1, record);
-                    }
-                    if let Some(idx) = scanner
-                        .prompt_t::<usize>(
-                            "(Step 2 of 2) Choose a record",
-                            "number",
-                        )
-                        .await?
-                    {
-                        if idx > 0 && idx <= zone_records.len() {
-                            let r_idx = records
-                                .binary_search_by_key(
-                                    &zone_records[idx - 1].id,
-                                    |r| r.id.clone(),
-                                )
-                                .ok()
-                                .with_context(|| {
-                                    format!("option {} not found", idx)
-                                })?;
-                            records.remove(r_idx); // Remove for next query
-                            break &records[r_idx];
-                        } else {
-                            continue 'record;
-                        }
-                    }
-                };
-                data.insert(&selected_zone.id, &selected_record.id);
-                println!("✅ Added '{}'.", selected_record.name);
-            } else {
-                println!("❌ No records for this zone.")
+            if record_options.is_empty() {
+                error!("❌ No records for this zone.");
+                continue 'control;
             }
+            // Get record index
+            let record_index = 'record: loop {
+                for (i, record) in record_options.iter().enumerate() {
+                    println!("[{}] {}", i + 1, record);
+                }
+                if let Some(idx) = scanner
+                    .prompt_t::<usize>(
+                        "(Step 2 of 2) Choose a record",
+                        "number",
+                    )
+                    .await?
+                {
+                    if idx > 0 && idx <= record_options.len() {
+                        debug!("input: {}", idx);
+                        break all_records
+                            .binary_search_by_key(
+                                &record_options[idx - 1].name,
+                                |r| r.name.clone(),
+                            )
+                            .ok()
+                            .with_context(|| {
+                                format!("option {} not found", idx)
+                            })?;
+                    } else {
+                        warn!("invalid option: {}", idx);
+                        continue 'record;
+                    }
+                }
+            };
+            // Append record to data
+            let selected_zone = &all_zones[zone_index];
+            let selected_record = &all_records[record_index];
+            data.insert(&selected_zone.id, &selected_record.id);
+            println!("✅ Added '{}'.", selected_record.name);
 
-            let add_more = scanner
-                .prompt_yes_or_no("Add another record?", "Y/n")
-                .await?
-                .unwrap_or(true);
-            if !add_more {
+            // Remove for next iteration
+            if record_options.len() == 1 {
+                all_zones.remove(zone_index);
+            }
+            all_records.remove(record_index);
+
+            // Prepare next iteration
+            if all_zones.is_empty() {
+                println!("No records left. Continuing...");
                 break 'control;
+            } else {
+                let add_more = scanner
+                    .prompt_yes_or_no("Add another record?", "Y/n")
+                    .await?
+                    .unwrap_or(true);
+                if !add_more {
+                    break 'control;
+                }
             }
         }
     }
@@ -246,6 +267,13 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         .unwrap_or_else(default_inventory_path);
     let inventory = Inventory::from_file(inventory_path).await?;
 
+    // Token is required to fix inventory record.
+    let token = opts
+        .verify
+        .as_ref()
+        .and_then(|opts| opts.token.clone())
+        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+
     // End early if inventory is empty
     if inventory.data.is_empty() {
         warn!("inventory is empty");
@@ -254,11 +282,6 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
 
     // Get cloudflare records and zones
     info!("retrieving cloudflare resources...");
-    let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
-        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
     let zones = cloudflare::endpoints::zones(token.to_string()).await?;
     let records =
         cloudflare::endpoints::records(&zones, token.to_string()).await?;
