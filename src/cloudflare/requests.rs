@@ -3,13 +3,22 @@ use crate::cloudflare::API_BASE;
 use anyhow::{anyhow, Context, Result};
 use core::slice::SlicePattern;
 use serde::{de::DeserializeOwned, Serialize};
-use std::fmt::Display;
-use tracing::debug;
+use std::{fmt::Display, future::Future, time::Duration};
+use tokio::time::error::Elapsed;
+use tracing::trace;
+
+pub async fn timeout<T>(future: T) -> Result<<T>::Output, Elapsed>
+where
+    T: Future,
+{
+    tokio::time::timeout(Duration::from_millis(10000), future).await
+}
 
 pub async fn get<T>(endpoint: impl Display, token: impl Display) -> Result<T>
 where
     T: DeserializeOwned,
 {
+    trace!("starting http request");
     let bytes = reqwest::Client::new()
         .get(format!("{}{}", API_BASE, endpoint))
         .bearer_auth(token)
@@ -19,7 +28,7 @@ where
         .bytes()
         .await
         .context("error retrieving HTTP response bytes")?;
-    debug!("received http response");
+    trace!("received http response");
 
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
         .context("error deserializing cloudflare metadata")?;
@@ -42,6 +51,18 @@ where
     }
 }
 
+pub async fn get_with_timeout<T>(
+    endpoint: impl Display,
+    token: impl Display,
+) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    timeout(get(endpoint, token))
+        .await
+        .context("request to cloudflare timed out")?
+}
+
 pub async fn patch<T>(
     endpoint: impl Display,
     token: impl Display,
@@ -50,6 +71,7 @@ pub async fn patch<T>(
 where
     T: DeserializeOwned,
 {
+    trace!("starting http request");
     let bytes = reqwest::Client::new()
         .patch(format!("{}{}", API_BASE, endpoint))
         .bearer_auth(token)
@@ -61,6 +83,8 @@ where
         .bytes()
         .await
         .context("error retrieving HTTP response bytes")?;
+    trace!("received http response");
+
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
         .context("error deserializing cloudflare metadata")?;
     match cf_resp.success {
@@ -80,4 +104,17 @@ where
             Err(context_chain)
         }
     }
+}
+
+pub async fn patch_with_timeout<T>(
+    endpoint: impl Display,
+    token: impl Display,
+    json: &(impl Serialize + ?Sized),
+) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    timeout(patch(endpoint, token, json))
+        .await
+        .context("request to cloudflare timed out")?
 }

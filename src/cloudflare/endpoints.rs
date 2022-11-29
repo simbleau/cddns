@@ -10,9 +10,10 @@ use tracing::{debug, trace};
 
 /// Return a list of login messages if the token is verifiable.
 pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
-    let resp: VerifyResponse = requests::get("/user/tokens/verify", token)
-        .await
-        .context("error verifying API token")?;
+    let resp: VerifyResponse =
+        requests::get_with_timeout("/user/tokens/verify", token)
+            .await
+            .context("error verifying API token")?;
     Ok(resp.messages)
 }
 
@@ -20,11 +21,12 @@ pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     let mut zones = vec![];
     let mut page_cursor = 1;
+    let token = token.to_string();
     loop {
         trace!("retrieving zones from page {}", page_cursor);
         let endpoint = format!("/zones?order=name&page={}", page_cursor);
         let resp: ListZonesResponse =
-            requests::get(endpoint, token.to_string())
+            requests::get_with_timeout(endpoint, &token)
                 .await
                 .context("error resolving zones endpoint")?;
         ensure!(resp.success, "cloudflare response returned failure");
@@ -53,6 +55,7 @@ pub async fn records(
         trace!("retrieving records from zone '{}'", zone.id);
         let mut page_cursor = 1;
         let beginning_amt = records.len();
+        let token = token.to_string();
         loop {
             trace!("retrieving records from page {}", page_cursor);
             let endpoint = format!(
@@ -60,7 +63,7 @@ pub async fn records(
                 zone.id, page_cursor
             );
             let resp: ListRecordsResponse =
-                requests::get(endpoint, token.to_string())
+                requests::get_with_timeout(endpoint, &token)
                     .await
                     .context("error resolving records endpoint")?;
             ensure!(resp.success, "cloudflare response returned failure");
@@ -97,9 +100,10 @@ pub async fn update_record(
     let mut data = HashMap::new();
     data.insert("content", ip.to_string());
 
-    let resp: PatchRecordResponse = requests::patch(endpoint, token, &data)
-        .await
-        .context("error resolving records endpoint")?;
+    let resp: PatchRecordResponse =
+        requests::patch_with_timeout(endpoint, token, &data)
+            .await
+            .context("error resolving records endpoint")?;
     ensure!(resp.success, "cloudflare response returned failure");
     Ok(())
 }
