@@ -7,7 +7,11 @@ use crate::{
         default_inventory_path,
         models::{Inventory, InventoryData},
     },
-    io::{self, encoding::InventoryPostProcessor, Scanner},
+    io::{
+        self,
+        encoding::InventoryPostProcessor,
+        scanner::{prompt_t, prompt_yes_or_no},
+    },
 };
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -113,7 +117,6 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
     all_records.sort_by_key(|r| r.name.to_owned());
 
     let mut data = InventoryData(None);
-    let mut scanner = Scanner::new(tokio::runtime::Handle::current());
     if all_records.is_empty() {
         warn!("there are no records visible to this token, but you may save an empty inventory");
     } else {
@@ -126,9 +129,8 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                     println!("[{}] {}", i + 1, zone);
                 }
                 // Get zone choice
-                if let Some(idx) = scanner
-                    .prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")
-                    .await?
+                if let Some(idx) =
+                    prompt_t::<usize>("(Step 1 of 2) Choose a zone", "number")?
                 {
                     if idx > 0 && idx <= all_zones.len() {
                         debug!("input: {}", idx);
@@ -154,13 +156,10 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                 for (i, record) in record_options.iter().enumerate() {
                     println!("[{}] {}", i + 1, record);
                 }
-                if let Some(idx) = scanner
-                    .prompt_t::<usize>(
-                        "(Step 2 of 2) Choose a record",
-                        "number",
-                    )
-                    .await?
-                {
+                if let Some(idx) = prompt_t::<usize>(
+                    "(Step 2 of 2) Choose a record",
+                    "number",
+                )? {
                     if idx > 0 && idx <= record_options.len() {
                         debug!("input: {}", idx);
                         break all_records
@@ -195,9 +194,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                 println!("No records left. Continuing...");
                 break 'control;
             } else {
-                let add_more = scanner
-                    .prompt_yes_or_no("Add another record?", "Y/n")
-                    .await?
+                let add_more = prompt_yes_or_no("Add another record?", "Y/n")?
                     .unwrap_or(true);
                 if !add_more {
                     break 'control;
@@ -207,21 +204,19 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
     }
 
     // Save
-    let path = scanner
-        .prompt_t::<PathBuf>(
-            format!(
-                "Save location, default: `{}`",
-                default_inventory_path().display()
-            ),
-            "path",
-        )
-        .await?
-        .map(|p| match p.extension() {
-            Some(_) => p,
-            None => p.with_extension("yaml"),
-        })
-        .unwrap_or_else(default_inventory_path);
-    io::fs::remove_interactive(&path, &mut scanner).await?;
+    let path = prompt_t::<PathBuf>(
+        format!(
+            "Save location, default: `{}`",
+            default_inventory_path().display()
+        ),
+        "path",
+    )?
+    .map(|p| match p.extension() {
+        Some(_) => p,
+        None => p.with_extension("yaml"),
+    })
+    .unwrap_or_else(default_inventory_path);
+    io::fs::remove_interactive(&path).await?;
 
     info!("saving inventory file...");
     // Best-effort attempt to post-process comments on inventory.
@@ -348,7 +343,7 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         warn!("mismatching or invalid records exist");
     }
     Ok(CheckResult {
-        matches,
+        _matches: matches,
         mismatches,
         invalid,
     })
@@ -357,34 +352,29 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn commit(opts: &ConfigOpts) -> Result<()> {
     let CheckResult {
-        matches,
         mut mismatches,
         mut invalid,
+        ..
     } = check(opts).await?;
 
-    // Fix mismatched records
+    // Update outdated records
     if !mismatches.is_empty() {
         let fixed_record_ids = update(opts, &mismatches)
             .await
             .context("error updating mismatched records")?;
         mismatches.retain_mut(|r| !fixed_record_ids.contains(&r.id));
+        if mismatches.len() > 0 {
+            error!("{} outdated DNS records exist", mismatches.len());
+        }
     }
 
     // Prune invalid records
     if !invalid.is_empty() {
         let new_inventory = prune(opts, &invalid).await?;
         invalid.retain(|(z, r)| new_inventory.data.contains(z, r));
-    }
-
-    // Log summary
-    info!(
-        "✅ {} matched, ❌ {} mismatched, ❓ {} invalid",
-        matches.len(),
-        mismatches.len(),
-        invalid.len()
-    );
-    if !mismatches.is_empty() || !invalid.is_empty() {
-        warn!("mismatching or invalid records remain");
+        if invalid.len() > 0 {
+            warn!("{} invalid records remain", invalid.len());
+        }
     }
 
     Ok(())
@@ -430,7 +420,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
 #[derive(Debug, Default, Clone)]
 pub struct CheckResult {
-    matches: Vec<Record>,
+    _matches: Vec<Record>,
     mismatches: Vec<Record>,
     invalid: Vec<(String, String)>,
 }
@@ -454,22 +444,19 @@ pub async fn update(
 
         // Ask to fix records
         let fix = force || {
-            let mut scanner = Scanner::new(tokio::runtime::Handle::current());
-            scanner
-                .prompt_yes_or_no(
-                    format!("Update {} mismatched records?", mismatches.len()),
-                    "Y/n",
-                )
-                .await?
-                .unwrap_or(true)
+            prompt_yes_or_no(
+                format!("Update {} mismatched records?", mismatches.len()),
+                "Y/n",
+            )?
+            .unwrap_or(true)
         };
         if fix {
             info!("updating records...");
             let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
-        .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
+                .verify
+                .as_ref()
+                .and_then(|opts| opts.token.clone())
+                .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
             let mut ipv4: Option<Ipv4Addr> = None;
             let mut ipv6: Option<Ipv6Addr> = None;
             for cf_record in mismatches.iter() {
@@ -542,14 +529,11 @@ pub async fn prune(
 
         // Ask to prune records
         let prune = force || {
-            let mut scanner = Scanner::new(tokio::runtime::Handle::current());
-            scanner
-                .prompt_yes_or_no(
-                    format!("Prune {} invalid records?", invalid.len()),
-                    "Y/n",
-                )
-                .await?
-                .unwrap_or(true)
+            prompt_yes_or_no(
+                format!("Prune {} invalid records?", invalid.len()),
+                "Y/n",
+            )?
+            .unwrap_or(true)
         };
         // Prune
         if prune {
@@ -562,14 +546,14 @@ pub async fn prune(
                     error!("could not remove '{} | {}'", &zone_id, &record_id);
                 }
             }
+            info!("updating inventory file...");
+            // Best-effort attempt to post-process comments on inventory.
+            let pp = InventoryPostProcessor::try_init(opts).await.ok();
+            if pp.is_none() {
+                warn!("failed to initialize post-processor")
+            }
+            inventory.save(pp).await?;
         }
-        info!("updating inventory file...");
-        // Best-effort attempt to post-process comments on inventory.
-        let pp = InventoryPostProcessor::try_init(opts).await.ok();
-        if pp.is_none() {
-            warn!("failed to initialize post-processor")
-        }
-        inventory.save(pp).await?;
     }
 
     Ok(inventory)

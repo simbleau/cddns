@@ -1,4 +1,4 @@
-use crate::io::Scanner;
+use crate::io::scanner::prompt_yes_or_no;
 use anyhow::{bail, Context, Result};
 use std::path::Path;
 use tracing::debug;
@@ -13,18 +13,13 @@ pub async fn remove_force(path: impl AsRef<Path>) -> Result<()> {
 }
 
 /// If a file exists, remove it only after user grants permission.
-pub async fn remove_interactive(
-    path: impl AsRef<Path>,
-    scanner: &mut Scanner,
-) -> Result<()> {
+pub async fn remove_interactive(path: impl AsRef<Path>) -> Result<()> {
     if path.as_ref().exists() {
-        let overwrite = scanner
-            .prompt_yes_or_no(
-                format!("Path '{}' exists, remove?", path.as_ref().display()),
-                "y/N",
-            )
-            .await?
-            .unwrap_or(false);
+        let overwrite = prompt_yes_or_no(
+            format!("Path '{}' exists, remove?", path.as_ref().display()),
+            "y/N",
+        )?
+        .unwrap_or(false);
         if overwrite {
             remove_force(path).await?;
         } else {
