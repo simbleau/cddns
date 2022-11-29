@@ -14,6 +14,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Inventories can be built without any records
 ### changed
 - The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
+- Requests now have a 10s timeout
 - Improved readability of errors with `inventory watch`
 - Improved readability of `config show`
 - `cddns list zones -z <name|id>` now only matches one zone result
