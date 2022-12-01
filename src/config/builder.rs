@@ -1,6 +1,6 @@
 use crate::config::models::{
-    ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsList,
-    ConfigOptsVerify, ConfigOptsWatch,
+    ConfigOpts, ConfigOptsInventory, ConfigOptsInventoryCommit,
+    ConfigOptsInventoryWatch, ConfigOptsList, ConfigOptsVerify,
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -12,8 +12,8 @@ pub struct ConfigBuilder {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
     pub inventory: Option<ConfigOptsInventory>,
-    pub commit: Option<ConfigOptsCommit>,
-    pub watch: Option<ConfigOptsWatch>,
+    pub commit: Option<ConfigOptsInventoryCommit>,
+    pub watch: Option<ConfigOptsInventoryWatch>,
 }
 
 impl ConfigBuilder {
@@ -78,12 +78,69 @@ impl ConfigBuilder {
         greater
     }
 
-    /// Initialize the verify token.
+    /// Initialize the verify configuration options.
+    pub fn verify(&mut self, verify: Option<ConfigOptsVerify>) -> &mut Self {
+        self.verify = verify;
+        self
+    }
+
+    /// Initialize the API token.
     pub fn verify_token(
         &mut self,
         token: Option<impl Into<String>>,
     ) -> &mut Self {
         self.verify.get_or_insert_default().token = token.map(|t| t.into());
+        self
+    }
+
+    /// Initialize the list configuration options.
+    pub fn list(&mut self, list: Option<ConfigOptsList>) -> &mut Self {
+        self.list = list;
+        self
+    }
+
+    /// Initialize the include zones.
+    pub fn list_include_zones(
+        &mut self,
+        include_zones: Option<Vec<String>>,
+    ) -> &mut Self {
+        self.list.get_or_insert_default().include_zones = include_zones;
+        self
+    }
+
+    /// Initialize the ignore zones.
+    pub fn list_ignore_zones(
+        &mut self,
+        ignore_zones: Option<Vec<String>>,
+    ) -> &mut Self {
+        self.list.get_or_insert_default().ignore_zones = ignore_zones;
+        self
+    }
+
+    /// Initialize the include records.
+    pub fn list_include_records(
+        &mut self,
+        include_records: Option<Vec<String>>,
+    ) -> &mut Self {
+        self.list.get_or_insert_default().include_records = include_records;
+        self
+    }
+
+    /// Initialize the ignore records.
+    pub fn list_ignore_records(
+        &mut self,
+        ignore_records: Option<Vec<String>>,
+    ) -> &mut Self {
+        self.list.get_or_insert_default().ignore_records = ignore_records;
+        self
+    }
+
+    /// Initialize the inventory configuration options.
+    pub fn inventory(
+        &mut self,
+        inventory: Option<ConfigOptsInventory>,
+    ) -> &mut Self {
+        self.inventory = inventory;
         self
     }
 
@@ -97,8 +154,41 @@ impl ConfigBuilder {
         self
     }
 
+    /// Initialize the inventory commit configuration options.
+    pub fn inventory_commit(
+        &mut self,
+        inventory_commit: Option<ConfigOptsInventoryCommit>,
+    ) -> &mut Self {
+        self.commit = inventory_commit;
+        self
+    }
+
+    /// Initialize the inventory commit force flag.
+    pub fn inventory_commit_force(&mut self, force: Option<bool>) -> &mut Self {
+        self.commit.get_or_insert_default().force = force;
+        self
+    }
+
+    /// Initialize the inventory watch configuration options.
+    pub fn inventory_watch(
+        &mut self,
+        inventory_watch: Option<ConfigOptsInventoryWatch>,
+    ) -> &mut Self {
+        self.watch = inventory_watch;
+        self
+    }
+
+    /// Initialize the watch interval.
+    pub fn inventory_watch_interval(
+        &mut self,
+        interval: Option<u64>,
+    ) -> &mut Self {
+        self.watch.get_or_insert_default().interval = interval;
+        self
+    }
+
     /// Build an configuration options model.
-    pub fn build(self) -> ConfigOpts {
+    pub fn build(&self) -> ConfigOpts {
         ConfigOpts {
             verify: ConfigOptsVerify {
                 token: self.verify.and_then(|o| o.token),
@@ -112,13 +202,10 @@ impl ConfigBuilder {
             inventory: ConfigOptsInventory {
                 path: self.inventory.and_then(|o| o.path),
             },
-            commit: ConfigOptsCommit {
-                force: self
-                    .commit
-                    .map(|o| o.force)
-                    .unwrap_or(ConfigOptsCommit::default().force),
+            commit: ConfigOptsInventoryCommit {
+                force: self.commit.and_then(|o| o.force),
             },
-            watch: ConfigOptsWatch {
+            watch: ConfigOptsInventoryWatch {
                 interval: self.watch.and_then(|o| o.interval),
             },
         }

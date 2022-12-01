@@ -14,8 +14,8 @@ pub struct ConfigOpts {
     pub verify: ConfigOptsVerify,
     pub list: ConfigOptsList,
     pub inventory: ConfigOptsInventory,
-    pub commit: ConfigOptsCommit,
-    pub watch: ConfigOptsWatch,
+    pub commit: ConfigOptsInventoryCommit,
+    pub watch: ConfigOptsInventoryWatch,
 }
 
 impl Default for ConfigOpts {
@@ -32,8 +32,8 @@ impl Default for ConfigOpts {
             inventory: ConfigOptsInventory {
                 path: Some(default_inventory_path()),
             },
-            commit: ConfigOptsCommit { force: Some(false) },
-            watch: ConfigOptsWatch {
+            commit: ConfigOptsInventoryCommit { force: Some(false) },
+            watch: ConfigOptsInventoryWatch {
                 interval: Some(30_000),
             },
         }
@@ -112,10 +112,10 @@ impl ConfigOpts {
                 .from_env::<ConfigOptsInventory>()
                 .context("reading inventory env var config")?,
             commit: envy::prefixed("CDDNS_COMMIT_")
-                .from_env::<ConfigOptsCommit>()
+                .from_env::<ConfigOptsInventoryCommit>()
                 .context("reading commit env var config")?,
             watch: envy::prefixed("CDDNS_WATCH_")
-                .from_env::<ConfigOptsWatch>()
+                .from_env::<ConfigOptsInventoryWatch>()
                 .context("reading watch env var config")?,
         })
     }
@@ -236,7 +236,7 @@ pub struct ConfigOptsInventory {
 
 /// Config options for `inventory commit`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
-pub struct ConfigOptsCommit {
+pub struct ConfigOptsInventoryCommit {
     /// Do not prompt, forcibly commit.
     #[clap(short, long, env = "CDDNS_COMMIT_FORCE")]
     pub force: Option<bool>,
@@ -244,7 +244,7 @@ pub struct ConfigOptsCommit {
 
 /// Config options for `inventory watch`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
-pub struct ConfigOptsWatch {
+pub struct ConfigOptsInventoryWatch {
     /// The interval for refreshing inventory records in milliseconds.
     #[clap(short, long, value_name = "ms", env = "CDDNS_WATCH_INTERVAL")]
     pub interval: Option<u64>,

@@ -1,7 +1,8 @@
 use crate::{
     cloudflare::{self, endpoints::update_record, models::Record},
     config::models::{
-        ConfigOpts, ConfigOptsCommit, ConfigOptsInventory, ConfigOptsWatch,
+        ConfigOpts, ConfigOptsInventory, ConfigOptsInventoryCommit,
+        ConfigOptsInventoryWatch,
     },
     inventory::{
         default_inventory_path,
@@ -40,7 +41,7 @@ pub struct InventoryCmd {
 #[clap(name = "commit")]
 pub struct InventoryCommitCmd {
     #[clap(flatten)]
-    pub cfg: ConfigOptsCommit,
+    pub cfg: ConfigOptsInventoryCommit,
 }
 
 /// Fix erroneous DNS records on an interval.
@@ -48,7 +49,7 @@ pub struct InventoryCommitCmd {
 #[clap(name = "commit")]
 pub struct InventoryWatchCmd {
     #[clap(flatten)]
-    pub cfg: ConfigOptsWatch,
+    pub cfg: ConfigOptsInventoryWatch,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -60,18 +61,15 @@ enum InventorySubcommands {
     /// Print erroneous DNS records.
     Check,
     /// Fix erroneous DNS records once.
-    Commit(ConfigOptsCommit),
+    Commit(ConfigOptsInventoryCommit),
     /// Fix erroneous DNS records on an interval.
-    Watch(ConfigOptsWatch),
+    Watch(ConfigOptsInventoryWatch),
 }
 
 impl InventoryCmd {
     #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
-        let cli_cfg = ConfigOpts {
-            inventory: Some(self.cfg),
-            ..Default::default()
-        };
+        let cli_cfg = ConfigOpts::builder().inventory(Some(self.cfg)).build();
         let opts = ConfigOpts::full(config, Some(cli_cfg))?;
 
         match self.action {
@@ -79,18 +77,20 @@ impl InventoryCmd {
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await.map(|_| ()),
             InventorySubcommands::Commit(cfg) => {
-                let cli_cfg = ConfigOpts {
-                    commit: Some(cfg),
-                    ..Default::default()
-                };
-                commit(&opts.merge(cli_cfg)).await
+                let opts = ConfigOpts::builder()
+                    .inventory_commit(Some(cfg))
+                    .merge(opts)
+                    .build();
+                commit(&opts).await
             }
             InventorySubcommands::Watch(cfg) => {
-                let cli_cfg = ConfigOpts {
-                    watch: Some(cfg),
-                    ..Default::default()
-                };
-                watch(&opts.merge(cli_cfg)).await
+                watch(
+                    &ConfigOpts::builder()
+                        .inventory_watch(Some(cfg))
+                        .merge(opts)
+                        .build(),
+                )
+                .await
             }
         }
     }
@@ -384,7 +384,7 @@ pub async fn commit(opts: &ConfigOpts) -> Result<()> {
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force flag with true; watch is non-interactive
     let opts = opts.clone().merge(ConfigOpts {
-        commit: Some(ConfigOptsCommit { force: true }),
+        commit: Some(ConfigOptsInventoryCommit { force: true }),
         ..Default::default()
     });
 
@@ -393,7 +393,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         opts.watch
             .as_ref()
             .and_then(|opts| opts.interval)
-            .or(ConfigOptsWatch::default().interval)
+            .or(ConfigOptsInventoryWatch::default().interval)
             .context("no default interval")?,
     );
     debug!("interval: {}ms", interval.as_millis());
@@ -439,7 +439,7 @@ pub async fn update(
             .commit
             .as_ref()
             .map(|opts| opts.force)
-            .unwrap_or(ConfigOptsCommit::default().force);
+            .unwrap_or(ConfigOptsInventoryCommit::default().force);
         debug!("force update: {}", force);
 
         // Ask to fix records
@@ -524,7 +524,7 @@ pub async fn prune(
             .commit
             .as_ref()
             .map(|opts| opts.force)
-            .unwrap_or(ConfigOptsCommit::default().force);
+            .unwrap_or(ConfigOptsInventoryCommit::default().force);
         debug!("force prune: {}", force);
 
         // Ask to prune records
