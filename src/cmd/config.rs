@@ -48,21 +48,35 @@ async fn build() -> Result<()> {
     println!("For annotated examples of each field, please visit https://github.com/simbleau/cddns/blob/main/config.toml");
     println!("You can skip any field for configuration defaults via enter (no answer.)");
     println!();
-    let token = prompt("Cloudflare API token", "string")?;
-    let include_zones = prompt_ron(
-        "Include zone filters, e.g. `[\".*.com\"]`",
-        "list[string]",
-    )?;
-    let ignore_zones = prompt_ron(
+
+    // Build
+    let builder = ConfigOpts::builder();
+
+    if let Some(token) = prompt("Cloudflare API token", "string")? {
+        builder = builder.verify_token(token);
+    }
+    if let Ok(include_zones) =
+        prompt_ron("Include zone filters, e.g. `[\".*.com\"]`", "list[string]")?
+    {
+        builder = builder.list_include_zones(include_zones);
+    }
+    if let Ok(ignore_zones) = prompt_ron(
         "Ignore zone filters, e.g. `[\"ex1.com\", \"ex2.com\"]`",
         "list[string]",
-    )?;
-    let include_records = prompt_ron(
+    )? {
+        builder = builder.list_ignore_zones(ignore_zones);
+    }
+    if let Ok(include_records) = prompt_ron(
         "Include record filters, e.g. `[\"shop.imbleau.com\"]`",
         "list[string]",
-    )?;
-    let ignore_records =
-        prompt_ron("Ignore record filters, e.g. `[]`", "list[string]")?;
+    )? {
+        builder = builder.list_include_records(include_records);
+    }
+    if let Some(ignore_records) =
+        prompt_ron("Ignore record filters, e.g. `[]`", "list[string]")?
+    {
+        builder = builder.list_ignore_records(ignore_records);
+    }
     let path = prompt_t::<PathBuf>("Inventory path", "path")?;
     let force = prompt_yes_or_no("Force on `inventory commit`?", "y/N")?
         .unwrap_or(false);
@@ -72,6 +86,10 @@ async fn build() -> Result<()> {
     )?;
 
     // Build
+    let mut builder = ConfigOpts::builder();
+    if let Some(token) = token {
+        builder = builder.verify_token(token);
+    }
     let config = ConfigOpts {
         verify: Some(ConfigOptsVerify { token }),
         list: Some(ConfigOptsList {

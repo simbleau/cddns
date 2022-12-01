@@ -9,6 +9,7 @@
 #![feature(exact_size_is_empty)]
 #![feature(is_some_and)]
 #![feature(impl_trait_projections)]
+#![feature(option_get_or_insert_default)]
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};

@@ -48,9 +48,7 @@ pub struct InventoryPostProcessor {
 impl InventoryPostProcessor {
     pub async fn try_init(opts: &ConfigOpts) -> Result<Self> {
         let token = opts
-                    .verify
-                    .as_ref()
-                    .and_then(|opts| opts.token.clone())
+                    .verify.token.as_ref()
                     .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
         debug!("retrieving post-processing resources...");
         let zones = cloudflare::endpoints::zones(&token).await?;
