@@ -7,16 +7,17 @@ use tracing::debug;
 pub async fn remove_force(path: impl AsRef<Path>) -> Result<()> {
     if path.as_ref().exists() {
         tokio::fs::remove_file(path.as_ref()).await?;
-        debug!("removed: {}", path.as_ref().display());
+        debug!("removed: '{}'", path.as_ref().display());
     }
     Ok(())
 }
 
 /// If a file exists, remove it only after user grants permission.
 pub async fn remove_interactive(path: impl AsRef<Path>) -> Result<()> {
-    if path.as_ref().exists() {
+    let path = path.as_ref();
+    if path.exists() {
         let overwrite = prompt_yes_or_no(
-            format!("Path '{}' exists, remove?", path.as_ref().display()),
+            format!("Path '{}' exists, remove?", path.display()),
             "y/N",
         )?
         .unwrap_or(false);
@@ -35,20 +36,19 @@ pub async fn save(
     path: impl AsRef<Path>,
     contents: impl AsRef<[u8]>,
 ) -> Result<()> {
-    if let Some(parent) = path.as_ref().parent() {
+    let path = path.as_ref();
+    if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await.with_context(|| {
             format!("unable to make directory '{}'", parent.display())
         })?;
     }
-    if path.as_ref().exists() {
-        debug!("overwriting '{}'...", path.as_ref().display());
-        remove_force(path.as_ref()).await?;
+    if path.exists() {
+        debug!("overwriting '{}'...", path.display());
+        remove_force(path).await?;
     }
-    tokio::fs::write(path.as_ref(), contents)
+    tokio::fs::write(path, contents)
         .await
-        .with_context(|| {
-            format!("unable to write to '{}'", path.as_ref().display())
-        })?;
-    debug!("wrote: {}", path.as_ref().display());
+        .with_context(|| format!("unable to write to '{}'", path.display()))?;
+    debug!("wrote: '{}'", path.display());
     Ok(())
 }

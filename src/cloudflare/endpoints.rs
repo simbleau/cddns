@@ -25,7 +25,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     let mut page_cursor = 1;
     loop {
         debug!(page = page_cursor, "retrieving zones");
-        let endpoint = format!("/zones?order=name&page={}", page_cursor);
+        let endpoint = format!("/zones?order=name&page={page_cursor}");
         let resp: ListZonesResponse =
             requests::get_with_timeout(endpoint, &token)
                 .await
@@ -58,8 +58,8 @@ pub async fn records(
         loop {
             debug!(zone = zone.id, page = page_cursor, "retrieving records");
             let endpoint = format!(
-                "/zones/{}/dns_records?order=name&page={}",
-                zone.id, page_cursor
+                "/zones/{}/dns_records?order=name&page={page_cursor}",
+                zone.id,
             );
             let resp: ListRecordsResponse =
                 requests::get_with_timeout(endpoint, &token)
@@ -93,7 +93,7 @@ pub async fn update_record(
     record_id: impl Display,
     ip: impl Display,
 ) -> Result<()> {
-    let endpoint = format!("/zones/{}/dns_records/{}", zone_id, record_id);
+    let endpoint = format!("/zones/{zone_id}/dns_records/{record_id}");
 
     let mut data = HashMap::new();
     data.insert("content", ip.to_string());

@@ -167,10 +167,10 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                             )
                             .ok()
                             .with_context(|| {
-                                format!("option {} not found", idx)
+                                format!("option {idx} not found")
                             })?;
                     } else {
-                        warn!("invalid option: {}", idx);
+                        warn!("invalid option: {idx}");
                         continue 'record;
                     }
                 }
@@ -204,7 +204,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
     // Save
     let path = prompt_t::<PathBuf>(
         format!(
-            "Save location, default: `{}`",
+            "Save location [default: {}]",
             default_inventory_path().display()
         ),
         "path",

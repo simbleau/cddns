@@ -31,11 +31,11 @@ impl Inventory {
         }
         let path = path.canonicalize().with_context(|| {
             format!(
-                "getting canonical path to inventory file {:?}",
+                "getting canonical path to inventory file '{}'",
                 path.display()
             )
         })?;
-        debug!("reading inventory path: {}", path.display());
+        debug!("reading inventory path: '{}'", path.display());
         let contents = tokio::fs::read_to_string(&path)
             .await
             .context("reading inventory file")?;
@@ -71,7 +71,7 @@ impl Display for Inventory {
                         zone,
                         records
                             .into_iter()
-                            .map(|r| format!("\n  - {}", r))
+                            .map(|r| format!("\n  - {r}"))
                             .collect::<String>()
                     )
                 })

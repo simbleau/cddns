@@ -68,8 +68,8 @@ impl ConfigOpts {
                 let toml_cfg = Self::from_file(
                     path.canonicalize().with_context(|| {
                         format!(
-                            "could not canonicalize path to config file {:?}",
-                            &path
+                            "could not canonicalize path to config file '{}'",
+                            path.display()
                         )
                     })?,
                 )?;
@@ -92,7 +92,7 @@ impl ConfigOpts {
 
     /// Read runtime config from a target path.
     pub fn from_file(path: PathBuf) -> Result<Self> {
-        debug!("reading configuration path: {}", path.display());
+        debug!("reading configuration path: '{}'", path.display());
         let cfg_bytes = std::fs::read(path).context("reading config file")?;
         let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
             .context("reading config file contents as TOML data")?;
@@ -128,7 +128,7 @@ where
     if let Some(opt) = opt {
         match ron::to_string(opt) {
             Ok(ron) => ron,
-            Err(_) => format!("{:?}", opt),
+            Err(_) => format!("{opt:?}"),
         }
     } else {
         "None".to_string()

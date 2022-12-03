@@ -20,7 +20,7 @@ where
 {
     trace!("starting http request");
     let bytes = reqwest::Client::new()
-        .get(format!("{}{}", API_BASE, endpoint))
+        .get(format!("{API_BASE}{endpoint}"))
         .bearer_auth(token)
         .send()
         .await
@@ -38,11 +38,11 @@ where
         false => {
             let mut context_chain = anyhow!("unsuccessful cloudflare status");
             for err in cf_resp.errors {
-                context_chain = context_chain.context(format!("error {}", err));
+                context_chain = context_chain.context(format!("error {err}"));
                 if let Some(ref messages) = err.error_chain {
                     for message in messages {
                         context_chain =
-                            context_chain.context(format!("error {}", message));
+                            context_chain.context(format!("error {message}"));
                     }
                 }
             }
@@ -73,7 +73,7 @@ where
 {
     trace!("starting http request");
     let bytes = reqwest::Client::new()
-        .patch(format!("{}{}", API_BASE, endpoint))
+        .patch(format!("{API_BASE}{endpoint}"))
         .bearer_auth(token)
         .header("Content-Type", "application/json")
         .json(json)
@@ -93,11 +93,11 @@ where
         false => {
             let mut context_chain = anyhow!("unsuccessful cloudflare status");
             for err in cf_resp.errors {
-                context_chain = context_chain.context(format!("error {}", err));
-                while let Some(ref messages) = err.error_chain {
+                context_chain = context_chain.context(format!("error {err}"));
+                if let Some(ref messages) = err.error_chain {
                     for message in messages {
-                        context_chain = context_chain
-                            .context(format!("  - error {}", message));
+                        context_chain =
+                            context_chain.context(format!("error {message}"));
                     }
                 }
             }
