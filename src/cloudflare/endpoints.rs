@@ -1,9 +1,9 @@
 use crate::cloudflare::models::{
-    CloudflareMessage, ListRecordsResponse, ListZonesResponse,
-    PatchRecordResponse, Record, VerifyResponse, Zone,
+    CloudflareMessage, ListRecordsResponse, ListZonesResponse, Record,
+    VerifyResponse, Zone,
 };
 use crate::cloudflare::requests;
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;
 use tracing::debug;
