@@ -357,16 +357,13 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         "summary"
     );
     if !invalid.is_empty() {
-        error!(amount = invalid.len(), "inventory contains invalid records")
+        error!("inventory contains {} invalid records", invalid.len())
     }
     if !mismatches.is_empty() {
-        warn!(
-            amount = mismatches.len(),
-            "inventory contains outdated records"
-        )
+        warn!("inventory contains {} outdated records", mismatches.len())
     }
     if invalid.is_empty() && mismatches.is_empty() {
-        info!(records = matches.len(), "inventory is fully compliant")
+        info!("inventory is fully compliant")
     }
     Ok(CheckResult {
         _matches: matches,
