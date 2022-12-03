@@ -7,11 +7,11 @@ use std::{fmt::Display, future::Future, time::Duration};
 use tokio::time::error::Elapsed;
 use tracing::trace;
 
-pub async fn timeout<T>(future: T) -> Result<<T>::Output, Elapsed>
+async fn timeout<T>(future: T) -> Result<<T>::Output, Elapsed>
 where
     T: Future,
 {
-    tokio::time::timeout(Duration::from_millis(10000), future).await
+    tokio::time::timeout(Duration::from_millis(10_000), future).await
 }
 
 pub async fn get<T>(endpoint: impl Display, token: impl Display) -> Result<T>
