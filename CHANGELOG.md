@@ -30,7 +30,6 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### fixed
 - Environment variables work for all commands
 - README documentation fixes
-- Token is no longer needed for `inventory` commands if no records exist
 ### security
 - Placeholder
 
