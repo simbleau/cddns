@@ -6,7 +6,7 @@ use crate::cloudflare::requests;
 use anyhow::{ensure, Context, Result};
 use std::collections::HashMap;
 use std::fmt::Display;
-use tracing::{debug, trace};
+use tracing::debug;
 
 /// Return a list of login messages if the token is verifiable.
 pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
@@ -23,7 +23,7 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
     let mut page_cursor = 1;
     let token = token.to_string();
     loop {
-        trace!("retrieving zones from page {}", page_cursor);
+        debug!(page = page_cursor, "retrieving zones");
         let endpoint = format!("/zones?order=name&page={}", page_cursor);
         let resp: ListZonesResponse =
             requests::get_with_timeout(endpoint, &token)
@@ -52,12 +52,11 @@ pub async fn records(
 ) -> Result<Vec<Record>> {
     let mut records = vec![];
     for zone in zones {
-        trace!("retrieving records from zone '{}'", zone.id);
         let mut page_cursor = 1;
         let beginning_amt = records.len();
         let token = token.to_string();
         loop {
-            trace!("retrieving records from page {}", page_cursor);
+            debug!(zone = zone.id, page = page_cursor, "retrieving records");
             let endpoint = format!(
                 "/zones/{}/dns_records?order=name&page={}",
                 zone.id, page_cursor
@@ -79,9 +78,9 @@ pub async fn records(
             }
         }
         debug!(
-            "received {} records from zone '{}'",
+            zone_id = zone.id,
+            "received {} records",
             records.len() - beginning_amt,
-            zone.id
         );
     }
     debug!("collected {} records", records.len());

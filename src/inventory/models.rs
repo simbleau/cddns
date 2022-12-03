@@ -137,18 +137,21 @@ impl InventoryData {
     ) -> Result<bool> {
         let zone_id = zone_id.into();
         let record_id = record_id.into();
-        // Magic that removes the record, returning true if the record was
-        // present, false otherwise
-        Ok(self
-            .0
-            .as_mut()
-            .context("no zone map found")?
-            .get_mut(&zone_id)
-            .with_context(|| format!("no zone '{}'", zone_id))?
-            .0
-            .as_mut()
-            .with_context(|| format!("no records in zone '{}'", zone_id))?
-            .remove(&InventoryRecord(record_id)))
+
+        let mut removed = false;
+        let mut prune = false; // whether to remove an empty zone container
+        if let Some(map) = self.0.as_mut() {
+            if let Some(zone) = map.get_mut(&zone_id) {
+                if let Some(records) = zone.0.as_mut() {
+                    removed = records.remove(&InventoryRecord(record_id));
+                    prune = records.is_empty();
+                }
+            }
+            if prune {
+                map.remove(&zone_id);
+            }
+        }
+        Ok(removed)
     }
 
     /// Returns whether the inventory data has no records

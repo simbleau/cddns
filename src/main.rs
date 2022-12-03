@@ -84,11 +84,11 @@ async fn main() -> Result<()> {
         .try_init()
         .context("error initializing logging")?;
 
-    if let Err(e) = args.run().await {
+    if let Err(ref err) = args.run().await {
         if verbose {
-            error!("{:?}", e);
+            error!("{:?}", err);
         } else {
-            error!("{}", e);
+            error!("{}", err);
             eprintln!("Enable verbose logging (-v) for the full stack trace.");
         }
         std::process::exit(1);

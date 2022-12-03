@@ -52,7 +52,7 @@ pub fn prompt(
                 }
                 _ => break Ok(Some(line.trim().to_owned())),
             }
-        } else if let None = line {
+        } else if line.is_none() {
             break Ok(None);
         }
     }
@@ -79,7 +79,7 @@ pub fn prompt_yes_or_no(
                     continue;
                 }
             }
-        } else if let None = line {
+        } else if line.is_none() {
             break Ok(None);
         }
     }

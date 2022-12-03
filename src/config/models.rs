@@ -85,7 +85,7 @@ impl ConfigOpts {
         // Apply layering
         let mut cfg_builder = Self::builder();
         while let Some(cfg) = layers.pop() {
-            cfg_builder = cfg_builder.merge(cfg);
+            cfg_builder.merge(cfg);
         }
         Ok(cfg_builder.build())
     }

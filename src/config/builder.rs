@@ -4,7 +4,7 @@ use crate::config::models::{
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// A builder for configuration options.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -29,9 +29,9 @@ impl ConfigBuilder {
     }
 
     /// Merge config layers, where the `greater` layer takes precedence.
-    pub fn merge(mut self, mut greater: impl Into<Self>) -> Self {
-        let greater = greater.into();
-        greater.verify = match (self.verify.take(), greater.verify.take()) {
+    pub fn merge(&mut self, greater: impl Into<Self>) -> &mut Self {
+        let mut greater = greater.into();
+        self.verify = match (self.verify.take(), greater.verify.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
@@ -39,7 +39,7 @@ impl ConfigBuilder {
                 Some(g)
             }
         };
-        greater.list = match (self.list.take(), greater.list.take()) {
+        self.list = match (self.list.take(), greater.list.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
@@ -50,16 +50,16 @@ impl ConfigBuilder {
                 Some(g)
             }
         };
-        greater.inventory =
-            match (self.inventory.take(), greater.inventory.take()) {
-                (None, None) => None,
-                (Some(val), None) | (None, Some(val)) => Some(val),
-                (Some(l), Some(mut g)) => {
-                    g.path = g.path.or(l.path);
-                    Some(g)
-                }
-            };
-        greater.commit = match (self.commit.take(), greater.commit.take()) {
+        self.inventory = match (self.inventory.take(), greater.inventory.take())
+        {
+            (None, None) => None,
+            (Some(val), None) | (None, Some(val)) => Some(val),
+            (Some(l), Some(mut g)) => {
+                g.path = g.path.or(l.path);
+                Some(g)
+            }
+        };
+        self.commit = match (self.commit.take(), greater.commit.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
@@ -67,7 +67,7 @@ impl ConfigBuilder {
                 Some(g)
             }
         };
-        greater.watch = match (self.watch.take(), greater.watch.take()) {
+        self.watch = match (self.watch.take(), greater.watch.take()) {
             (None, None) => None,
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
@@ -75,7 +75,7 @@ impl ConfigBuilder {
                 Some(g)
             }
         };
-        greater
+        self
     }
 
     /// Initialize the verify configuration options.
@@ -145,12 +145,8 @@ impl ConfigBuilder {
     }
 
     /// Initialize the inventory path.
-    pub fn inventory_path(
-        &mut self,
-        path: Option<impl AsRef<Path>>,
-    ) -> &mut Self {
-        self.inventory.get_or_insert_default().path =
-            path.map(|p| p.as_ref().to_owned());
+    pub fn inventory_path(&mut self, path: Option<PathBuf>) -> &mut Self {
+        self.inventory.get_or_insert_default().path = path;
         self
     }
 
@@ -191,22 +187,31 @@ impl ConfigBuilder {
     pub fn build(&self) -> ConfigOpts {
         ConfigOpts {
             verify: ConfigOptsVerify {
-                token: self.verify.and_then(|o| o.token),
+                token: self.verify.to_owned().and_then(|o| o.token),
             },
             list: ConfigOptsList {
-                include_zones: self.list.and_then(|o| o.include_zones),
-                ignore_zones: self.list.and_then(|o| o.ignore_zones),
-                include_records: self.list.and_then(|o| o.include_records),
-                ignore_records: self.list.and_then(|o| o.ignore_records),
+                include_zones: self
+                    .list
+                    .to_owned()
+                    .and_then(|o| o.include_zones),
+                ignore_zones: self.list.to_owned().and_then(|o| o.ignore_zones),
+                include_records: self
+                    .list
+                    .to_owned()
+                    .and_then(|o| o.include_records),
+                ignore_records: self
+                    .list
+                    .to_owned()
+                    .and_then(|o| o.ignore_records),
             },
             inventory: ConfigOptsInventory {
-                path: self.inventory.and_then(|o| o.path),
+                path: self.inventory.to_owned().and_then(|o| o.path),
             },
             commit: ConfigOptsInventoryCommit {
-                force: self.commit.and_then(|o| o.force),
+                force: self.commit.to_owned().and_then(|o| o.force),
             },
             watch: ConfigOptsInventoryWatch {
-                interval: self.watch.and_then(|o| o.interval),
+                interval: self.watch.to_owned().and_then(|o| o.interval),
             },
         }
     }

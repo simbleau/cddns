@@ -63,12 +63,12 @@ async fn build() -> Result<()> {
             "Ignore record filters, e.g. `[]`",
             "list[string]",
         )?)
-        .inventory_path(prompt_t::<PathBuf>("Inventory path", "path")?)
+        .inventory_path(prompt_t("Inventory path", "path")?)
         .inventory_commit_force(prompt_yes_or_no(
             "Force on `inventory commit`?",
             "y/N",
         )?)
-        .inventory_watch_interval(prompt_t::<u64>(
+        .inventory_watch_interval(prompt_t(
             "Interval for `inventory watch`, in milliseconds",
             "number",
         )?);

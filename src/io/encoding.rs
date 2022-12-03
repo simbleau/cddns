@@ -7,7 +7,7 @@ use crate::{
     inventory::models::InventoryData,
 };
 use anyhow::{Context, Result};
-use tracing::{debug, trace, warn};
+use tracing::{trace, warn};
 
 /// Serialize an object to TOML.
 pub fn as_toml<T>(contents: &T) -> Result<String>
@@ -47,10 +47,10 @@ pub struct InventoryPostProcessor {
 
 impl InventoryPostProcessor {
     pub async fn try_init(opts: &ConfigOpts) -> Result<Self> {
+        trace!("retrieving post-processing resources...");
         let token = opts
                     .verify.token.as_ref()
                     .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
-        debug!("retrieving post-processing resources...");
         let zones = cloudflare::endpoints::zones(&token).await?;
         let records = cloudflare::endpoints::records(&zones, &token).await?;
         let pp = InventoryPostProcessor::from(zones, records);
