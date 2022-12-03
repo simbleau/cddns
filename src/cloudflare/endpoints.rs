@@ -19,9 +19,10 @@ pub async fn verify(token: &str) -> Result<Vec<CloudflareMessage>> {
 
 /// Return all known Cloudflare zones.
 pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
+    let token = token.to_string();
+
     let mut zones = vec![];
     let mut page_cursor = 1;
-    let token = token.to_string();
     loop {
         debug!(page = page_cursor, "retrieving zones");
         let endpoint = format!("/zones?order=name&page={}", page_cursor);
@@ -29,7 +30,6 @@ pub async fn zones(token: impl Display) -> Result<Vec<Zone>> {
             requests::get_with_timeout(endpoint, &token)
                 .await
                 .context("error resolving zones endpoint")?;
-        ensure!(resp.success, "cloudflare response returned failure");
 
         zones.extend(resp.result.into_iter().filter(|zone| {
             &zone.status == "active"
@@ -65,7 +65,6 @@ pub async fn records(
                 requests::get_with_timeout(endpoint, &token)
                     .await
                     .context("error resolving records endpoint")?;
-            ensure!(resp.success, "cloudflare response returned failure");
 
             records.extend(resp.result.into_iter().filter(|record| {
                 record.record_type == "A"
@@ -99,10 +98,8 @@ pub async fn update_record(
     let mut data = HashMap::new();
     data.insert("content", ip.to_string());
 
-    let resp: PatchRecordResponse =
-        requests::patch_with_timeout(endpoint, token, &data)
-            .await
-            .context("error resolving records endpoint")?;
-    ensure!(resp.success, "cloudflare response returned failure");
+    requests::patch_with_timeout(endpoint, token, &data)
+        .await
+        .context("error resolving records endpoint")?;
     Ok(())
 }
