@@ -23,6 +23,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Output is now more clear with `verify`
 - Added help link when no token or inventory is provided
 - `inventory build` now removes records as you build
+- `inventory commit --force` is now `--force true/false`
 ### deprecated
 - Placeholder
 ### removed
