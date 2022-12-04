@@ -1,5 +1,7 @@
-use crate::inventory::builder::InventoryBuilder;
 use crate::io::encoding::PostProcessor;
+use crate::{
+    inventory::builder::InventoryBuilder, io::encoding::InventoryPostProcessor,
+};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -59,25 +61,12 @@ impl Inventory {
 
 impl Display for Inventory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.data
-                .clone() // TODO: Clone isn't necessary if traversed differently
-                .into_iter()
-                .map(|(zone, records)| {
-                    format!(
-                        "{}:{}",
-                        zone,
-                        records
-                            .into_iter()
-                            .map(|r| format!("\n  - {r}"))
-                            .collect::<String>()
-                    )
-                })
-                .intersperse("\n---\n".to_string())
-                .collect::<String>()
+        let display = crate::io::encoding::as_yaml(
+            &self.data,
+            None::<InventoryPostProcessor>,
         )
+        .unwrap_or("Unable to display inventory.".to_string());
+        write!(f, "{display}")
     }
 }
 
