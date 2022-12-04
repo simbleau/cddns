@@ -14,7 +14,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use tracing::{error, instrument::WithSubscriber, Level};
+use tracing::{error, Level};
 use tracing_subscriber::prelude::*;
 mod cloudflare;
 mod cmd;
