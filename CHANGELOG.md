@@ -9,6 +9,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Inventory files now post-process zones and records with comments respective of their alternative name/id
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
+- Added support for RUST_LOG environment variable to control logging filters
 - Added warning for empty inventory
 - Provided README instructions for service deployment on Docker Compose
 - Inventories can be built without any records
