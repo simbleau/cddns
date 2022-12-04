@@ -8,13 +8,13 @@
 #![feature(iter_intersperse)]
 #![feature(exact_size_is_empty)]
 #![feature(is_some_and)]
-#![feature(impl_trait_projections)]
+#![feature(async_closure)]
 #![feature(option_get_or_insert_default)]
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use tracing::error;
+use tracing::{error, instrument::WithSubscriber, Level};
 use tracing_subscriber::prelude::*;
 mod cloudflare;
 mod cmd;
@@ -58,21 +58,36 @@ enum Subcommands {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let verbose = args.v;
 
     #[cfg(windows)]
     if let Err(err) = ansi_term::enable_ansi_support() {
         eprintln!("error enabling ANSI support: {:?}", err);
     }
 
+    // Filter spans based on the RUST_LOG env var or -v flag.
+    let (verbose, log_filter) =
+        match tracing_subscriber::EnvFilter::try_from_default_env() {
+            Ok(filter) => {
+                if filter.max_level_hint().is_some_and(|f| f >= Level::DEBUG) {
+                    (true, filter)
+                } else {
+                    (false, filter)
+                }
+            }
+            Err(_) => (
+                args.v,
+                tracing_subscriber::EnvFilter::new(if args.v {
+                    "debug,cddns=trace"
+                } else {
+                    "info"
+                }),
+            ),
+        };
+
     // Enable tracing/logging
     tracing_subscriber::registry()
-        // Filter spans based on the RUST_LOG env var.
-        .with(tracing_subscriber::EnvFilter::new(if verbose {
-            "error,debug"
-        } else {
-            "error,info"
-        }))
+        // Filter spans based on the RUST_LOG env var or -v flag.
+        .with(log_filter)
         // Format tracing
         .with(
             tracing_subscriber::fmt::layer()
@@ -84,11 +99,11 @@ async fn main() -> Result<()> {
         .try_init()
         .context("error initializing logging")?;
 
-    if let Err(ref err) = args.run().await {
+    if let Err(e) = args.run().await {
         if verbose {
-            error!("{:?}", err);
+            error!("{:?}", e);
         } else {
-            error!("{}", err);
+            error!("{}", e);
             eprintln!("Enable verbose logging (-v) for the full stack trace.");
         }
         std::process::exit(1);
