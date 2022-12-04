@@ -128,7 +128,7 @@ async fn build() -> Result<()> {
         println!();
         println!(r#"Finally, provide the save location for this config file."#);
         println!(r#" > default: {}"#, default_path.display());
-        prompt_t::<PathBuf>(format!("Save location"), "path")?
+        prompt_t::<PathBuf>("Save location", "path")?
             .map(|p| match p.extension() {
                 Some(_) => p,
                 None => p.with_extension("toml"),
