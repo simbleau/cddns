@@ -13,6 +13,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Added warning for empty inventory
 - Provided README instructions for service deployment on Docker Compose
 - Inventories can be built without any records
+- Inventory header with generation time with `inventory build`
 ### changed
 - The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
 - Requests now have a 10s timeout
