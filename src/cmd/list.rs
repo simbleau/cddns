@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
 use std::path::PathBuf;
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 /// List available resources
 #[derive(Debug, Args)]
@@ -24,20 +24,20 @@ pub struct ListCmd {
 #[derive(Clone, Debug, Subcommand)]
 enum ListSubcommands {
     /// Show zones (domains, subdomains, and identities.)
-    Zones(ZoneArgs),
+    Zones(ZoneOpts),
     /// Show authoritative DNS records.
-    Records(RecordArgs),
+    Records(RecordOpts),
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct ZoneArgs {
+pub struct ZoneOpts {
     /// Print a single zone matching a name or id.
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]
-pub struct RecordArgs {
+pub struct RecordOpts {
     /// Print records from a single zone matching a name or id.
     #[clap(short, long, value_name = "name|id")]
     pub zone: Option<String>,
@@ -49,36 +49,36 @@ pub struct RecordArgs {
 impl ListCmd {
     #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
-        let cli_cfg = ConfigOpts {
-            list: Some(self.cfg),
-            ..Default::default()
-        };
-        let opts = ConfigOpts::full(config, Some(cli_cfg))?;
+        // Apply CLI configuration layering
+        let cli_opts = ConfigOpts::builder().list(Some(self.cfg)).build();
+        let opts = ConfigOpts::full(config, Some(cli_opts))?;
 
+        // Run
+        info!("retrieving, please wait...");
         match self.action {
             Some(subcommand) => match subcommand {
-                ListSubcommands::Zones(args) => print_zones(&opts, &args).await,
-                ListSubcommands::Records(args) => {
-                    print_records(&opts, &args).await
+                ListSubcommands::Zones(cli_zone_opts) => {
+                    list_zones(&opts, &cli_zone_opts).await
+                }
+                ListSubcommands::Records(cli_record_opts) => {
+                    list_records(&opts, &cli_record_opts).await
                 }
             },
-            None => print_all(&opts).await,
+            None => list_all(&opts).await,
         }
     }
 }
 
 /// Print all zones and records.
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn print_all(opts: &ConfigOpts) -> Result<()> {
+async fn list_all(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
+        .verify.token.as_ref()
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
-    info!("retrieving cloudflare resources...");
+    trace!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     retain_zones(&mut zones, opts)?;
     // Get records
@@ -92,9 +92,9 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
 
     // Print all
     for zone in zones.iter() {
-        println!("{}", zone);
+        println!("{zone}");
         for record in records.iter().filter(|r| r.zone_id == zone.id) {
-            println!("  ↳ {}", record);
+            println!("  ↳ {record}");
         }
     }
     Ok(())
@@ -102,19 +102,17 @@ async fn print_all(opts: &ConfigOpts) -> Result<()> {
 
 /// Print only zones.
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
+async fn list_zones(opts: &ConfigOpts, cli_opts: &ZoneOpts) -> Result<()> {
     // Get token
     let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
+        .verify.token.as_ref()
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
-    info!("retrieving cloudflare resources...");
+    trace!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
     // Apply filtering
-    if let Some(ref zone_id) = cmd_args.zone {
+    if let Some(ref zone_id) = cli_opts.zone {
         zones = vec![find_zone(&zones, zone_id)
             .context("no result with that zone id/name")?];
     } else {
@@ -123,25 +121,23 @@ async fn print_zones(opts: &ConfigOpts, cmd_args: &ZoneArgs) -> Result<()> {
 
     // Print zones
     for zone in zones {
-        println!("{}", zone);
+        println!("{zone}");
     }
     Ok(())
 }
 
 /// Print only records.
 #[tracing::instrument(level = "trace", skip(opts))]
-async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
+async fn list_records(opts: &ConfigOpts, cli_opts: &RecordOpts) -> Result<()> {
     // Get token
     let token = opts
-        .verify
-        .as_ref()
-        .and_then(|opts| opts.token.clone())
+        .verify.token.as_ref()
         .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
 
     // Get zones
-    info!("retrieving cloudflare resources...");
+    trace!("retrieving cloudflare resources...");
     let mut zones = cloudflare::endpoints::zones(&token).await?;
-    if let Some(ref zone_id) = cmd_args.zone {
+    if let Some(ref zone_id) = cli_opts.zone {
         zones = vec![find_zone(&zones, zone_id)
             .context("no result with that zone id/name")?];
     } else {
@@ -151,7 +147,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
     // Get records
     let mut records = cloudflare::endpoints::records(&zones, &token).await?;
     // Apply filtering
-    if let Some(ref record_id) = cmd_args.record {
+    if let Some(ref record_id) = cli_opts.record {
         records = vec![find_record(&records, record_id)
             .context("no result with that record id/name")?];
     } else {
@@ -160,7 +156,7 @@ async fn print_records(opts: &ConfigOpts, cmd_args: &RecordArgs) -> Result<()> {
 
     // Print records
     for record in records {
-        println!("{}", record);
+        println!("{record}");
     }
     Ok(())
 }
@@ -180,30 +176,27 @@ pub fn find_zone(zones: &Vec<Zone>, id: impl Into<String>) -> Option<Zone> {
 pub fn retain_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
     let beginning_amt = zones.len();
     // Filter zones by configuration options
-    if let Some(ref list_opts) = opts.list {
-        if let Some(include_filters) = list_opts.include_zones.as_ref() {
-            for filter_str in include_filters {
-                debug!("applying include filter: '{}'", filter_str);
-                let pattern = Regex::new(filter_str)
-                    .context("compiling include_zones regex filter")?;
-                zones.retain(|z| {
-                    pattern.is_match(&z.id) || pattern.is_match(&z.name)
-                });
-            }
+    if let Some(include_filters) = opts.list.include_zones.as_ref() {
+        for filter_str in include_filters {
+            debug!("applying include filter: '{}'", filter_str);
+            let pattern = Regex::new(filter_str)
+                .context("compiling include_zones regex filter")?;
+            zones.retain(|z| {
+                pattern.is_match(&z.id) || pattern.is_match(&z.name)
+            });
         }
-        if let Some(ignore_filters) = list_opts.ignore_zones.as_ref() {
-            for filter_str in ignore_filters {
-                debug!("applying ignore filter: '{}'", filter_str);
-                let pattern = Regex::new(filter_str)
-                    .context("compiling ignore_zones regex filter")?;
-                zones.retain(|z| {
-                    !pattern.is_match(&z.id) && !pattern.is_match(&z.name)
-                });
-            }
+    }
+    if let Some(ignore_filters) = opts.list.ignore_zones.as_ref() {
+        for filter_str in ignore_filters {
+            debug!("applying ignore filter: '{}'", filter_str);
+            let pattern = Regex::new(filter_str)
+                .context("compiling ignore_zones regex filter")?;
+            zones.retain(|z| {
+                !pattern.is_match(&z.id) && !pattern.is_match(&z.name)
+            });
         }
     }
     debug!("filtered out {} zones", beginning_amt - zones.len());
-
     Ok(())
 }
 
@@ -228,29 +221,26 @@ pub fn retain_records(
 ) -> Result<()> {
     let beginning_amt = records.len();
     // Filter records by configuration options
-    if let Some(ref list_opts) = opts.list {
-        if let Some(include_filters) = list_opts.include_records.as_ref() {
-            for filter_str in include_filters {
-                debug!("applying include filter: '{}'", filter_str);
-                let pattern = Regex::new(filter_str)
-                    .context("compiling include_records regex filter")?;
-                records.retain(|r| {
-                    pattern.is_match(&r.id) || pattern.is_match(&r.name)
-                });
-            }
+    if let Some(include_filters) = opts.list.include_records.as_ref() {
+        for filter_str in include_filters {
+            debug!("applying include filter: '{}'", filter_str);
+            let pattern = Regex::new(filter_str)
+                .context("compiling include_records regex filter")?;
+            records.retain(|r| {
+                pattern.is_match(&r.id) || pattern.is_match(&r.name)
+            });
         }
-        if let Some(ignore_filters) = list_opts.ignore_records.as_ref() {
-            for filter_str in ignore_filters {
-                debug!("applying ignore filter: '{}'", filter_str);
-                let pattern = Regex::new(filter_str)
-                    .context("compiling ignore_records regex filter")?;
-                records.retain(|r| {
-                    !pattern.is_match(&r.id) && !pattern.is_match(&r.name)
-                });
-            }
+    }
+    if let Some(ignore_filters) = opts.list.ignore_records.as_ref() {
+        for filter_str in ignore_filters {
+            debug!("applying ignore filter: '{}'", filter_str);
+            let pattern = Regex::new(filter_str)
+                .context("compiling ignore_records regex filter")?;
+            records.retain(|r| {
+                !pattern.is_match(&r.id) && !pattern.is_match(&r.name)
+            });
         }
     }
     debug!("filtered out {} records", beginning_amt - records.len());
-
     Ok(())
 }

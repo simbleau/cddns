@@ -31,4 +31,4 @@ force = true # Default: false
 
 [watch]
 # For `inventory watch`, the interval to refresh DNS records, in milliseconds.
-interval = 5000 # Default: 5000ms (5s)
+interval = 60000 # Default: 30000 (30s)
