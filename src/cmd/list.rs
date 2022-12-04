@@ -92,9 +92,9 @@ async fn list_all(opts: &ConfigOpts) -> Result<()> {
 
     // Print all
     for zone in zones.iter() {
-        println!("{}", zone);
+        println!("{zone}");
         for record in records.iter().filter(|r| r.zone_id == zone.id) {
-            println!("  ↳ {}", record);
+            println!("  ↳ {record}");
         }
     }
     Ok(())
@@ -121,7 +121,7 @@ async fn list_zones(opts: &ConfigOpts, cli_opts: &ZoneOpts) -> Result<()> {
 
     // Print zones
     for zone in zones {
-        println!("{}", zone);
+        println!("{zone}");
     }
     Ok(())
 }
@@ -156,7 +156,7 @@ async fn list_records(opts: &ConfigOpts, cli_opts: &RecordOpts) -> Result<()> {
 
     // Print records
     for record in records {
-        println!("{}", record);
+        println!("{record}");
     }
     Ok(())
 }

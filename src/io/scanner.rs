@@ -9,7 +9,7 @@ pub struct Scanner;
 impl Scanner {
     fn display(prompt: impl Display, type_hint: impl Display) -> Result<()> {
         std::io::stdout()
-            .write_all(format!("{} ~ ({}) > ", prompt, type_hint).as_bytes())?;
+            .write_all(format!("{prompt} ~ ({type_hint}) > ").as_bytes())?;
         Ok(std::io::stdout().flush()?)
     }
 
@@ -101,8 +101,7 @@ where
                 Ok(pb) => break Ok(Some(pb)),
                 _ => {
                     println!(
-                        "Error parsing input. Expected {}. Try again.",
-                        &type_hint
+                        "Error parsing input. Expected {type_hint}. Try again.",
                     );
                     continue;
                 }
@@ -127,7 +126,7 @@ where
             Some(input) => match ron::from_str(&input) {
                 Ok(pb) => break Some(pb),
                 _ => {
-                    println!("Error parsing input. Input should be in RON notation (https://github.com/ron-rs/ron/wiki/Specification)");
+                    println!("Error parsing input. Expected {type_hint} in RON notation (https://github.com/ron-rs/ron/wiki/Specification)");
                     continue;
                 }
             },

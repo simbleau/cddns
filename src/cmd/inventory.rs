@@ -124,7 +124,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
             let zone_index = 'zone: loop {
                 // Print zone options
                 for (i, zone) in all_zones.iter().enumerate() {
-                    println!("[{}] {}", i + 1, zone);
+                    println!("[{}] {zone}", i + 1);
                 }
                 // Get zone choice
                 if let Some(idx) =
@@ -134,7 +134,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
                         debug!(input = idx);
                         break idx - 1;
                     } else {
-                        warn!("invalid option: {}", idx);
+                        warn!("invalid option: {idx}");
                         continue 'zone;
                     }
                 }
@@ -152,7 +152,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
             // Get record index
             let record_index = 'record: loop {
                 for (i, record) in record_options.iter().enumerate() {
-                    println!("[{}] {}", i + 1, record);
+                    println!("[{}] {record}", i + 1);
                 }
                 if let Some(idx) = prompt_t::<usize>(
                     "(Step 2 of 2) Choose a record",
@@ -179,7 +179,7 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
             let selected_zone = &all_zones[zone_index];
             let selected_record = &all_records[record_index];
             data.insert(&selected_zone.id, &selected_record.id);
-            println!("✅ Added '{}'.", selected_record.name);
+            println!("Added '{}'.", selected_record.name);
 
             // Remove for next iteration
             if record_options.len() == 1 {
@@ -244,7 +244,7 @@ pub async fn show(opts: &ConfigOpts) -> Result<()> {
     if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
-        println!("{}", inventory);
+        println!("{inventory}");
     }
     Ok(())
 }

@@ -93,7 +93,6 @@ async fn build() -> Result<()> {
 
 #[tracing::instrument(level = "trace")]
 async fn show(config: Option<PathBuf>) -> Result<()> {
-    let cfg = ConfigOpts::full(config, None)?;
-    println!("{}", cfg);
+    println!("{}", ConfigOpts::full(config, None)?);
     Ok(())
 }
