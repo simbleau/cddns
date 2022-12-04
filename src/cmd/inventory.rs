@@ -249,6 +249,7 @@ pub async fn show(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(opts))]
 pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     info!("checking records, please wait...");
     // Get inventory
@@ -464,6 +465,7 @@ pub struct CheckResult {
 
 /// Update a list of mismatching records, returning those ids which were
 /// successfully updated.
+#[tracing::instrument(level = "trace", skip(opts))]
 pub async fn update(
     opts: &ConfigOpts,
     mismatches: &Vec<Record>,
@@ -545,6 +547,7 @@ pub async fn update(
 }
 
 /// Prune invalid records, returning the resulting inventory.
+#[tracing::instrument(level = "trace", skip(opts))]
 pub async fn prune(
     opts: &ConfigOpts,
     invalid: &Vec<(String, String)>,
