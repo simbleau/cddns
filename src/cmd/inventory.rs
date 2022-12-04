@@ -322,7 +322,7 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
                     };
                     if cf_record.content == ip {
                         // IP Match
-                        info!(
+                        debug!(
                             name = cf_record.name,
                             id = cf_record.id,
                             content = cf_record.content,
@@ -349,27 +349,38 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         }
     }
 
-    // Log summary
-    info!(
-        matches = matches.len(),
-        mismatches = mismatches.len(),
-        invalid = invalid.len(),
-        "summary"
-    );
-    if !invalid.is_empty() {
-        error!("inventory contains {} invalid records", invalid.len())
-    }
-    if !mismatches.is_empty() {
-        warn!("inventory contains {} outdated records", mismatches.len())
-    }
-    if invalid.is_empty() && mismatches.is_empty() {
-        info!("inventory is fully compliant")
-    }
-    Ok(CheckResult {
-        _matches: matches,
+    let result = CheckResult {
+        matches,
         mismatches,
         invalid,
-    })
+    };
+
+    // Log summary
+    info!(
+        matches = result.matches.len(),
+        mismatches = result.mismatches.len(),
+        invalid = result.invalid.len(),
+        "summary"
+    );
+    if !result.invalid.is_empty() {
+        error!(
+            "inventory contains {} invalid records",
+            result.invalid.len()
+        )
+    }
+    if !result.mismatches.is_empty() {
+        warn!(
+            "inventory contains {} outdated records",
+            result.mismatches.len()
+        )
+    }
+    if result.invalid.is_empty() && result.mismatches.is_empty() {
+        debug!(
+            "inventory contains {} compliant records",
+            result.matches.len()
+        )
+    }
+    Ok(result)
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
@@ -396,8 +407,15 @@ pub async fn commit(opts: &ConfigOpts) -> Result<()> {
         let new_inventory = prune(opts, &invalid).await?;
         invalid.retain(|(z, r)| new_inventory.data.contains(z, r));
         if !invalid.is_empty() {
-            warn!("{} invalid records remain", invalid.len());
+            error!("{} invalid records remain", invalid.len());
         }
+    }
+
+    // Log status
+    if mismatches.is_empty() && invalid.is_empty() {
+        info!("inventory is fully compliant");
+    } else {
+        error!("inventory contains non-conformances");
     }
 
     Ok(())
@@ -439,7 +457,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
 #[derive(Debug, Default, Clone)]
 pub struct CheckResult {
-    _matches: Vec<Record>,
+    matches: Vec<Record>,
     mismatches: Vec<Record>,
     invalid: Vec<(String, String)>,
 }
@@ -578,7 +596,16 @@ pub async fn prune(
                 }
                 inventory.save(pp).await?;
                 if invalid.len() == pruned {
-                    info!(records_pruned = pruned, "inventory file healed");
+                    info!(
+                        pruned,
+                        "inventory file pruned of all invalid records"
+                    );
+                } else {
+                    error!(
+                        pruned,
+                        remaining = invalid.len() - pruned,
+                        "inventory file partially pruned"
+                    );
                 }
             }
         }
