@@ -4,7 +4,7 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
-## Unreleased
+## 0.2.0
 ### added
 - Inventories can be built without any records
 - Inventory files now save a post-processed version with alternative name/ids as comments
@@ -18,7 +18,8 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
 - Requests now have a 10s timeout
 - `inventory build` now removes records as you build
-- `inventory commit` was split into `inventory prune` and `inventory update`
+- Added `inventory prune` for invalid record pruning
+- Added `inventory update` for mismatched record updating
 - `inventory watch` uses `inventory update`, it no longer automatically prunes
 - `--force` flags are now `--force true/false`
 - Improved readability of command output
@@ -27,15 +28,11 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - `cddns list records -z <name|id>` now only matches one zone result
 - `cddns list records -r <name|id>` now only matches one record result
 - Added help link when no token or inventory is provided
-### deprecated
-- Placeholder
 ### removed
-- Placeholder
+- `inventory commit` is no longer a command
 ### fixed
 - Environment variables work for all commands
 - README documentation fixes
-### security
-- Placeholder
 
 ## 0.1.2
 ### security
