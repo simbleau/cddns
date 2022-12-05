@@ -1,5 +1,5 @@
 # CDDNS : Cloudflare Dynamic DNS
-**cddns** is a non-complicated, green DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust, featuring layered configuration and interactive file builders.
+**cddns** is a non-complicated, uncompromisingly green DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust. Featuring layered configuration and interactive file builders.
 
 ---
 [![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
@@ -99,13 +99,13 @@ Every value which can be stored in a [configuration file](#212-configuration) ca
 | **RUST_LOG**                       | [Log filtering directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directiveshttps://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) | `info`                             | `trace` (everything, unfiltered) |
 | **CDDNS_CONFIG**                   | The path to your configuration file                                                                                                                                                                                                  | [Varies by OS](#212-configuration) | `/etc/cddns/config.toml`         |
 | **CDDNS_VERIFY_TOKEN**             | The default Cloudflare API Token to use                                                                                                                                                                                              | None                               | `GAWnixPCAADXRAjoK...`           |
-| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | `inventory.yaml`                   | `MyInventory.yml`                |
 | **CDDNS_LIST_INCLUDE_ZONES**       | Regex filters for zones to include in CLI usage                                                                                                                                                                                      | `.*` (Match all)                   | `imbleau.com,.*\.dev`            |
-| **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
 | **CDDNS_LIST_IGNORE_ZONES**        | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                               | `imbleau.com`                    |
+| **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
 | **CDDNS_LIST_IGNORE_RECORDS**      | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                               | `shop\..+\.com`                  |
-| **CDDNS_INVENTORY_UPDATE_FORCE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                            | `true`                           |
-| **CDDNS_INVENTORY_PRUNE_FORCE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                            | `true`                           |
+| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | `inventory.yaml`                   | `MyInventory.yml`                |
+| **CDDNS_INVENTORY_FORCE_UPDATE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                            | `true`                           |
+| **CDDNS_INVENTORY_FORCE_PRUNE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                            | `true`                           |
 | **CDDNS_INVENTORY_WATCH_INTERVAL** | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                      | `60000` (60s)                    |
 
 ### 2.1.4 Inventory
@@ -147,6 +147,7 @@ If you do not provide `--token ...`, the token will be obtained from your [confi
 The `config` command will help you build or manage your configuration ([Configuration help](#212-configuration)). cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
 
 To show your configuration:
+*`-c` or `--config` will show the config at the given path*
 ```bash
 cddns config show
 ```
@@ -167,16 +168,24 @@ The `list` command will print Cloudflare resources visible with your API token.
 - **Records** are A (IPv4) or AAAA (IPv6) DNS records managed by Cloudflare.
 
 To list your zones AND records:
+
+*`-include-zones <pattern1,pattern2,..>` will include only zones matching one of the given regex patterns*
+*`-ignore-zones <pattern1,pattern2,..>` will ignore zones matching one of the given regex patterns*
+*`-include-records <pattern1,pattern2,..>` will include only records matching one of the given regex patterns*
+*`-ignore-records <pattern1,pattern2,..>` will ignore records matching one of the given regex patterns*
 ```bash
 cddns list
 ```
 
 To list only zones:
+*`-z` or `--zone` will only show the zone matching the given name or id.*
 ```bash
 cddns list zones
 ```
 
 To list only records:
+*`-z` or `--zone` will only show the records matching the given zone's name or id.*
+*`-r` or `--record` will only show the records matching the given name or id.*
 ```bash
 cddns list records
 ```
@@ -192,8 +201,10 @@ cddns inventory build
 ```
 
 To show your inventory:
+
+*`-p` or `--path` will show the inventory at the given path*
 ```bash
-cddns inventory [--path 'inventory.yaml'] show
+cddns inventory show
 ```
 
 To check your DNS records, without making any changes:
@@ -203,23 +214,23 @@ cddns inventory check
 
 To update all outdated DNS records found in `inventory check`:
 
-*`--force` will attempt to skip prompts*
+*`--force-update true` will attempt to skip prompts*
 ```bash
-cddns inventory update [--force true]
+cddns inventory update
 ```
 
 To prune all invalid DNS records found in `inventory check`:
 
-*`-f` or `--force` will attempt to skip prompts*
+*`--force-prune true` will attempt to skip prompts*
 ```bash
-cddns inventory prune [--force true]
+cddns inventory prune
 ```
 
-To continuously fix erroneous records:
+To continuously update erroneous records:
 
-*`-i` or `--interval` is the number of **milliseconds** between DNS refresh*
+*`-w` or `--watch-interval` will change the **milliseconds** between DNS refresh*
 ```bash
-cddns inventory watch [--interval 30000]
+cddns inventory watch
 ```
 
 ## 2.3 Service Deployment
