@@ -6,29 +6,27 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 
 ## Unreleased
 ### added
-- Inventory files now post-process zones and records with comments respective of their alternative name/id
+- Inventories can be built without any records
+- Inventory files now save a post-processed version with alternative name/ids as comments
 - Inventory files are now saved with a commented header with the date of generation
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
-- Added support for RUST_LOG environment variable to control logging filters
+- Added support for `RUST_LOG` environment variable to filter logging
 - Added warning for empty inventory
 - Provided README instructions for service deployment on Docker Compose
-- Inventories can be built without any records
-- Inventory header with generation time with `inventory build`
 ### changed
 - The default interval for DNS refresh in `inventory watch` is now 30s, up from 5s
 - Requests now have a 10s timeout
-- Improved readability of errors with `inventory watch`
-- Improved readability of `config show`
-- `cddns list zones -z <name|id>` now only matches one zone result
-- `cddns list records -z <name|id>` now only matches one zone result
-- `cddns list records -r <name|id>` now only matches one record result
-- Output is now more clear with `verify`
-- Added help link when no token or inventory is provided
 - `inventory build` now removes records as you build
 - `inventory commit` was split into `inventory prune` and `inventory update`
 - `inventory watch` uses `inventory update`, it no longer automatically prunes
 - `--force` flags are now `--force true/false`
+- Improved readability of command output
+- Improved readability of `show` commands
+- `cddns list zones -z <name|id>` now only matches one zone result
+- `cddns list records -z <name|id>` now only matches one zone result
+- `cddns list records -r <name|id>` now only matches one record result
+- Added help link when no token or inventory is provided
 ### deprecated
 - Placeholder
 ### removed
