@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
             Err(_) => (
                 args.v,
                 tracing_subscriber::EnvFilter::new(if args.v {
-                    "debug,cddns=trace"
+                    "info,cddns=trace"
                 } else {
                     "info"
                 }),
