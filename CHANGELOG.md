@@ -19,7 +19,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Requests now have a 10s timeout
 - `inventory build` now removes records as you build
 - Added `inventory prune` for invalid record pruning
-- Added `inventory update` for mismatched record updating
+- Added `inventory update` for outdated record updating
 - `inventory watch` uses `inventory update`, it no longer automatically prunes
 - `--force` flags are now `--force true/false`
 - Improved readability of command output

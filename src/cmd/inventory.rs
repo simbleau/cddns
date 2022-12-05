@@ -250,10 +250,10 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
         cloudflare::endpoints::records(&zones, token.to_string()).await?;
 
     // Match zones and records
-    trace!("matching records...");
+    trace!("validating records...");
     let mut ipv4: Option<Ipv4Addr> = None;
     let mut ipv6: Option<Ipv6Addr> = None;
-    let (mut matches, mut mismatches, mut invalid) = (vec![], vec![], vec![]);
+    let (mut valid, mut outdated, mut invalid) = (vec![], vec![], vec![]);
     for (ref inv_zone, ref inv_records) in inventory.data.into_iter() {
         for inv_record in inv_records {
             let cf_record = records.iter().find(|r| {
@@ -299,18 +299,18 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
                             name = cf_record.name,
                             id = cf_record.id,
                             content = cf_record.content,
-                            "match"
+                            "valid"
                         );
-                        matches.push(cf_record.clone());
+                        valid.push(cf_record.clone());
                     } else {
-                        // IP mismatch
+                        // IP outdated
                         warn!(
                             name = cf_record.name,
                             id = cf_record.id,
                             content = cf_record.content,
-                            "mismatch"
+                            "outdated"
                         );
-                        mismatches.push(cf_record.clone());
+                        outdated.push(cf_record.clone());
                     }
                 }
                 None => {
@@ -323,15 +323,15 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     }
 
     let result = CheckResult {
-        matches,
-        mismatches,
+        valid,
+        outdated,
         invalid,
     };
 
     // Log summary
     info!(
-        matches = result.matches.len(),
-        mismatches = result.mismatches.len(),
+        valid = result.valid.len(),
+        outdated = result.outdated.len(),
         invalid = result.invalid.len(),
         "summary"
     );
@@ -341,39 +341,36 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
             result.invalid.len()
         )
     }
-    if !result.mismatches.is_empty() {
+    if !result.outdated.is_empty() {
         warn!(
             "inventory contains {} outdated records",
-            result.mismatches.len()
+            result.outdated.len()
         )
     }
-    if result.invalid.is_empty() && result.mismatches.is_empty() {
-        debug!(
-            "inventory contains {} compliant records",
-            result.matches.len()
-        )
+    if result.invalid.is_empty() && result.outdated.is_empty() {
+        debug!("inventory contains {} valid records", result.valid.len())
     }
     Ok(result)
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn update(opts: &ConfigOpts) -> Result<()> {
-    let CheckResult { mut mismatches, .. } = check(opts).await?;
+    let CheckResult { mut outdated, .. } = check(opts).await?;
 
     // Update outdated records
-    if !mismatches.is_empty() {
-        let fixed_record_ids = __update(opts, &mismatches)
+    if !outdated.is_empty() {
+        let fixed_record_ids = __update(opts, &outdated)
             .await
-            .context("error updating mismatched records")?;
-        mismatches.retain_mut(|r| !fixed_record_ids.contains(&r.id));
+            .context("error updating outdated records")?;
+        outdated.retain_mut(|r| !fixed_record_ids.contains(&r.id));
     }
 
     // Log status
-    if mismatches.is_empty() {
+    if outdated.is_empty() {
         info!("inventory is updated");
     } else {
-        if !mismatches.is_empty() {
-            error!("{} outdated DNS records exist", mismatches.len());
+        if !outdated.is_empty() {
+            error!("{} outdated DNS records exist", outdated.len());
         }
     }
 
@@ -438,22 +435,22 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
 
 #[derive(Debug, Default, Clone)]
 pub struct CheckResult {
-    matches: Vec<Record>,
-    mismatches: Vec<Record>,
+    valid: Vec<Record>,
+    outdated: Vec<Record>,
     invalid: Vec<(String, String)>,
 }
 
-/// Update a list of mismatching records, returning those ids which were
+/// Update a list of outdated records, returning those ids which were
 /// successfully updated.
 #[tracing::instrument(level = "trace", skip(opts))]
 async fn __update(
     opts: &ConfigOpts,
-    mismatches: &Vec<Record>,
+    outdated: &Vec<Record>,
 ) -> Result<HashSet<String>> {
     // Track fixed records
     let mut updated_ids = HashSet::new();
-    // Fix mismatched records
-    if !mismatches.is_empty() {
+    // Fix outdated records
+    if !outdated.is_empty() {
         let force = opts
             .inventory
             .force_update
@@ -463,19 +460,19 @@ async fn __update(
         // Ask to fix records
         let fix = force || {
             prompt_yes_or_no(
-                format!("Update {} mismatched records?", mismatches.len()),
+                format!("Update {} outdated records?", outdated.len()),
                 "Y/n",
             )?
             .unwrap_or(true)
         };
         if fix {
-            info!("updating {} records...", mismatches.len());
+            info!("updating {} records...", outdated.len());
             let token = opts
                 .verify.token.as_ref()
                 .context("no token was provided, need help? see https://github.com/simbleau/cddns#readme")?;
             let mut ipv4: Option<Ipv4Addr> = None;
             let mut ipv6: Option<Ipv6Addr> = None;
-            for cf_record in mismatches.iter() {
+            for cf_record in outdated.iter() {
                 let updated = match cf_record.record_type.as_str() {
                     "A" => {
                         update_record(

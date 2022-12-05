@@ -201,9 +201,9 @@ To check your DNS records, without making any changes:
 cddns inventory check
 ```
 
-To update all mismatched DNS records found in `inventory check`:
+To update all outdated DNS records found in `inventory check`:
 
-*`-f` or `--force` will attempt to skip prompts*
+*`--force` will attempt to skip prompts*
 ```bash
 cddns inventory update [--force true]
 ```
