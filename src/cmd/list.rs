@@ -94,7 +94,7 @@ async fn list_all(opts: &ConfigOpts) -> Result<()> {
     for zone in zones.iter() {
         println!("{zone}");
         for record in records.iter().filter(|r| r.zone_id == zone.id) {
-            println!("  ↳ {record}");
+            println!("  - {record}");
         }
     }
     Ok(())

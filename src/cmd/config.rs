@@ -104,11 +104,17 @@ async fn build() -> Result<()> {
             println!(r#" > default: {}"#, default_inventory_path().display());
             prompt_t("inventory path", "path")?
         })
-        .inventory_commit_force({
+        .inventory_force_update({
             println!();
-            println!(r#"Next, would you like to force update and prune erroneous records when using the `inventory commit` command?"#);
+            println!(r#"Next, would you like to skip the prompt (force) when using the `inventory update` command?"#);
             println!(r#" > default: no"#);
-            prompt_yes_or_no("force on `inventory commit`?", "y/N")?
+            prompt_yes_or_no("force on `inventory update`?", "y/N")?
+        })
+        .inventory_force_prune({
+            println!();
+            println!(r#"Next, would you like to skip the prompt (force) when using the `inventory prune` command?"#);
+            println!(r#" > default: no"#);
+            prompt_yes_or_no("force on `inventory prune`?", "y/N")?
         })
         .inventory_watch_interval({
             println!();

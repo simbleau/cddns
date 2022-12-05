@@ -1,9 +1,6 @@
 use crate::{
     cloudflare::{self, endpoints::update_record, models::Record},
-    config::models::{
-        ConfigOpts, ConfigOptsInventory, ConfigOptsInventoryCommit,
-        ConfigOptsInventoryWatch,
-    },
+    config::models::{ConfigOpts, ConfigOptsInventory},
     inventory::{
         default_inventory_path,
         models::{Inventory, InventoryData},
@@ -36,22 +33,6 @@ pub struct InventoryCmd {
     pub cfg: ConfigOptsInventory,
 }
 
-/// Fix erroneous DNS records once.
-#[derive(Debug, Clone, Args)]
-#[clap(name = "commit")]
-pub struct InventoryCommitCmd {
-    #[clap(flatten)]
-    pub cfg: ConfigOptsInventoryCommit,
-}
-
-/// Fix erroneous DNS records on an interval.
-#[derive(Debug, Clone, Args)]
-#[clap(name = "commit")]
-pub struct InventoryWatchCmd {
-    #[clap(flatten)]
-    pub cfg: ConfigOptsInventoryWatch,
-}
-
 #[derive(Clone, Debug, Subcommand)]
 enum InventorySubcommands {
     /// Build an inventory file.
@@ -60,29 +41,19 @@ enum InventorySubcommands {
     Show,
     /// Print erroneous DNS records.
     Check,
-    /// Fix erroneous DNS records once.
-    Commit(ConfigOptsInventoryCommit),
-    /// Fix erroneous DNS records on an interval.
-    Watch(ConfigOptsInventoryWatch),
+    /// Update outdated DNS records present in the inventory.
+    Update,
+    /// Prune invalid DNS records present in the inventory.
+    Prune,
+    /// Continuously update DNS records on an interval.
+    Watch,
 }
 
 impl InventoryCmd {
     #[tracing::instrument(level = "trace", skip(self, config))]
     pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
         // Apply CLI configuration layering
-        let mut cli_opts =
-            ConfigOpts::builder().inventory(Some(self.cfg)).build();
-        if let InventorySubcommands::Commit(ref cli_commit) = self.action {
-            cli_opts = ConfigOpts::builder()
-                .merge(cli_opts)
-                .inventory_commit(Some(cli_commit.clone()))
-                .build();
-        } else if let InventorySubcommands::Watch(ref cli_watch) = self.action {
-            cli_opts = ConfigOpts::builder()
-                .merge(cli_opts)
-                .inventory_watch(Some(cli_watch.clone()))
-                .build();
-        }
+        let cli_opts = ConfigOpts::builder().inventory(Some(self.cfg)).build();
         let opts = ConfigOpts::full(config, Some(cli_opts))?;
 
         // Run
@@ -90,8 +61,9 @@ impl InventoryCmd {
             InventorySubcommands::Build => build(&opts).await,
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await.map(|_| ()),
-            InventorySubcommands::Commit(_) => commit(&opts).await,
-            InventorySubcommands::Watch(_) => watch(&opts).await,
+            InventorySubcommands::Update => update(&opts).await,
+            InventorySubcommands::Prune => prune(&opts).await,
+            InventorySubcommands::Watch => watch(&opts).await,
         }
     }
 }
@@ -385,38 +357,44 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-pub async fn commit(opts: &ConfigOpts) -> Result<()> {
-    let CheckResult {
-        mut mismatches,
-        mut invalid,
-        ..
-    } = check(opts).await?;
+pub async fn update(opts: &ConfigOpts) -> Result<()> {
+    let CheckResult { mut mismatches, .. } = check(opts).await?;
 
     // Update outdated records
     if !mismatches.is_empty() {
-        let fixed_record_ids = update(opts, &mismatches)
+        let fixed_record_ids = __update(opts, &mismatches)
             .await
             .context("error updating mismatched records")?;
         mismatches.retain_mut(|r| !fixed_record_ids.contains(&r.id));
+    }
+
+    // Log status
+    if mismatches.is_empty() {
+        info!("inventory is updated");
+    } else {
         if !mismatches.is_empty() {
             error!("{} outdated DNS records exist", mismatches.len());
         }
     }
 
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip(opts))]
+pub async fn prune(opts: &ConfigOpts) -> Result<()> {
+    let CheckResult { mut invalid, .. } = check(opts).await?;
+
     // Prune invalid records
     if !invalid.is_empty() {
-        let new_inventory = prune(opts, &invalid).await?;
+        let new_inventory = __prune(opts, &invalid).await?;
         invalid.retain(|(z, r)| new_inventory.data.contains(z, r));
-        if !invalid.is_empty() {
-            error!("{} invalid records remain", invalid.len());
-        }
     }
 
     // Log status
-    if mismatches.is_empty() && invalid.is_empty() {
-        info!("inventory is fully compliant");
+    if invalid.is_empty() {
+        info!("inventory contains no invalid records");
     } else {
-        error!("inventory contains non-conformances");
+        error!("{} invalid records remain", invalid.len());
     }
 
     Ok(())
@@ -424,21 +402,23 @@ pub async fn commit(opts: &ConfigOpts) -> Result<()> {
 
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
-    // Override force flag with true; watch is non-interactive
+    // Override force update flag with true, to make `watch` non-interactive.
     let opts = ConfigOpts::builder()
         .merge(opts.clone())
-        .inventory_commit_force(Some(true))
+        .inventory_force_update(Some(true))
         .build();
 
     // Get watch interval
     let interval = Duration::from_millis(
-        opts.watch.interval.context("no default interval")?,
+        opts.inventory
+            .watch_interval
+            .context("no default interval")?,
     );
     debug!(interval_ms = interval.as_millis());
 
     if interval.is_zero() {
         loop {
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) = update(&opts).await {
                 error!("{:?}", e);
             }
         }
@@ -448,7 +428,7 @@ pub async fn watch(opts: &ConfigOpts) -> Result<()> {
         loop {
             timer.tick().await;
             trace!("awoken");
-            if let Err(e) = commit(&opts).await {
+            if let Err(e) = update(&opts).await {
                 error!("{:?}", e);
             }
             trace!("sleeping...");
@@ -466,7 +446,7 @@ pub struct CheckResult {
 /// Update a list of mismatching records, returning those ids which were
 /// successfully updated.
 #[tracing::instrument(level = "trace", skip(opts))]
-pub async fn update(
+async fn __update(
     opts: &ConfigOpts,
     mismatches: &Vec<Record>,
 ) -> Result<HashSet<String>> {
@@ -474,7 +454,10 @@ pub async fn update(
     let mut updated_ids = HashSet::new();
     // Fix mismatched records
     if !mismatches.is_empty() {
-        let force = opts.commit.force.context("no default force option")?;
+        let force = opts
+            .inventory
+            .force_update
+            .context("no default force option")?;
         debug!(force_update = force);
 
         // Ask to fix records
@@ -548,7 +531,7 @@ pub async fn update(
 
 /// Prune invalid records, returning the resulting inventory.
 #[tracing::instrument(level = "trace", skip(opts))]
-pub async fn prune(
+async fn __prune(
     opts: &ConfigOpts,
     invalid: &Vec<(String, String)>,
 ) -> Result<Inventory> {
@@ -562,7 +545,10 @@ pub async fn prune(
 
     // Prune invalid records
     if !invalid.is_empty() {
-        let force = opts.commit.force.context("no default force option")?;
+        let force = opts
+            .inventory
+            .force_prune
+            .context("no default force option")?;
         debug!(force_prune = force);
 
         // Ask to prune records

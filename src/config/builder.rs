@@ -1,6 +1,5 @@
 use crate::config::models::{
-    ConfigOpts, ConfigOptsInventory, ConfigOptsInventoryCommit,
-    ConfigOptsInventoryWatch, ConfigOptsList, ConfigOptsVerify,
+    ConfigOpts, ConfigOptsInventory, ConfigOptsList, ConfigOptsVerify,
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -12,8 +11,6 @@ pub struct ConfigBuilder {
     pub verify: Option<ConfigOptsVerify>,
     pub list: Option<ConfigOptsList>,
     pub inventory: Option<ConfigOptsInventory>,
-    pub commit: Option<ConfigOptsInventoryCommit>,
-    pub watch: Option<ConfigOptsInventoryWatch>,
 }
 
 impl ConfigBuilder {
@@ -23,8 +20,6 @@ impl ConfigBuilder {
             verify: None,
             list: None,
             inventory: None,
-            commit: None,
-            watch: None,
         }
     }
 
@@ -56,22 +51,9 @@ impl ConfigBuilder {
             (Some(val), None) | (None, Some(val)) => Some(val),
             (Some(l), Some(mut g)) => {
                 g.path = g.path.or(l.path);
-                Some(g)
-            }
-        };
-        self.commit = match (self.commit.take(), greater.commit.take()) {
-            (None, None) => None,
-            (Some(val), None) | (None, Some(val)) => Some(val),
-            (Some(l), Some(mut g)) => {
-                g.force = g.force.or(l.force);
-                Some(g)
-            }
-        };
-        self.watch = match (self.watch.take(), greater.watch.take()) {
-            (None, None) => None,
-            (Some(val), None) | (None, Some(val)) => Some(val),
-            (Some(l), Some(mut g)) => {
-                g.interval = g.interval.or(l.interval);
+                g.force_update = g.force_update.or(l.force_update);
+                g.force_prune = g.force_prune.or(l.force_prune);
+                g.watch_interval = g.watch_interval.or(l.watch_interval);
                 Some(g)
             }
         };
@@ -150,68 +132,56 @@ impl ConfigBuilder {
         self
     }
 
-    /// Initialize the inventory commit configuration options.
-    pub fn inventory_commit(
-        &mut self,
-        inventory_commit: Option<ConfigOptsInventoryCommit>,
-    ) -> &mut Self {
-        self.commit = inventory_commit;
+    /// Initialize the inventory force update flag.
+    pub fn inventory_force_update(&mut self, force: Option<bool>) -> &mut Self {
+        self.inventory.get_or_insert_default().force_update = force;
         self
     }
 
-    /// Initialize the inventory commit force flag.
-    pub fn inventory_commit_force(&mut self, force: Option<bool>) -> &mut Self {
-        self.commit.get_or_insert_default().force = force;
+    /// Initialize the inventory force prune flag.
+    pub fn inventory_force_prune(&mut self, force: Option<bool>) -> &mut Self {
+        self.inventory.get_or_insert_default().force_prune = force;
         self
     }
 
-    /// Initialize the inventory watch configuration options.
-    pub fn inventory_watch(
-        &mut self,
-        inventory_watch: Option<ConfigOptsInventoryWatch>,
-    ) -> &mut Self {
-        self.watch = inventory_watch;
-        self
-    }
-
-    /// Initialize the watch interval.
+    /// Initialize the inventory watch interval.
     pub fn inventory_watch_interval(
         &mut self,
         interval: Option<u64>,
     ) -> &mut Self {
-        self.watch.get_or_insert_default().interval = interval;
+        self.inventory.get_or_insert_default().watch_interval = interval;
         self
     }
 
     /// Build an configuration options model.
     pub fn build(&self) -> ConfigOpts {
         ConfigOpts {
-            verify: ConfigOptsVerify {
-                token: self.verify.to_owned().and_then(|o| o.token),
+            verify: {
+                let verify = self.verify.as_ref();
+                ConfigOptsVerify {
+                    token: verify.and_then(|o| o.token.clone()),
+                }
             },
-            list: ConfigOptsList {
-                include_zones: self
-                    .list
-                    .to_owned()
-                    .and_then(|o| o.include_zones),
-                ignore_zones: self.list.to_owned().and_then(|o| o.ignore_zones),
-                include_records: self
-                    .list
-                    .to_owned()
-                    .and_then(|o| o.include_records),
-                ignore_records: self
-                    .list
-                    .to_owned()
-                    .and_then(|o| o.ignore_records),
+            list: {
+                let list = self.list.as_ref();
+                ConfigOptsList {
+                    include_zones: list.and_then(|o| o.include_zones.clone()),
+                    ignore_zones: list.and_then(|o| o.ignore_zones.clone()),
+                    include_records: list
+                        .and_then(|o| o.include_records.clone()),
+                    ignore_records: list.and_then(|o| o.ignore_records.clone()),
+                }
             },
-            inventory: ConfigOptsInventory {
-                path: self.inventory.to_owned().and_then(|o| o.path),
-            },
-            commit: ConfigOptsInventoryCommit {
-                force: self.commit.to_owned().and_then(|o| o.force),
-            },
-            watch: ConfigOptsInventoryWatch {
-                interval: self.watch.to_owned().and_then(|o| o.interval),
+            inventory: {
+                let inventory = self.inventory.as_ref();
+                ConfigOptsInventory {
+                    path: inventory.and_then(|o| o.path.clone()),
+                    force_update: inventory
+                        .and_then(|o| o.force_update.clone()),
+                    force_prune: inventory.and_then(|o| o.force_prune.clone()),
+                    watch_interval: inventory
+                        .and_then(|o| o.watch_interval.clone()),
+                }
             },
         }
     }
@@ -230,8 +200,6 @@ impl From<ConfigOpts> for ConfigBuilder {
             verify: Some(opts.verify),
             list: Some(opts.list),
             inventory: Some(opts.inventory),
-            commit: Some(opts.commit),
-            watch: Some(opts.watch),
         }
     }
 }

@@ -94,18 +94,19 @@ You can set the **CDDNS_CONFIG** environment variable to manually specify the lo
 ### 2.1.3 Environment Variables
 Every value which can be stored in a [configuration file](#212-configuration) can be superseded or provided as an environment variable.
 
-| Variable Name                  | Description                                                                                                                                                                                                                          | Default                            | Example                          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- | -------------------------------- |
-| **RUST_LOG**                   | [Log filtering directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directiveshttps://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) | `info`                             | `trace` (everything, unfiltered) |
-| **CDDNS_CONFIG**               | The path to your configuration file                                                                                                                                                                                                  | [Varies by OS](#212-configuration) | `/etc/cddns/config.toml`         |
-| **CDDNS_VERIFY_TOKEN**         | The default Cloudflare API Token to use                                                                                                                                                                                              | None                               | `GAWnixPCAADXRAjoK...`           |
-| **CDDNS_INVENTORY_PATH**       | The path to your inventory file                                                                                                                                                                                                      | `inventory.yaml`                   | `MyInventory.yml`                |
-| **CDDNS_LIST_INCLUDE_ZONES**   | Regex filters for zones to include in CLI usage                                                                                                                                                                                      | `.*` (Match all)                   | `imbleau.com,.*\.dev`            |
-| **CDDNS_LIST_INCLUDE_RECORDS** | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
-| **CDDNS_LIST_IGNORE_ZONES**    | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                               | `imbleau.com`                    |
-| **CDDNS_LIST_IGNORE_RECORDS**  | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                               | `shop\..+\.com`                  |
-| **CDDNS_COMMIT_FORCE**         | Force commit (Do not prompt) for `inventory commit`                                                                                                                                                                                  | `false`                            | `true`                           |
-| **CDDNS_WATCH_INTERVAL**       | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                      | `60000` (60s)                    |
+| Variable Name                      | Description                                                                                                                                                                                                                          | Default                            | Example                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- | -------------------------------- |
+| **RUST_LOG**                       | [Log filtering directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directiveshttps://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) | `info`                             | `trace` (everything, unfiltered) |
+| **CDDNS_CONFIG**                   | The path to your configuration file                                                                                                                                                                                                  | [Varies by OS](#212-configuration) | `/etc/cddns/config.toml`         |
+| **CDDNS_VERIFY_TOKEN**             | The default Cloudflare API Token to use                                                                                                                                                                                              | None                               | `GAWnixPCAADXRAjoK...`           |
+| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | `inventory.yaml`                   | `MyInventory.yml`                |
+| **CDDNS_LIST_INCLUDE_ZONES**       | Regex filters for zones to include in CLI usage                                                                                                                                                                                      | `.*` (Match all)                   | `imbleau.com,.*\.dev`            |
+| **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
+| **CDDNS_LIST_IGNORE_ZONES**        | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                               | `imbleau.com`                    |
+| **CDDNS_LIST_IGNORE_RECORDS**      | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                               | `shop\..+\.com`                  |
+| **CDDNS_INVENTORY_UPDATE_FORCE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                            | `true`                           |
+| **CDDNS_INVENTORY_PRUNE_FORCE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                            | `true`                           |
+| **CDDNS_INVENTORY_WATCH_INTERVAL** | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                      | `60000` (60s)                    |
 
 ### 2.1.4 Inventory
 To operate, cddns **needs** an inventory file in [YAML format](https://yaml.org/) containing the DNS records you want to watch.
@@ -155,7 +156,7 @@ To build a configuration file:
 cddns config build
 ```
 
-By default, cddns checks your [local configuration folder](#212-configuration) for saved configuration ([More](#212-configuration)).
+By default, cddns checks your [local configuration folder](#212-configuration) for saved configuration.
 
 ### 2.2.3 List
 **Help: `cddns list --help`**
@@ -195,16 +196,23 @@ To show your inventory:
 cddns inventory [--path 'inventory.yaml'] show
 ```
 
-To check your DNS records, without committing any changes:
+To check your DNS records, without making any changes:
 ```bash
 cddns inventory check
 ```
 
-To fix the mismatched DNS records found in `inventory check`:
+To update all mismatched DNS records found in `inventory check`:
 
-*`-f` or `--force` will attempt to fix records without prompting the user*
+*`-f` or `--force` will attempt to skip prompts*
 ```bash
-cddns inventory commit [--force]
+cddns inventory update [--force true]
+```
+
+To prune all invalid DNS records found in `inventory check`:
+
+*`-f` or `--force` will attempt to skip prompts*
+```bash
+cddns inventory prune [--force true]
 ```
 
 To continuously fix erroneous records:

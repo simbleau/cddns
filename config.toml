@@ -24,11 +24,9 @@ ignore_records = [] # Default: []
 [inventory]
 # The path to your inventory file.
 path = "inventory.yaml" # Default: "inventory.yaml"
-
-[commit]
-# For `inventory commit`, do not prompt on user input.
-force = true # Default: false
-
-[watch]
-# For `inventory watch`, the interval to refresh DNS records, in milliseconds.
+# Skip prompts asking to update outdated DNS records.
+force_update = false # Default: false
+# Skip prompts asking to prune invalid DNS records.
+force_prune = false # Default: false
+# The interval for refreshing inventory records in milliseconds.
 interval = 60000 # Default: 30000 (30s)

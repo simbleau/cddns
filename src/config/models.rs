@@ -1,4 +1,6 @@
-use crate::{config::default_config_path, inventory::default_inventory_path};
+use crate::config::builder::ConfigBuilder;
+use crate::config::default_config_path;
+use crate::inventory::default_inventory_path;
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -6,16 +8,12 @@ use std::path::{Path, PathBuf};
 use std::{fmt::Debug, fmt::Display};
 use tracing::debug;
 
-use super::builder::ConfigBuilder;
-
 /// A model of all configuration options for the CDDNS system.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: ConfigOptsVerify,
     pub list: ConfigOptsList,
     pub inventory: ConfigOptsInventory,
-    pub commit: ConfigOptsInventoryCommit,
-    pub watch: ConfigOptsInventoryWatch,
 }
 
 impl Default for ConfigOpts {
@@ -25,16 +23,15 @@ impl Default for ConfigOpts {
             verify: ConfigOptsVerify { token: None },
             list: ConfigOptsList {
                 include_zones: Some(vec![".*".to_string()]),
-                ignore_zones: None,
+                ignore_zones: Some(vec![]),
                 include_records: Some(vec![".*".to_string()]),
-                ignore_records: None,
+                ignore_records: Some(vec![]),
             },
             inventory: ConfigOptsInventory {
                 path: Some(default_inventory_path()),
-            },
-            commit: ConfigOptsInventoryCommit { force: Some(false) },
-            watch: ConfigOptsInventoryWatch {
-                interval: Some(30_000),
+                force_update: Some(false),
+                force_prune: Some(false),
+                watch_interval: Some(30_000),
             },
         }
     }
@@ -111,12 +108,6 @@ impl ConfigOpts {
             inventory: envy::prefixed("CDDNS_INVENTORY_")
                 .from_env::<ConfigOptsInventory>()
                 .context("reading inventory env var config")?,
-            commit: envy::prefixed("CDDNS_COMMIT_")
-                .from_env::<ConfigOptsInventoryCommit>()
-                .context("reading commit env var config")?,
-            watch: envy::prefixed("CDDNS_WATCH_")
-                .from_env::<ConfigOptsInventoryWatch>()
-                .context("reading watch env var config")?,
         })
     }
 }
@@ -171,13 +162,18 @@ impl Display for ConfigOpts {
             )?;
             writeln!(
                 f,
-                "Commit without user prompt (force): {}",
-                __display(Some(&self.commit.force))
+                "Force update without user prompt: {}",
+                __display(self.inventory.force_update.as_ref())
+            )?;
+            writeln!(
+                f,
+                "Force prune without user prompt: {}",
+                __display(self.inventory.force_prune.as_ref())
             )?;
             write!(
                 f,
                 "Watch interval: {}",
-                __display(self.watch.interval.as_ref())
+                __display(self.inventory.watch_interval.as_ref())
             )?;
         };
         result
@@ -232,20 +228,18 @@ pub struct ConfigOptsInventory {
     /// The path to the inventory file.
     #[clap(short, long, env = "CDDNS_INVENTORY_PATH", value_name = "file")]
     pub path: Option<PathBuf>,
-}
-
-/// Config options for `inventory commit`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
-pub struct ConfigOptsInventoryCommit {
-    /// Do not prompt, forcibly commit.
-    #[clap(short, long, env = "CDDNS_COMMIT_FORCE")]
-    pub force: Option<bool>,
-}
-
-/// Config options for `inventory watch`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
-pub struct ConfigOptsInventoryWatch {
+    /// Skip prompts asking to update outdated DNS records.
+    #[clap(long, env = "CDDNS_INVENTORY_FORCE_UPDATE", value_name = "bool")]
+    pub force_update: Option<bool>,
+    /// Skip prompts asking to prune invalid DNS records.
+    #[clap(long, env = "CDDNS_INVENTORY_FORCE_PRUNE", value_name = "bool")]
+    pub force_prune: Option<bool>,
     /// The interval for refreshing inventory records in milliseconds.
-    #[clap(short, long, value_name = "ms", env = "CDDNS_WATCH_INTERVAL")]
-    pub interval: Option<u64>,
+    #[clap(
+        short,
+        long,
+        value_name = "ms",
+        env = "CDDNS_INVENTORY_WATCH_INTERVAL"
+    )]
+    pub watch_interval: Option<u64>,
 }

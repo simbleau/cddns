@@ -25,7 +25,9 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - Output is now more clear with `verify`
 - Added help link when no token or inventory is provided
 - `inventory build` now removes records as you build
-- `inventory commit --force` is now `--force true/false`
+- `inventory commit` was split into `inventory prune` and `inventory update`
+- `inventory watch` uses `inventory update`, it no longer automatically prunes
+- `--force` flags are now `--force true/false`
 ### deprecated
 - Placeholder
 ### removed
