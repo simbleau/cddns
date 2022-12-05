@@ -7,6 +7,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ## Unreleased
 ### added
 - Inventory files now post-process zones and records with comments respective of their alternative name/id
+- Inventory files are now saved with a commented header with the date of generation
 - All configuration options are now built with `config build`
 - Added verbose logging with `-v`
 - Added support for RUST_LOG environment variable to control logging filters
