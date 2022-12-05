@@ -176,11 +176,9 @@ impl ConfigBuilder {
                 let inventory = self.inventory.as_ref();
                 ConfigOptsInventory {
                     path: inventory.and_then(|o| o.path.clone()),
-                    force_update: inventory
-                        .and_then(|o| o.force_update.clone()),
-                    force_prune: inventory.and_then(|o| o.force_prune.clone()),
-                    watch_interval: inventory
-                        .and_then(|o| o.watch_interval.clone()),
+                    force_update: inventory.and_then(|o| o.force_update),
+                    force_prune: inventory.and_then(|o| o.force_prune),
+                    watch_interval: inventory.and_then(|o| o.watch_interval),
                 }
             },
         }

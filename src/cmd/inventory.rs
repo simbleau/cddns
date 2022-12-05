@@ -369,9 +369,7 @@ pub async fn update(opts: &ConfigOpts) -> Result<()> {
     if outdated.is_empty() {
         info!("inventory is updated");
     } else {
-        if !outdated.is_empty() {
-            error!("{} outdated DNS records exist", outdated.len());
-        }
+        error!("{} outdated records remain", outdated.len());
     }
 
     Ok(())
