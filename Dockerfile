@@ -1,11 +1,11 @@
-FROM rust
+FROM rust AS build
 
-COPY . /tmp
-WORKDIR /tmp
+COPY . /build/
+WORKDIR /build
 RUN cargo build --release
-RUN cargo install --path .
-WORKDIR /root
-RUN rm -rf /tmp
+
+FROM debian:buster-slim AS app
+COPY --from=build /build/target/release/cddns /cddns
 
 ENTRYPOINT ["cddns"]
 CMD ["inventory", "watch"]
