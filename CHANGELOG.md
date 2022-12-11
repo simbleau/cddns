@@ -6,6 +6,7 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 
 ## Unreleased
 ### added
+- `cddns` is now included in the `PATH` on docker
 - Docker support for the following architectures:
   - `linux/amd64`
   - `linux/arm64`

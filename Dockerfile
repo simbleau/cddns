@@ -6,9 +6,12 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim AS app
 # Copy build
-COPY --from=build /build/target/release/cddns /cddns
+COPY --from=build /build/target/release/cddns /opt/cddns
+
+# Add cddns to PATH
+RUN export PATH="$PATH:/opt/cddns"
 
 # Run
 WORKDIR /
-ENTRYPOINT ["/cddns"]
+ENTRYPOINT ["cddns"]
 CMD ["inventory", "watch"]
