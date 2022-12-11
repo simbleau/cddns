@@ -1,6 +1,8 @@
 # CDDNS : Cloudflare Dynamic DNS
 **cddns** is a non-complicated, uncompromisingly green DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust. Featuring layered configuration and interactive file builders.
 
+** ⚠️ WARNING: This project is not considered ready for production use. [See v1.0 tracking](https://github.com/simbleau/cddns/issues/50)**
+
 ---
 [![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
 [![dependency status](https://deps.rs/repo/github/simbleau/cddns/status.svg)](https://deps.rs/repo/github/simbleau/cddns)
@@ -237,6 +239,8 @@ cddns inventory watch
 cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
 
 ### 2.3.1 Docker
+Supported architectures: `amd64`, `arm64`, `riscv64`, `ppc64le`, `s390x`, `i386`, `armv7`, `armv6`
+
 Running cddns on Docker is an easy 3 step process.
 
 *Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*

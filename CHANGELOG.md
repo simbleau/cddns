@@ -4,6 +4,18 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
+## Unreleased
+### added
+- Docker support for the following architectures:
+  - `linux/amd64`
+  - `linux/arm64`
+  - `linux/riscv64`
+  - `linux/ppc64le`
+  - `linux/s390x`
+  - `linux/386`
+  - `linux/arm/v7`
+  - `linux/arm/v6`
+
 ## 0.2.0
 ### added
 - Inventories can be built without any records
