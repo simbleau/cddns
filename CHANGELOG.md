@@ -4,7 +4,7 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
-## Unreleased
+## 0.2.1
 ### added
 - `cddns` is now included in the `PATH` on docker
 - Docker support for the following architectures:
