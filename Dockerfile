@@ -6,10 +6,10 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim AS app
 # Copy build
-COPY --from=build /build/target/release/cddns /opt/cddns
+COPY --from=build /build/target/release/cddns /opt/bin/cddns
 
 # Add cddns to PATH
-RUN export PATH="$PATH:/opt/cddns"
+ENV PATH="$PATH:/opt/bin"
 
 # Need certificates for secure requests
 RUN apt update -y
