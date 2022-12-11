@@ -1,11 +1,14 @@
-FROM rust AS build
-
+FROM rustlang/rust:nightly-bullseye AS build
+# Build binary
 COPY . /build/
 WORKDIR /build
 RUN cargo build --release
 
-FROM debian:buster-slim AS app
+FROM debian:bullseye-slim AS app
+# Copy build
 COPY --from=build /build/target/release/cddns /cddns
 
-ENTRYPOINT ["cddns"]
+# Run
+WORKDIR /
+ENTRYPOINT ["/cddns"]
 CMD ["inventory", "watch"]
