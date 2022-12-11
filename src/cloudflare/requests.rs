@@ -18,17 +18,17 @@ pub async fn get<T>(endpoint: impl Display, token: impl Display) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    trace!("starting http request");
+    trace!("starting web request");
     let bytes = reqwest::Client::new()
         .get(format!("{API_BASE}{endpoint}"))
         .bearer_auth(token)
         .send()
         .await
-        .context("error sending HTTP request")?
+        .context("error sending web request")?
         .bytes()
         .await
-        .context("error retrieving HTTP response bytes")?;
-    trace!("received http response");
+        .context("error retrieving web response bytes")?;
+    trace!("received web response");
 
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
         .context("error deserializing cloudflare metadata")?;
@@ -71,7 +71,7 @@ pub async fn patch<T>(
 where
     T: DeserializeOwned,
 {
-    trace!("starting http request");
+    trace!("starting web request");
     let bytes = reqwest::Client::new()
         .patch(format!("{API_BASE}{endpoint}"))
         .bearer_auth(token)
@@ -79,11 +79,11 @@ where
         .json(json)
         .send()
         .await
-        .context("error sending HTTP request")?
+        .context("error sending web request")?
         .bytes()
         .await
-        .context("error retrieving HTTP response bytes")?;
-    trace!("received http response");
+        .context("error retrieving web response bytes")?;
+    trace!("received web response");
 
     let cf_resp: CloudflareResponse = serde_json::from_slice(bytes.as_slice())
         .context("error deserializing cloudflare metadata")?;

@@ -15,6 +15,8 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
   - `linux/386`
   - `linux/arm/v7`
   - `linux/arm/v6`
+### fixed
+- Docker image now has `ca-certificates` to authenticate HTTPS requests from `reqwest`
 
 ## 0.2.0
 ### added
