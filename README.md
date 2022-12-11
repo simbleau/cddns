@@ -1,7 +1,7 @@
 # CDDNS : Cloudflare Dynamic DNS
 **cddns** is a non-complicated, uncompromisingly green DDNS CLI and cloud-native service for [Cloudflare](https://cloudflare.com) built in Rust. Featuring layered configuration and interactive file builders.
 
-** ⚠️ WARNING: This project is not considered ready for production use. See v1.0 tracking**
+** ⚠️ WARNING: This project is not considered ready for production use. [See v1.0 tracking](https://github.com/simbleau/cddns/issues/50)**
 
 ---
 [![Crates.io](https://img.shields.io/crates/v/cddns)](https://crates.io/crates/cddns)
