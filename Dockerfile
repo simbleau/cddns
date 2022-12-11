@@ -10,7 +10,7 @@ COPY --from=build /build/target/release/cddns /cddns
 
 # Need certificates for secure requests
 RUN apt update -y
-RUN apt install ca-certificates
+RUN apt install -y ca-certificates
 
 # Run
 WORKDIR /
