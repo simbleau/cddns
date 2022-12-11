@@ -7,15 +7,6 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ## 0.2.1
 ### added
 - `cddns` is now included in the `PATH` on docker
-- Docker support for the following architectures:
-  - `linux/amd64`
-  - `linux/arm64`
-  - `linux/riscv64`
-  - `linux/ppc64le`
-  - `linux/s390x`
-  - `linux/386`
-  - `linux/arm/v7`
-  - `linux/arm/v6`
 ### fixed
 - Docker image now has `ca-certificates` to authenticate HTTPS requests from `reqwest`
 
