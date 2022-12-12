@@ -1,10 +1,15 @@
 [package]
 name = "cddns"
 description = "A modern, hackable, green DDNS CLI and service for Cloudflare."
-version = "0.2.1"
+authors = ["Spencer C. Imbleau <spencer@imbleau.com>"]
+version = "0.2.2"
 edition = "2021"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/simbleau/cddns"
+readme = "https://github.com/simbleau/cddns/blob/main/README.md"
+publish = ["cddns"]
+keywords = ["cloudflare", "ddns", "dns", "dynamic dns"]
+categories = ["command-line-utilities", "network-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
