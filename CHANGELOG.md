@@ -10,6 +10,12 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - changed "inventory is updated" to "inventory is up to date" when checking DNS records
 ### fixed
 - Generated inventory files no longer duplicate header information on post-processing
+### security
+- Updated `clap` to 4.0.29
+- Updated `reqwest` to 0.11.13
+- Updated `serde_json` to 1.0.89
+- Updated `tokio` to 1.23.0
+- Updated `serde` to 1.0.150
 
 ## 0.2.1
 ### fixed
