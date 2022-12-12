@@ -361,9 +361,11 @@ spec:
         image: simbleau/cddns:latest
         volumeMounts:
         - name: inventory # Mount inventory file
-            mountPath: "inventory.yaml"
+            mountPath: /opt/etc/cddns/
             readOnly: true
         env:
+        - name: CDDNS_INVENTORY_PATH
+          value: /opt/etc/cddns/inventory.yaml
         - name: CDDNS_VERIFY_TOKEN
             valueFrom: # Cloudflare API token
               secretKeyRef:
