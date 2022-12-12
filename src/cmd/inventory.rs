@@ -367,7 +367,7 @@ pub async fn update(opts: &ConfigOpts) -> Result<()> {
 
     // Log status
     if outdated.is_empty() {
-        info!("inventory is updated");
+        info!("inventory is up to date");
     } else {
         error!("{} outdated records remain", outdated.len());
     }
