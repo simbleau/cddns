@@ -366,9 +366,9 @@ spec:
         env:
         - name: CDDNS_VERIFY_TOKEN
             valueFrom: # Cloudflare API token
-            secretKeyRef:
-                name: cddns-api-token
-                key: token
+              secretKeyRef:
+                  name: cddns-api-token
+                  key: token
 ```
 
 1. Deploy:
