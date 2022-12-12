@@ -4,6 +4,12 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
+## 0.2.1
+### added
+- `cddns` is now included in the `PATH` on docker
+### fixed
+- Docker image now has `ca-certificates` to authenticate HTTPS requests from `reqwest`
+
 ## 0.2.0
 ### added
 - Inventories can be built without any records

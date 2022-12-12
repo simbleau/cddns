@@ -1,0 +1,4 @@
+[net]
+# Workaround for QEMU killing GitHub Actions on `cargo build`.
+# Without this feature, GitHub Actions runs out of memory and dies.
+git-fetch-with-cli = true
