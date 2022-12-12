@@ -239,7 +239,7 @@ cddns inventory watch
 cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
 
 ### 2.3.1 Docker
-Supported architectures: `amd64`, `arm64`, `riscv64`, `ppc64le`, `s390x`, `i386`, `armv7`, `armv6`
+Supported architectures: `amd64`, `arm64`
 
 Running cddns on Docker is an easy 3 step process.
 
