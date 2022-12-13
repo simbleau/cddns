@@ -4,6 +4,9 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
+# 0.2.3
+## fixed
+- Fixed an issue where successfully updated records would log as unsuccessful
 
 ## 0.2.2
 ### changed

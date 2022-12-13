@@ -504,19 +504,20 @@ async fn __update(
                     }
                     _ => unimplemented!(),
                 };
-                if updated.is_ok() {
+                if let Err(err) = updated {
+                    debug!("{err:?}");
+                    error!(
+                        id = cf_record.id,
+                        name = cf_record.name,
+                        "unsuccessful record update"
+                    );
+                } else {
                     info!(
                         id = cf_record.id,
                         name = cf_record.name,
                         "updated record"
                     );
                     updated_ids.insert(cf_record.id.clone());
-                } else {
-                    error!(
-                        id = cf_record.id,
-                        name = cf_record.name,
-                        "unsuccessful record update"
-                    )
                 }
             }
         }

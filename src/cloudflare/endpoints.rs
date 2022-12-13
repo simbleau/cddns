@@ -1,6 +1,6 @@
 use crate::cloudflare::models::{
-    CloudflareMessage, ListRecordsResponse, ListZonesResponse, Record,
-    VerifyResponse, Zone,
+    CloudflareMessage, ListRecordsResponse, ListZonesResponse,
+    PatchRecordResponse, Record, VerifyResponse, Zone,
 };
 use crate::cloudflare::requests;
 use anyhow::{Context, Result};
@@ -98,7 +98,7 @@ pub async fn update_record(
     let mut data = HashMap::new();
     data.insert("content", ip.to_string());
 
-    requests::patch_with_timeout(endpoint, token, &data)
+    requests::patch_with_timeout::<PatchRecordResponse>(endpoint, token, &data)
         .await
         .context("error resolving records endpoint")?;
     Ok(())
