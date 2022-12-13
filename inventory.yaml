@@ -1,6 +1,6 @@
 # This is an example inventory file for DNS records.
 #
-# With the CLI installed, you can use `cddns inventory build` to interactively
+# You can use `cddns inventory build` to interactively
 # build this YAML file.
 
 # It is recommended to use Cloudflare IDs (try `cddns list`)
