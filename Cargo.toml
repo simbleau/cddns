@@ -7,7 +7,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simbleau/cddns"
 readme = "README.md"
-keywords = ["cloudflare", "ddns", "dns", "dynamic dns"]
+keywords = ["cloudflare", "ddns", "dns"]
 categories = ["command-line-utilities", "network-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
