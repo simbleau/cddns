@@ -199,7 +199,8 @@ The `inventory` command has several subcommands to build and control inventory.
 
 To build an inventory:
 
-*`--stdout` will output the inventory to stdout*
+*`--stdout` will output the inventory to stdout*\
+*`--clean` will output without post-processing*
 ```bash
 cddns inventory build
 ```
