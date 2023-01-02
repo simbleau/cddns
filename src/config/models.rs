@@ -196,10 +196,10 @@ pub struct ConfigOptsInventory {
     #[clap(short, long, env = "CDDNS_INVENTORY_PATH", value_name = "file")]
     pub path: Option<PathBuf>,
     /// Skip prompts asking to update outdated DNS records.
-    #[clap(long, env = "CDDNS_INVENTORY_FORCE_UPDATE", value_name = "bool")]
+    #[clap(long, env = "CDDNS_INVENTORY_FORCE_UPDATE", value_name = "boolean")]
     pub force_update: Option<bool>,
     /// Skip prompts asking to prune invalid DNS records.
-    #[clap(long, env = "CDDNS_INVENTORY_FORCE_PRUNE", value_name = "bool")]
+    #[clap(long, env = "CDDNS_INVENTORY_FORCE_PRUNE", value_name = "boolean")]
     pub force_prune: Option<bool>,
     /// The interval for refreshing inventory records in milliseconds.
     #[clap(
