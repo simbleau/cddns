@@ -57,7 +57,7 @@ impl Inventory {
         PP: PostProcessor,
     {
         let yaml = self.data.to_string(post_processor)?;
-        Ok(crate::io::fs::save(&self.path, yaml).await?)
+        crate::io::fs::save(&self.path, yaml).await
     }
 }
 
@@ -79,7 +79,7 @@ impl InventoryData {
     where
         PP: PostProcessor,
     {
-        Ok(crate::io::encoding::as_yaml(&self, post_processor)?)
+        crate::io::encoding::as_yaml(&self, post_processor)
     }
 
     /// Returns whether a record exists in the inventory data.
