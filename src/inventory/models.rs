@@ -1,14 +1,9 @@
+use crate::inventory::builder::InventoryBuilder;
 use crate::io::encoding::PostProcessor;
-use crate::{
-    inventory::builder::InventoryBuilder, io::encoding::InventoryPostProcessor,
-};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use tracing::debug;
 
 #[derive(Clone, Debug)]
@@ -47,26 +42,22 @@ impl Inventory {
             .build()
     }
 
+    /// Return the inventory as a processed string.
+    pub fn to_string<PP>(&self, post_processor: Option<PP>) -> Result<String>
+    where
+        PP: PostProcessor,
+    {
+        self.data.to_string(post_processor)
+    }
+
     /// Save the inventory file at the given path, overwriting if necessary, and
     /// optionally with post-processed comments.
     pub async fn save<PP>(&self, post_processor: Option<PP>) -> Result<()>
     where
         PP: PostProcessor,
     {
-        let yaml = crate::io::encoding::as_yaml(&self.data, post_processor)?;
-        crate::io::fs::save(&self.path, yaml).await?;
-        Ok(())
-    }
-}
-
-impl Display for Inventory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let display = crate::io::encoding::as_yaml(
-            &self.data,
-            None::<InventoryPostProcessor>,
-        )
-        .unwrap_or("Unable to display inventory.".to_string());
-        write!(f, "{display}")
+        let yaml = self.data.to_string(post_processor)?;
+        crate::io::fs::save(&self.path, yaml).await
     }
 }
 
@@ -83,6 +74,14 @@ pub struct InventoryZone(pub Option<HashSet<InventoryRecord>>);
 pub struct InventoryRecord(pub String);
 
 impl InventoryData {
+    /// Return the inventory as a processed string.
+    pub fn to_string<PP>(&self, post_processor: Option<PP>) -> Result<String>
+    where
+        PP: PostProcessor,
+    {
+        crate::io::encoding::as_yaml(&self, post_processor)
+    }
+
     /// Returns whether a record exists in the inventory data.
     pub fn contains(
         &self,

@@ -28,7 +28,7 @@ pub struct InventoryCmd {
 #[derive(Clone, Debug, Subcommand)]
 enum InventorySubcommands {
     /// Build an inventory file.
-    Build,
+    Build(BuildOpts),
     /// Print your inventory.
     Show,
     /// Print erroneous DNS records.
@@ -41,6 +41,13 @@ enum InventorySubcommands {
     Watch,
 }
 
+#[derive(Debug, Clone, Args)]
+pub struct BuildOpts {
+    /// Print the inventory to stdout, instead of saving the file.
+    #[clap(long)]
+    pub stdout: bool,
+}
+
 impl InventoryCmd {
     #[tracing::instrument(level = "trace", skip(self, opts))]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
@@ -50,7 +57,9 @@ impl InventoryCmd {
 
         // Run
         match self.action {
-            InventorySubcommands::Build => build(&opts).await,
+            InventorySubcommands::Build(build_opts) => {
+                build(&opts, &build_opts).await
+            }
             InventorySubcommands::Show => show(&opts).await,
             InventorySubcommands::Check => check(&opts).await.map(|_| ()),
             InventorySubcommands::Update => update(&opts).await,
@@ -61,7 +70,7 @@ impl InventoryCmd {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-pub async fn build(opts: &ConfigOpts) -> Result<()> {
+pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
     info!("getting ready, please wait...");
     // Get zones and records to build inventory from
     let token = opts
@@ -165,33 +174,39 @@ pub async fn build(opts: &ConfigOpts) -> Result<()> {
         }
     }
 
-    // Save
-    let path = prompt_t::<PathBuf>(
-        format!(
-            "Save location [default: {}]",
-            default_inventory_path().display()
-        ),
-        "path",
-    )?
-    .map(|p| match p.extension() {
-        Some(_) => p,
-        None => p.with_extension("yaml"),
-    })
-    .unwrap_or_else(default_inventory_path);
-    io::fs::remove_interactive(&path).await?;
-
-    info!("saving inventory file...");
-    // Best-effort attempt to post-process comments on inventory.
+    info!("post-processing inventory file...");
     let pp = InventoryPostProcessor::try_init(opts).await.ok();
     if pp.is_none() {
         warn!("failed to initialize post-processor")
     }
-    Inventory::builder()
-        .path(path)
-        .with_data(data)
-        .build()?
-        .save(pp)
-        .await?;
+
+    if cli_opts.stdout {
+        // Print to stdout
+        println!("{}", data.to_string(pp)?);
+    } else {
+        // Save file
+        let path = prompt_t::<PathBuf>(
+            format!(
+                "Save location [default: {}]",
+                default_inventory_path().display()
+            ),
+            "path",
+        )?
+        .map(|p| match p.extension() {
+            Some(_) => p,
+            None => p.with_extension("yaml"),
+        })
+        .unwrap_or_else(default_inventory_path);
+        io::fs::remove_interactive(&path).await?;
+
+        info!("saving inventory file...");
+        Inventory::builder()
+            .path(path)
+            .with_data(data)
+            .build()?
+            .save(pp)
+            .await?;
+    }
 
     Ok(())
 }
@@ -208,7 +223,7 @@ pub async fn show(opts: &ConfigOpts) -> Result<()> {
     if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
-        println!("{inventory}");
+        println!("{}", inventory.to_string(None::<InventoryPostProcessor>)?);
     }
     Ok(())
 }

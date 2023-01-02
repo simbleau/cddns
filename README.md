@@ -198,6 +198,8 @@ cddns list records
 The `inventory` command has several subcommands to build and control inventory.
 
 To build an inventory:
+
+*`--stdout` will output the inventory to stdout*
 ```bash
 cddns inventory build
 ```
@@ -239,7 +241,7 @@ cddns inventory watch
 cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
 
 ### 2.3.1 Docker
-Supported architectures: `amd64`, `arm64`
+Currently supported architectures: `amd64`, `arm64`
 
 Running cddns on Docker is an easy 3 step process.
 
