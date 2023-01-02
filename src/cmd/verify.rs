@@ -1,8 +1,6 @@
 use crate::cloudflare;
-use crate::config::{
-    builder::ConfigBuilder,
-    models::{ConfigOpts, ConfigOptsVerify},
-};
+use crate::config::builder::ConfigBuilder;
+use crate::config::models::{ConfigOpts, ConfigOptsVerify};
 use anyhow::{Context, Result};
 use clap::Args;
 use tracing::info;
