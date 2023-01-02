@@ -13,7 +13,7 @@ pub struct VerifyCmd {
 }
 
 impl VerifyCmd {
-    #[tracing::instrument(level = "trace", skip(self, opts))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
         let cli_opts = ConfigOpts::builder().verify(Some(self.cfg)).build();
@@ -24,7 +24,7 @@ impl VerifyCmd {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn verify(opts: &ConfigOpts) -> Result<()> {
     info!("verifying, please wait...");
     // Get token

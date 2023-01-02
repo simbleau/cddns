@@ -41,7 +41,7 @@ struct Args {
 }
 
 impl Args {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self) -> Result<()> {
         // Apply CLI configuration layering
         let default_cfg = ConfigOpts::default();

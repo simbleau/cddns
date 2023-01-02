@@ -3,7 +3,6 @@ use crate::config::models::{ConfigOpts, ConfigOptsInventory};
 use crate::inventory::default_inventory_path;
 use crate::inventory::models::{Inventory, InventoryData};
 use crate::util;
-use crate::util::encoding::InventoryPostProcessor;
 use crate::util::scanner::{prompt_t, prompt_yes_or_no};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -58,7 +57,7 @@ pub struct ShowOpts {
 }
 
 impl InventoryCmd {
-    #[tracing::instrument(level = "trace", skip(self, opts))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
         let cli_opts = ConfigOpts::builder().inventory(Some(self.cfg)).build();
@@ -80,7 +79,7 @@ impl InventoryCmd {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
     info!("getting ready, please wait...");
     // Get zones and records to build inventory from
@@ -185,24 +184,13 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
         }
     }
 
-    let post_processor = {
-        if cli_opts.clean {
-            None
-        } else {
-            info!("initializing post-processor...");
-            InventoryPostProcessor::try_init(opts)
-                .await
-                .map_err(|e| {
-                    warn!("failed to initialize post-processor");
-                    e
-                })
-                .ok()
-        }
-    };
-
     if cli_opts.stdout {
         // Print to stdout
-        println!("{}", data.to_string(post_processor)?);
+        println!(
+            "{}",
+            data.to_string(opts, !cli_opts.clean, !cli_opts.clean)
+                .await?
+        );
     } else {
         // Save file
         let path = prompt_t::<PathBuf>(
@@ -224,15 +212,16 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
             .path(path)
             .with_data(data)
             .build()?
-            .save(post_processor)
+            .save(opts, !cli_opts.clean, !cli_opts.clean)
             .await?;
     }
 
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn show(opts: &ConfigOpts, cli_opts: &ShowOpts) -> Result<()> {
+    info!("retrieving, please wait...");
     let inventory_path = opts
         .inventory
         .path
@@ -243,26 +232,18 @@ pub async fn show(opts: &ConfigOpts, cli_opts: &ShowOpts) -> Result<()> {
     if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
-        let post_processor = {
-            if cli_opts.clean {
-                None
-            } else {
-                info!("post-processing annotations...");
-                InventoryPostProcessor::try_init(opts)
-                    .await
-                    .map_err(|e| {
-                        warn!("failed to initialize post-processor");
-                        e
-                    })
-                    .ok()
-            }
-        };
-        println!("{}", inventory.data.to_string(post_processor)?);
+        println!(
+            "{}",
+            inventory
+                .data
+                .to_string(opts, !cli_opts.clean, false)
+                .await?
+        );
     }
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     info!("checking records, please wait...");
     // Get inventory
@@ -394,7 +375,7 @@ pub async fn check(opts: &ConfigOpts) -> Result<CheckResult> {
     Ok(result)
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn update(opts: &ConfigOpts) -> Result<()> {
     let CheckResult { mut outdated, .. } = check(opts).await?;
 
@@ -416,7 +397,7 @@ pub async fn update(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn prune(opts: &ConfigOpts) -> Result<()> {
     let CheckResult { mut invalid, .. } = check(opts).await?;
 
@@ -436,7 +417,7 @@ pub async fn prune(opts: &ConfigOpts) -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force update flag with true, to make `watch` non-interactive.
     let opts = ConfigOpts::builder()
@@ -481,7 +462,7 @@ pub struct CheckResult {
 
 /// Update a list of outdated records, returning those ids which were
 /// successfully updated.
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn __update(
     opts: &ConfigOpts,
     outdated: &Vec<Record>,
@@ -567,7 +548,7 @@ async fn __update(
 }
 
 /// Prune invalid records, returning the resulting inventory.
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn __prune(
     opts: &ConfigOpts,
     invalid: &Vec<(String, String)>,
@@ -615,12 +596,7 @@ async fn __prune(
             }
             if pruned > 0 {
                 info!("updating inventory file...");
-                // Best-effort attempt to post-process comments on inventory.
-                let pp = InventoryPostProcessor::try_init(opts).await.ok();
-                if pp.is_none() {
-                    warn!("failed to initialize post-processor")
-                }
-                inventory.save(pp).await?;
+                inventory.save(opts, true, true).await?;
                 if invalid.len() == pruned {
                     info!(
                         pruned,

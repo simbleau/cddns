@@ -6,9 +6,11 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 
 ## Unreleased
 ### changed
-- `inventory show` now post-processes annotations by default
+- `inventory show` now post-processes alias annotations by default
+- modified post-processing tracers
 ### added
-- Added `--clean` to `inventory show` to output without post-processing
+- Added `--clean` to `inventory show` to output without alias annotations
+- Added info log to `inventory show`
 ### fixed
 - Moved debug message showing inventory path used before read occurs
 

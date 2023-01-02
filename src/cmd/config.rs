@@ -23,7 +23,7 @@ enum ConfigSubcommands {
 }
 
 impl ConfigCmd {
-    #[tracing::instrument(level = "trace", skip(self, opts))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         match self.action {
             ConfigSubcommands::Build => build().await,
@@ -143,7 +143,7 @@ async fn build() -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace")]
-async fn show(config: &ConfigOpts) -> Result<()> {
-    Ok(println!("{config}"))
+#[tracing::instrument(level = "trace", skip_all)]
+async fn show(opts: &ConfigOpts) -> Result<()> {
+    Ok(println!("{opts}"))
 }

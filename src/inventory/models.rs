@@ -1,5 +1,8 @@
+use crate::config::models::ConfigOpts;
 use crate::inventory::builder::InventoryBuilder;
-use crate::util::encoding::PostProcessor;
+use crate::util::postprocessors::{
+    InventoryAliasCommentPostProcessor, PostProcessor, TimestampPostProcessor,
+};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -42,13 +45,14 @@ impl Inventory {
             .build()
     }
 
-    /// Save the inventory file at the given path, overwriting if necessary, and
-    /// optionally with post-processed comments.
-    pub async fn save<PP>(&self, post_processor: Option<PP>) -> Result<()>
-    where
-        PP: PostProcessor,
-    {
-        let yaml = self.data.to_string(post_processor)?;
+    /// Save the inventory file at the given path, overwriting if necessary.
+    pub async fn save(
+        &self,
+        opts: &ConfigOpts, // TODO: This shouldn't be necessary...
+        friendly_names: bool, // Postprocess friendly aliases to the inventory
+        timestamp: bool,   // Postprocess a timestamp to the header
+    ) -> Result<()> {
+        let yaml = self.data.to_string(opts, friendly_names, timestamp).await?;
         crate::util::fs::save(&self.path, yaml).await
     }
 }
@@ -67,11 +71,23 @@ pub struct InventoryRecord(pub String);
 
 impl InventoryData {
     /// Return the inventory as a processed string.
-    pub fn to_string<PP>(&self, post_processor: Option<PP>) -> Result<String>
-    where
-        PP: PostProcessor,
-    {
-        crate::util::encoding::as_yaml(&self, post_processor)
+    pub async fn to_string(
+        &self,
+        opts: &ConfigOpts, // TODO: This shouldn't be necessary...
+        friendly_names: bool, // Postprocess friendly aliases to the inventory
+        timestamp: bool,   // Postprocess a timestamp to the header
+    ) -> Result<String> {
+        let mut data = crate::util::encoding::as_yaml(&self)?;
+        if friendly_names {
+            // Best-effort attempt to post-process comments on inventory.
+            InventoryAliasCommentPostProcessor::try_init(opts)
+                .await?
+                .post_process(&mut data)?;
+        }
+        if timestamp {
+            TimestampPostProcessor.post_process(&mut data)?;
+        }
+        Ok(data)
     }
 
     /// Returns whether a record exists in the inventory data.
