@@ -57,7 +57,7 @@ Installing the cddns CLI will provide the means to test your configuration local
 
 ### Option A: Cargo
 Cargo is the recommended way to install CDDNS as a CLI ([What is Cargo?](https://doc.rust-lang.org/cargo/)).
-- `cargo install cddns`
+- `cargo +nightly install cddns`
 ### Option B: Binary
 - Download a compatible binary release from [releases](https://github.com/simbleau/cloudflare-ddns/releases)
 
