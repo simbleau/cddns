@@ -1,0 +1,9 @@
+version: '3.3'
+services:
+  cddns:
+    environment:
+      - CDDNS_VERIFY_TOKEN
+      - CDDNS_INVENTORY_PATH='/inventory.yml'
+    volumes:
+      - $CDDNS_INVENTORY_PATH:/inventory.yml'
+    image: 'simbleau/cddns:latest'
