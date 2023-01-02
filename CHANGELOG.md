@@ -4,6 +4,12 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
+## Unreleased
+### changed
+- `inventory show` now post-processes annotations by default
+### added
+- Added `--clean` to `inventory show` to output without post-processing
+
 ## 0.3.0
 ### added
 - Added `--token` as a global CLI flag

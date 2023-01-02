@@ -30,7 +30,7 @@ enum InventorySubcommands {
     /// Build an inventory file.
     Build(BuildOpts),
     /// Print your inventory.
-    Show,
+    Show(ShowOpts),
     /// Print erroneous DNS records.
     Check,
     /// Update outdated DNS records present in the inventory.
@@ -51,6 +51,13 @@ pub struct BuildOpts {
     pub clean: bool,
 }
 
+#[derive(Debug, Clone, Args)]
+pub struct ShowOpts {
+    /// Output the inventory without any post-processing.
+    #[clap(long)]
+    pub clean: bool,
+}
+
 impl InventoryCmd {
     #[tracing::instrument(level = "trace", skip(self, opts))]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
@@ -63,7 +70,9 @@ impl InventoryCmd {
             InventorySubcommands::Build(build_opts) => {
                 build(&opts, &build_opts).await
             }
-            InventorySubcommands::Show => show(&opts).await,
+            InventorySubcommands::Show(show_opts) => {
+                show(&opts, &show_opts).await
+            }
             InventorySubcommands::Check => check(&opts).await.map(|_| ()),
             InventorySubcommands::Update => update(&opts).await,
             InventorySubcommands::Prune => prune(&opts).await,
@@ -224,7 +233,7 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
 }
 
 #[tracing::instrument(level = "trace", skip(opts))]
-pub async fn show(opts: &ConfigOpts) -> Result<()> {
+pub async fn show(opts: &ConfigOpts, cli_opts: &ShowOpts) -> Result<()> {
     let inventory_path = opts
         .inventory
         .path
@@ -235,10 +244,21 @@ pub async fn show(opts: &ConfigOpts) -> Result<()> {
     if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
-        println!(
-            "{}",
-            inventory.data.to_string(None::<InventoryPostProcessor>)?
-        );
+        let post_processor = {
+            if cli_opts.clean {
+                None
+            } else {
+                info!("post-processing annotations...");
+                InventoryPostProcessor::try_init(opts)
+                    .await
+                    .map_err(|e| {
+                        warn!("failed to initialize post-processor");
+                        e
+                    })
+                    .ok()
+            }
+        };
+        println!("{}", inventory.data.to_string(post_processor)?);
     }
     Ok(())
 }
@@ -420,8 +440,8 @@ pub async fn prune(opts: &ConfigOpts) -> Result<()> {
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force update flag with true, to make `watch` non-interactive.
-    let opts = ConfigOpts::builder()
-        .merge(opts.clone())
+    let opts = ConfigBuilder::new()
+        .merge(opts.to_owned())
         .inventory_force_update(Some(true))
         .build();
 
