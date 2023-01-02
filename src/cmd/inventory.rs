@@ -44,14 +44,14 @@ pub struct BuildOpts {
     /// Print the inventory to stdout, instead of saving the file.
     #[clap(long)]
     pub stdout: bool,
-    /// Output the inventory without any post-processing.
+    /// Output the inventory without post-processing.
     #[clap(long)]
     pub clean: bool,
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct ShowOpts {
-    /// Output the inventory without any post-processing.
+    /// Output the inventory without post-processing.
     #[clap(long)]
     pub clean: bool,
 }
