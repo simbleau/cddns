@@ -105,13 +105,18 @@ Every value which can be stored in a [configuration file](#212-configuration) ca
 | **CDDNS_LIST_IGNORE_ZONES**        | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                               | `imbleau.com`                    |
 | **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
 | **CDDNS_LIST_IGNORE_RECORDS**      | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                               | `shop\..+\.com`                  |
-| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | `inventory.yaml`                   | `MyInventory.yml`                |
+| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | [Varies by OS](#214-inventory)     | `MyInventory.yml`                |
 | **CDDNS_INVENTORY_FORCE_UPDATE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                            | `true`                           |
 | **CDDNS_INVENTORY_FORCE_PRUNE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                            | `true`                           |
 | **CDDNS_INVENTORY_WATCH_INTERVAL** | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                      | `60000` (60s)                    |
 
 ### 2.1.4 Inventory
 To operate, cddns **needs** an inventory file in [YAML format](https://yaml.org/) containing the DNS records you want to watch.
+
+By default, we check your local configuration directory for your inventory file.
+- On Linux, this would be `$XDG_CONFIG_HOME/cddns/inventory.yml` or `$HOME/.config/cddns/inventory.yml`
+- On MacOS, this would be `$HOME/Library/Application Support/cddns/inventory.yml`
+- On Windows, this would be `%AppData%\cddns\inventory.yml`
 
 To quickly get setup, the CLI offers an interactive inventory file builder.
 > `cddns inventory build`
@@ -122,9 +127,7 @@ To quickly get setup, the CLI offers an interactive inventory file builder.
 To see DNS records managed by your API token, the CLI also offers a list command.
 > `cddns list [records/zones]`
 
-If you prefer, you can visit [`inventory.yaml`](inventory.yaml) for an annotated example.
-
-By default, we check the current directory for an `inventory.yaml` file.
+If you prefer, you can visit [`inventory.yml`](inventory.yml) for an annotated example.
 
 You can set the **CDDNS_INVENTORY_PATH** environment variable to manually specify the location of this file. [Click here](#213-environment-variables) for more environment variables.
 
@@ -259,7 +262,7 @@ docker run  \
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
-  -v $(pwd)/inventory.yaml:/inventory.yaml \
+  -v $(pwd)/inventory.yml:/inventory.yml \
   simbleau/cddns:latest inventory show
 ```
 
@@ -269,7 +272,7 @@ docker run \
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
-  -v $(pwd)/inventory.yaml:/inventory.yaml \
+  -v $(pwd)/inventory.yml:/inventory.yml \
   simbleau/cddns:latest
 ```
 
@@ -287,7 +290,7 @@ docker run  \
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>' \
-  -v $(pwd)/inventory.yaml:/inventory.yaml \
+  -v $(pwd)/inventory.yml:/inventory.yml \
   simbleau/cddns:latest inventory show
 ```
 
@@ -302,7 +305,7 @@ services:
         environment:
             - CDDNS_VERIFY_TOKEN='<YOUR_CLOUDFLARE_TOKEN>'
         volumes:
-            - '/host/path/to/inventory.yaml:/inventory.yaml'
+            - '/host/path/to/inventory.yml:/inventory.yml'
         image: 'simbleau/cddns:latest'
 ```
 
@@ -321,7 +324,7 @@ cddns verify --token '<YOUR_CLOUDFLARE_TOKEN>'
 
 2. Test your inventory ([Help](#214-inventory)).
 ```bash
-cddns inventory --path '/to/your/inventory.yaml'  show
+cddns inventory --path '/to/your/inventory.yml'  show
 ```
 
 3. Create a Secret[[?](https://kubernetes.io/docs/concepts/configuration/secret/)] for your API token:
@@ -333,7 +336,7 @@ kubectl create secret generic cddns-api-token \
 4. Create a ConfigMap[[?](https://kubernetes.io/docs/concepts/configuration/configmap/)] for your inventory:
 ```
 kubectl create configmap cddns-inventory \
-  --from-file '/to/your/inventory.yaml'
+  --from-file '/to/your/inventory.yml'
 ```
 
 5. Create a Deployment[[?](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)]:
@@ -368,7 +371,7 @@ spec:
             readOnly: true
         env:
         - name: CDDNS_INVENTORY_PATH
-          value: /opt/etc/cddns/inventory.yaml
+          value: /opt/etc/cddns/inventory.yml
         - name: CDDNS_VERIFY_TOKEN
             valueFrom: # Cloudflare API token
               secretKeyRef:

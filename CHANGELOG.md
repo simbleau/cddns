@@ -6,6 +6,8 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 
 ## Unreleased
 ### changed
+- cddns now falls back to `./config.toml` for configuration for unsupported architectures
+- cddns now checks the OS configuration directory for inventory, and falls back to `./inventory.yml` for unsupported architectures
 - `inventory show` now post-processes alias annotations by default
 - modified post-processing tracers
 ### added

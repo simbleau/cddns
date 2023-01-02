@@ -124,18 +124,16 @@ async fn build() -> Result<()> {
         });
 
     // Save
-    let default_path =
-        default_config_path().unwrap_or_else(|| PathBuf::from("config.toml"));
     let path = {
         println!();
         println!(r#"Finally, provide the save location for this config file."#);
-        println!(r#" > default: {}"#, default_path.display());
+        println!(r#" > default: {}"#, default_config_path().display());
         prompt_t::<PathBuf>("Save location", "path")?
             .map(|p| match p.extension() {
                 Some(_) => p,
                 None => p.with_extension("toml"),
             })
-            .unwrap_or(default_path)
+            .unwrap_or(default_config_path())
     };
     util::fs::remove_interactive(&path).await?;
     builder.save(path).await?;

@@ -559,7 +559,7 @@ async fn __prune(
         .path
         .clone()
         .unwrap_or_else(default_inventory_path);
-    let mut inventory = Inventory::from_file(&inventory_path).await?;
+    let mut inventory = Inventory::from_file(inventory_path).await?;
 
     // Prune invalid records
     if !invalid.is_empty() {
