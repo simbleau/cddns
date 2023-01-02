@@ -20,7 +20,7 @@ impl VerifyCmd {
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
         let cli_opts = ConfigBuilder::new().verify(Some(self.cfg)).build();
-        let opts = ConfigBuilder::from(opts).merge(cli_opts).build();
+        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
 
         // Run
         verify(&opts).await

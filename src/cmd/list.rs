@@ -47,7 +47,7 @@ impl ListCmd {
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
         let cli_opts = ConfigBuilder::new().list(Some(self.cfg)).build();
-        let opts = ConfigBuilder::from(opts).merge(cli_opts).build();
+        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
 
         // Run
         info!("retrieving, please wait...");
