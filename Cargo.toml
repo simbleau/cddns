@@ -2,7 +2,7 @@
 name = "cddns"
 description = "A modern, hackable, green DDNS CLI and service for Cloudflare."
 authors = ["Spencer C. Imbleau <spencer@imbleau.com>"]
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simbleau/cddns"
