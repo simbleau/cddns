@@ -15,7 +15,7 @@ pub struct ConfigBuilder {
 
 impl ConfigBuilder {
     /// Create a new config opts builder.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             verify: None,
             list: None,

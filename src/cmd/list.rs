@@ -1,6 +1,5 @@
 use crate::cloudflare;
 use crate::cloudflare::models::{Record, Zone};
-use crate::config::builder::ConfigBuilder;
 use crate::config::models::{ConfigOpts, ConfigOptsList};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -46,8 +45,8 @@ impl ListCmd {
     #[tracing::instrument(level = "trace", skip(self, opts))]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigBuilder::new().list(Some(self.cfg)).build();
-        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
+        let cli_opts = ConfigOpts::builder().list(Some(self.cfg)).build();
+        let opts = ConfigOpts::builder().merge(opts).merge(cli_opts).build();
 
         // Run
         info!("retrieving, please wait...");

@@ -1,4 +1,4 @@
-//! IO operations and helper functions.
+//! cddns utility and helper functions.
 
 pub mod encoding;
 pub mod fs;

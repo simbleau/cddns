@@ -1,5 +1,4 @@
 use crate::cloudflare::{self, endpoints::update_record, models::Record};
-use crate::config::builder::ConfigBuilder;
 use crate::config::models::{ConfigOpts, ConfigOptsInventory};
 use crate::inventory::default_inventory_path;
 use crate::inventory::models::{Inventory, InventoryData};
@@ -62,8 +61,8 @@ impl InventoryCmd {
     #[tracing::instrument(level = "trace", skip(self, opts))]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigBuilder::new().inventory(Some(self.cfg)).build();
-        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
+        let cli_opts = ConfigOpts::builder().inventory(Some(self.cfg)).build();
+        let opts = ConfigOpts::builder().merge(opts).merge(cli_opts).build();
 
         // Run
         match self.action {
@@ -440,7 +439,7 @@ pub async fn prune(opts: &ConfigOpts) -> Result<()> {
 #[tracing::instrument(level = "trace", skip(opts))]
 pub async fn watch(opts: &ConfigOpts) -> Result<()> {
     // Override force update flag with true, to make `watch` non-interactive.
-    let opts = ConfigBuilder::new()
+    let opts = ConfigOpts::builder()
         .merge(opts.to_owned())
         .inventory_force_update(Some(true))
         .build();
