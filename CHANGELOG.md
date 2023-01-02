@@ -4,7 +4,7 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
-## Unreleased
+## 0.3.0
 ### added
 - Added `--token` as a global CLI flag
 - Added `--stdout` to `inventory build` to output inventory to stdout
