@@ -1,14 +1,14 @@
 use crate::config::builder::ConfigBuilder;
 use crate::config::default_config_path;
 use crate::inventory::default_inventory_path;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::{fmt::Debug, fmt::Display};
 use tracing::debug;
 
-/// A model of all configuration options for the CDDNS system.
+/// The model of all configuration options which can be saved in a config file.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigOpts {
     pub verify: ConfigOptsVerify,
@@ -43,57 +43,24 @@ impl ConfigOpts {
         ConfigBuilder::new()
     }
 
-    /// Return runtime layered configuration.
-    /// Configuration data precedence: Default < TOML < ENV < CLI
-    pub fn full(
-        toml: Option<impl AsRef<Path>>,
-        cli_cfg: Option<ConfigOpts>,
-    ) -> Result<Self> {
-        let mut layers = vec![];
-        // CLI > ENV
-        if let Some(cli_cfg) = cli_cfg {
-            layers.push(cli_cfg);
-        }
-        // ENV > TOML
-        let env_cfg = Self::from_env()?;
-        layers.push(env_cfg);
-        // TOML > Default
-        let toml: Option<PathBuf> = toml.map(|p| p.as_ref().to_owned());
-        if let Some(path) = toml.or_else(default_config_path) {
+    /// Read runtime config from a target path.
+    pub fn from_file(path: Option<PathBuf>) -> Result<Option<Self>> {
+        if let Some(path) = path.or_else(default_config_path) {
             if path.exists() {
                 debug!("configuration file found");
-                let toml_cfg = Self::from_file(
-                    path.canonicalize().with_context(|| {
-                        format!(
-                            "could not canonicalize path to config file '{}'",
-                            path.display()
-                        )
-                    })?,
-                )?;
-                layers.push(toml_cfg);
+                debug!("reading configuration path: '{}'", path.display());
+                let cfg_bytes =
+                    std::fs::read(path).context("reading config file")?;
+                let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
+                    .context("reading config file contents as TOML data")?;
+                Ok(Some(cfg.build()))
             } else {
                 debug!("configuration file not found");
+                Ok(None)
             }
         } else {
-            debug!("no default configuration file path");
-        };
-        // Default as lowest priority
-        layers.push(Self::default());
-        // Apply layering
-        let mut cfg_builder = Self::builder();
-        while let Some(cfg) = layers.pop() {
-            cfg_builder.merge(cfg);
+            bail!("no default configuration file path");
         }
-        Ok(cfg_builder.build())
-    }
-
-    /// Read runtime config from a target path.
-    pub fn from_file(path: PathBuf) -> Result<Self> {
-        debug!("reading configuration path: '{}'", path.display());
-        let cfg_bytes = std::fs::read(path).context("reading config file")?;
-        let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
-            .context("reading config file contents as TOML data")?;
-        Ok(cfg.build())
     }
 
     /// Read runtime config from environment variables.

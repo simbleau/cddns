@@ -13,6 +13,7 @@
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use config::models::ConfigOpts;
 use std::path::PathBuf;
 use tracing::{error, Level};
 use tracing_subscriber::prelude::*;
@@ -28,21 +29,37 @@ mod io;
 struct Args {
     #[clap(subcommand)]
     action: Subcommands,
-    /// A config file to use. [default: $XDG_CONFIG_HOME/cddns/config.toml]
+    /// A config file to use [default: $XDG_CONFIG_HOME/cddns/config.toml]
     #[clap(short, long, env = "CDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
+    /// Enable verbose logging
     #[clap(short)]
     pub v: bool,
+    // Your Cloudflare API key token
+    #[clap(short, long, value_name = "token")]
+    pub token: Option<String>,
 }
 
 impl Args {
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn run(self) -> Result<()> {
+        // Apply CLI configuration layering
+        let default_cfg = ConfigOpts::default();
+        let toml_cfg = ConfigOpts::from_file(self.config)?;
+        let env_cfg = ConfigOpts::from_env()?;
+        let cli_cfg = ConfigOpts::builder().verify_token(self.token).build();
+        let opts = ConfigOpts::builder()
+            .merge(default_cfg)
+            .merge(toml_cfg)
+            .merge(env_cfg)
+            .merge(cli_cfg)
+            .build();
+
         match self.action {
-            Subcommands::Config(inner) => inner.run(self.config).await,
-            Subcommands::Verify(inner) => inner.run(self.config).await,
-            Subcommands::List(inner) => inner.run(self.config).await,
-            Subcommands::Inventory(inner) => inner.run(self.config).await,
+            Subcommands::Config(inner) => inner.run(opts).await,
+            Subcommands::Verify(inner) => inner.run(opts).await,
+            Subcommands::List(inner) => inner.run(opts).await,
+            Subcommands::Inventory(inner) => inner.run(opts).await,
         }
     }
 }
