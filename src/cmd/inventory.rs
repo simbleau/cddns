@@ -1,25 +1,17 @@
-use crate::{
-    cloudflare::{self, endpoints::update_record, models::Record},
-    config::models::{ConfigOpts, ConfigOptsInventory},
-    inventory::{
-        default_inventory_path,
-        models::{Inventory, InventoryData},
-    },
-    io::{
-        self,
-        encoding::InventoryPostProcessor,
-        scanner::{prompt_t, prompt_yes_or_no},
-    },
-};
+use crate::cloudflare::{self, endpoints::update_record, models::Record};
+use crate::config::builder::ConfigBuilder;
+use crate::config::models::{ConfigOpts, ConfigOptsInventory};
+use crate::inventory::default_inventory_path;
+use crate::inventory::models::{Inventory, InventoryData};
+use crate::io;
+use crate::io::encoding::InventoryPostProcessor;
+use crate::io::scanner::{prompt_t, prompt_yes_or_no};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
-use std::{
-    collections::HashSet,
-    fmt::Debug,
-    net::{Ipv4Addr, Ipv6Addr},
-    path::PathBuf,
-    vec,
-};
+use std::collections::HashSet;
+use std::fmt::Debug;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::PathBuf;
 use tokio::time::{self, Duration, MissedTickBehavior};
 use tracing::{debug, error, info, trace, warn};
 
@@ -50,11 +42,10 @@ enum InventorySubcommands {
 }
 
 impl InventoryCmd {
-    #[tracing::instrument(level = "trace", skip(self, config))]
-    pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
+    #[tracing::instrument(level = "trace", skip(self, opts))]
+    pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigOpts::builder().inventory(Some(self.cfg)).build();
-        let opts = ConfigOpts::full(config, Some(cli_opts))?;
+        let opts = ConfigBuilder::from(opts).inventory(Some(self.cfg)).build();
 
         // Run
         match self.action {

@@ -1,11 +1,7 @@
-use crate::{
-    config::{default_config_path, models::ConfigOpts},
-    inventory::default_inventory_path,
-    io::{
-        self,
-        scanner::{prompt, prompt_ron, prompt_t, prompt_yes_or_no},
-    },
-};
+use crate::config::{default_config_path, models::ConfigOpts};
+use crate::inventory::default_inventory_path;
+use crate::io;
+use crate::io::scanner::{prompt, prompt_ron, prompt_t, prompt_yes_or_no};
 use anyhow::Result;
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
@@ -27,11 +23,11 @@ enum ConfigSubcommands {
 }
 
 impl ConfigCmd {
-    #[tracing::instrument(level = "trace", skip(self, config))]
-    pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
+    #[tracing::instrument(level = "trace", skip(self, opts))]
+    pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         match self.action {
             ConfigSubcommands::Build => build().await,
-            ConfigSubcommands::Show => show(config).await,
+            ConfigSubcommands::Show => show(&opts).await,
         }
     }
 }
@@ -148,7 +144,6 @@ async fn build() -> Result<()> {
 }
 
 #[tracing::instrument(level = "trace")]
-async fn show(config: Option<PathBuf>) -> Result<()> {
-    println!("{}", ConfigOpts::full(config, None)?);
-    Ok(())
+async fn show(config: &ConfigOpts) -> Result<()> {
+    Ok(println!("{}", config))
 }
