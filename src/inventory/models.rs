@@ -42,14 +42,6 @@ impl Inventory {
             .build()
     }
 
-    /// Return the inventory as a processed string.
-    pub fn to_string<PP>(&self, post_processor: Option<PP>) -> Result<String>
-    where
-        PP: PostProcessor,
-    {
-        self.data.to_string(post_processor)
-    }
-
     /// Save the inventory file at the given path, overwriting if necessary, and
     /// optionally with post-processed comments.
     pub async fn save<PP>(&self, post_processor: Option<PP>) -> Result<()>

@@ -46,6 +46,9 @@ pub struct BuildOpts {
     /// Print the inventory to stdout, instead of saving the file.
     #[clap(long)]
     pub stdout: bool,
+    /// Output the inventory without any post-processing.
+    #[clap(long)]
+    pub clean: bool,
 }
 
 impl InventoryCmd {
@@ -174,15 +177,24 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
         }
     }
 
-    info!("post-processing inventory file...");
-    let pp = InventoryPostProcessor::try_init(opts).await.ok();
-    if pp.is_none() {
-        warn!("failed to initialize post-processor")
-    }
+    let post_processor = {
+        if cli_opts.clean {
+            None
+        } else {
+            info!("initializing post-processor...");
+            InventoryPostProcessor::try_init(opts)
+                .await
+                .map_err(|e| {
+                    warn!("failed to initialize post-processor");
+                    e
+                })
+                .ok()
+        }
+    };
 
     if cli_opts.stdout {
         // Print to stdout
-        println!("{}", data.to_string(pp)?);
+        println!("{}", data.to_string(post_processor)?);
     } else {
         // Save file
         let path = prompt_t::<PathBuf>(
@@ -204,7 +216,7 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
             .path(path)
             .with_data(data)
             .build()?
-            .save(pp)
+            .save(post_processor)
             .await?;
     }
 
@@ -223,7 +235,10 @@ pub async fn show(opts: &ConfigOpts) -> Result<()> {
     if inventory.data.is_empty() {
         warn!("inventory is empty");
     } else {
-        println!("{}", inventory.to_string(None::<InventoryPostProcessor>)?);
+        println!(
+            "{}",
+            inventory.data.to_string(None::<InventoryPostProcessor>)?
+        );
     }
     Ok(())
 }
