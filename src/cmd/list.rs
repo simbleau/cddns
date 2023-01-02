@@ -46,7 +46,8 @@ impl ListCmd {
     #[tracing::instrument(level = "trace", skip(self, opts))]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let opts = ConfigBuilder::from(opts).list(Some(self.cfg)).build();
+        let cli_opts = ConfigBuilder::new().list(Some(self.cfg)).build();
+        let opts = ConfigBuilder::from(opts).merge(cli_opts).build();
 
         // Run
         info!("retrieving, please wait...");
