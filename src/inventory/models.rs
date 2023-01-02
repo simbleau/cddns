@@ -1,5 +1,5 @@
 use crate::inventory::builder::InventoryBuilder;
-use crate::io::encoding::PostProcessor;
+use crate::util::encoding::PostProcessor;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -49,7 +49,7 @@ impl Inventory {
         PP: PostProcessor,
     {
         let yaml = self.data.to_string(post_processor)?;
-        crate::io::fs::save(&self.path, yaml).await
+        crate::util::fs::save(&self.path, yaml).await
     }
 }
 
@@ -71,7 +71,7 @@ impl InventoryData {
     where
         PP: PostProcessor,
     {
-        crate::io::encoding::as_yaml(&self, post_processor)
+        crate::util::encoding::as_yaml(&self, post_processor)
     }
 
     /// Returns whether a record exists in the inventory data.

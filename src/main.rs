@@ -21,7 +21,7 @@ mod cloudflare;
 mod cmd;
 mod config;
 mod inventory;
-mod io;
+mod util;
 
 /// Cloudflare DDNS command line utility
 #[derive(Parser, Debug)]

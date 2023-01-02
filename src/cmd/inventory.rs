@@ -2,9 +2,9 @@ use crate::cloudflare::{self, endpoints::update_record, models::Record};
 use crate::config::models::{ConfigOpts, ConfigOptsInventory};
 use crate::inventory::default_inventory_path;
 use crate::inventory::models::{Inventory, InventoryData};
-use crate::io;
-use crate::io::encoding::InventoryPostProcessor;
-use crate::io::scanner::{prompt_t, prompt_yes_or_no};
+use crate::util;
+use crate::util::encoding::InventoryPostProcessor;
+use crate::util::scanner::{prompt_t, prompt_yes_or_no};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::collections::HashSet;
@@ -217,7 +217,7 @@ pub async fn build(opts: &ConfigOpts, cli_opts: &BuildOpts) -> Result<()> {
             None => p.with_extension("yaml"),
         })
         .unwrap_or_else(default_inventory_path);
-        io::fs::remove_interactive(&path).await?;
+        util::fs::remove_interactive(&path).await?;
 
         info!("saving inventory file...");
         Inventory::builder()

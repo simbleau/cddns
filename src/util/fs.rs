@@ -1,4 +1,4 @@
-use crate::io::scanner::prompt_yes_or_no;
+use crate::util::scanner::prompt_yes_or_no;
 use anyhow::{bail, Context, Result};
 use std::path::Path;
 use tracing::debug;
