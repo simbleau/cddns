@@ -7,7 +7,8 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ## Unreleased
 ### added
 - Added `--token` as a global CLI flag
-- Added `--stdout` to `inventory build`
+- Added `--stdout` to `inventory build` to output inventory to stdout
+- Added `--clean` to `inventory build` to output without post-processing
 
 ## 0.2.3
 ### fixed
