@@ -8,9 +8,6 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 ### added
 - Added `--token` as a global CLI flag
 
-### fixed
-- Fixed an issue where successfully updated records would log as unsuccessful
-
 ## 0.2.3
 ### fixed
 - Fixed an issue where successfully updated records would log as unsuccessful
