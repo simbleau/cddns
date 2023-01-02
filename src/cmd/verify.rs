@@ -1,10 +1,8 @@
-use crate::{
-    cloudflare,
-    config::models::{ConfigOpts, ConfigOptsVerify},
-};
+use crate::cloudflare;
+use crate::config::builder::ConfigBuilder;
+use crate::config::models::{ConfigOpts, ConfigOptsVerify};
 use anyhow::{Context, Result};
 use clap::Args;
-use std::path::PathBuf;
 use tracing::info;
 
 /// Verify authentication to Cloudflare.
@@ -16,11 +14,11 @@ pub struct VerifyCmd {
 }
 
 impl VerifyCmd {
-    #[tracing::instrument(level = "trace", skip(self, config))]
-    pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
+    #[tracing::instrument(level = "trace", skip(self, opts))]
+    pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigOpts::builder().verify(Some(self.cfg)).build();
-        let opts = ConfigOpts::full(config, Some(cli_opts))?;
+        let cli_opts = ConfigBuilder::new().verify(Some(self.cfg)).build();
+        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
 
         // Run
         verify(&opts).await

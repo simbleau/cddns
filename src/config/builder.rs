@@ -201,3 +201,16 @@ impl From<ConfigOpts> for ConfigBuilder {
         }
     }
 }
+
+impl From<Option<ConfigOpts>> for ConfigBuilder {
+    fn from(opts: Option<ConfigOpts>) -> Self {
+        match opts {
+            None => Self {
+                verify: None,
+                list: None,
+                inventory: None,
+            },
+            Some(o) => o.into(),
+        }
+    }
+}

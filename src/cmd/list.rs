@@ -1,14 +1,10 @@
-use crate::{
-    cloudflare::{
-        self,
-        models::{Record, Zone},
-    },
-    config::models::{ConfigOpts, ConfigOptsList},
-};
+use crate::cloudflare;
+use crate::cloudflare::models::{Record, Zone};
+use crate::config::builder::ConfigBuilder;
+use crate::config::models::{ConfigOpts, ConfigOptsList};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use regex::Regex;
-use std::path::PathBuf;
 use tracing::{debug, info, trace};
 
 /// List available resources
@@ -47,11 +43,11 @@ pub struct RecordOpts {
 }
 
 impl ListCmd {
-    #[tracing::instrument(level = "trace", skip(self, config))]
-    pub async fn run(self, config: Option<PathBuf>) -> Result<()> {
+    #[tracing::instrument(level = "trace", skip(self, opts))]
+    pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigOpts::builder().list(Some(self.cfg)).build();
-        let opts = ConfigOpts::full(config, Some(cli_opts))?;
+        let cli_opts = ConfigBuilder::new().list(Some(self.cfg)).build();
+        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
 
         // Run
         info!("retrieving, please wait...");
