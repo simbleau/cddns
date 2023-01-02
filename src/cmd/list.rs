@@ -1,6 +1,5 @@
 use crate::cloudflare;
 use crate::cloudflare::models::{Record, Zone};
-use crate::config::builder::ConfigBuilder;
 use crate::config::models::{ConfigOpts, ConfigOptsList};
 use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
@@ -43,11 +42,11 @@ pub struct RecordOpts {
 }
 
 impl ListCmd {
-    #[tracing::instrument(level = "trace", skip(self, opts))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigBuilder::new().list(Some(self.cfg)).build();
-        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
+        let cli_opts = ConfigOpts::builder().list(Some(self.cfg)).build();
+        let opts = ConfigOpts::builder().merge(opts).merge(cli_opts).build();
 
         // Run
         info!("retrieving, please wait...");
@@ -66,7 +65,7 @@ impl ListCmd {
 }
 
 /// Print all zones and records.
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn list_all(opts: &ConfigOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -97,7 +96,7 @@ async fn list_all(opts: &ConfigOpts) -> Result<()> {
 }
 
 /// Print only zones.
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn list_zones(opts: &ConfigOpts, cli_opts: &ZoneOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -123,7 +122,7 @@ async fn list_zones(opts: &ConfigOpts, cli_opts: &ZoneOpts) -> Result<()> {
 }
 
 /// Print only records.
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn list_records(opts: &ConfigOpts, cli_opts: &RecordOpts) -> Result<()> {
     // Get token
     let token = opts
@@ -158,6 +157,7 @@ async fn list_records(opts: &ConfigOpts, cli_opts: &RecordOpts) -> Result<()> {
 }
 
 /// Find a zone matching the given identifier.
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn find_zone(zones: &Vec<Zone>, id: impl Into<String>) -> Option<Zone> {
     let id_str = id.into();
     for z in zones {
@@ -169,6 +169,7 @@ pub fn find_zone(zones: &Vec<Zone>, id: impl Into<String>) -> Option<Zone> {
 }
 
 /// Retain zones matching the given configuration filters.
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn retain_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
     let beginning_amt = zones.len();
     // Filter zones by configuration options
@@ -197,6 +198,7 @@ pub fn retain_zones(zones: &mut Vec<Zone>, opts: &ConfigOpts) -> Result<()> {
 }
 
 /// Find a record matching the given identifier.
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn find_record(
     records: &Vec<Record>,
     id: impl Into<String>,
@@ -211,6 +213,7 @@ pub fn find_record(
 }
 
 /// Retain records matching the given configuration filters.
+#[tracing::instrument(level = "trace", skip_all)]
 pub fn retain_records(
     records: &mut Vec<Record>,
     opts: &ConfigOpts,

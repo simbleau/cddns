@@ -4,6 +4,16 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
+## Unreleased
+### changed
+- `inventory show` now post-processes alias annotations by default
+- modified post-processing tracers
+### added
+- Added `--clean` to `inventory show` to output without alias annotations
+- Added info log to `inventory show`
+### fixed
+- Moved debug message showing inventory path used before read occurs
+
 ## 0.3.0
 ### added
 - Added `--token` as a global CLI flag

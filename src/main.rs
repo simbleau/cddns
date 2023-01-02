@@ -21,7 +21,7 @@ mod cloudflare;
 mod cmd;
 mod config;
 mod inventory;
-mod io;
+mod util;
 
 /// Cloudflare DDNS command line utility
 #[derive(Parser, Debug)]
@@ -41,7 +41,7 @@ struct Args {
 }
 
 impl Args {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self) -> Result<()> {
         // Apply CLI configuration layering
         let default_cfg = ConfigOpts::default();

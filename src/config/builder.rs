@@ -15,7 +15,7 @@ pub struct ConfigBuilder {
 
 impl ConfigBuilder {
     /// Create a new config opts builder.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             verify: None,
             list: None,
@@ -186,8 +186,8 @@ impl ConfigBuilder {
 
     /// Save the config file at the given path, overwriting if necessary.
     pub async fn save(&self, path: impl AsRef<Path>) -> Result<()> {
-        let toml = crate::io::encoding::as_toml(&self)?;
-        crate::io::fs::save(path, toml).await?;
+        let toml = crate::util::encoding::as_toml(&self)?;
+        crate::util::fs::save(path, toml).await?;
         Ok(())
     }
 }

@@ -96,7 +96,7 @@ where
     let prompt = prompt.to_string();
     let type_hint = type_hint.to_string();
     loop {
-        match crate::io::scanner::prompt(&prompt, &type_hint)? {
+        match crate::util::scanner::prompt(&prompt, &type_hint)? {
             Some(input) => match input.parse::<T>() {
                 Ok(pb) => break Ok(Some(pb)),
                 _ => {
@@ -122,7 +122,7 @@ where
     let prompt = prompt.to_string();
     let type_hint = type_hint.to_string();
     let ron = loop {
-        match crate::io::scanner::prompt(&prompt, &type_hint)? {
+        match crate::util::scanner::prompt(&prompt, &type_hint)? {
             Some(input) => match ron::from_str(&input) {
                 Ok(pb) => break Some(pb),
                 _ => {

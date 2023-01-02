@@ -1,5 +1,4 @@
 use crate::cloudflare;
-use crate::config::builder::ConfigBuilder;
 use crate::config::models::{ConfigOpts, ConfigOptsVerify};
 use anyhow::{Context, Result};
 use clap::Args;
@@ -14,18 +13,18 @@ pub struct VerifyCmd {
 }
 
 impl VerifyCmd {
-    #[tracing::instrument(level = "trace", skip(self, opts))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn run(self, opts: ConfigOpts) -> Result<()> {
         // Apply CLI configuration layering
-        let cli_opts = ConfigBuilder::new().verify(Some(self.cfg)).build();
-        let opts = ConfigBuilder::new().merge(opts).merge(cli_opts).build();
+        let cli_opts = ConfigOpts::builder().verify(Some(self.cfg)).build();
+        let opts = ConfigOpts::builder().merge(opts).merge(cli_opts).build();
 
         // Run
         verify(&opts).await
     }
 }
 
-#[tracing::instrument(level = "trace", skip(opts))]
+#[tracing::instrument(level = "trace", skip_all)]
 async fn verify(opts: &ConfigOpts) -> Result<()> {
     info!("verifying, please wait...");
     // Get token
