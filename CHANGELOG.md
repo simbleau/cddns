@@ -9,6 +9,8 @@ Subheadings to categorize changes are `added, changed, deprecated, removed, fixe
 - `inventory show` now post-processes annotations by default
 ### added
 - Added `--clean` to `inventory show` to output without post-processing
+### fixed
+- Moved debug message showing inventory path used before read occurs
 
 ## 0.3.0
 ### added

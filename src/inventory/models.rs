@@ -21,6 +21,7 @@ impl Inventory {
     /// Read inventory from a target path.
     pub async fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
+        debug!("reading inventory path: '{}'", path.display());
         if !path.exists() {
             bail!("inventory file not found, need help? see https://github.com/simbleau/cddns#readme");
         } else {
@@ -32,7 +33,6 @@ impl Inventory {
                 path.display()
             )
         })?;
-        debug!("reading inventory path: '{}'", path.display());
         let contents = tokio::fs::read_to_string(&path)
             .await
             .context("reading inventory file")?;
