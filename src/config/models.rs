@@ -150,7 +150,7 @@ impl Display for ConfigOpts {
 /// Config options for the verify system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsVerify {
-    // Your Cloudflare API key token
+    // Your Cloudflare API key token.
     #[clap(short, long, env = "CDDNS_VERIFY_TOKEN", value_name = "token")]
     pub token: Option<String>,
 }
@@ -158,14 +158,14 @@ pub struct ConfigOptsVerify {
 /// Config options for the list system.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Args)]
 pub struct ConfigOptsList {
-    /// Include cloudflare zones by regex [default: all]
+    /// Include cloudflare zones by regex. [default: all]
     #[clap(
         long,
         value_name = "pattern1,pattern2,..",
         env = "CDDNS_LIST_INCLUDE_ZONES"
     )]
     pub include_zones: Option<Vec<String>>,
-    /// Ignore cloudflare zones by regex [default: none]
+    /// Ignore cloudflare zones by regex. [default: none]
     #[clap(
         long,
         value_name = "pattern1,pattern2,..",
@@ -173,14 +173,14 @@ pub struct ConfigOptsList {
     )]
     pub ignore_zones: Option<Vec<String>>,
 
-    /// Include cloudflare zone records by regex [default: all]
+    /// Include cloudflare zone records by regex. [default: all]
     #[clap(
         long,
         value_name = "pattern1,pattern2,..",
         env = "CDDNS_LIST_INCLUDE_RECORDS"
     )]
     pub include_records: Option<Vec<String>>,
-    /// Ignore cloudflare zone records by regex [default: none]
+    /// Ignore cloudflare zone records by regex. [default: none]
     #[clap(
         long,
         value_name = "pattern1,pattern2,..",

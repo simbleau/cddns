@@ -29,13 +29,13 @@ mod io;
 struct Args {
     #[clap(subcommand)]
     action: Subcommands,
-    /// A config file to use [default: $XDG_CONFIG_HOME/cddns/config.toml]
+    /// A config file to use. [default: $XDG_CONFIG_HOME/cddns/config.toml]
     #[clap(short, long, env = "CDDNS_CONFIG", value_name = "file")]
     pub config: Option<PathBuf>,
-    /// Enable verbose logging
+    /// Enable verbose logging.
     #[clap(short)]
     pub v: bool,
-    // Your Cloudflare API key token
+    /// Your Cloudflare API key token.
     #[clap(short, long, value_name = "token")]
     pub token: Option<String>,
 }
