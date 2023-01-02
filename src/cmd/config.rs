@@ -145,5 +145,5 @@ async fn build() -> Result<()> {
 
 #[tracing::instrument(level = "trace")]
 async fn show(config: &ConfigOpts) -> Result<()> {
-    Ok(println!("{}", config))
+    Ok(println!("{config}"))
 }
