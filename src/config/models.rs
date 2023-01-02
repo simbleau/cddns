@@ -1,7 +1,7 @@
 use crate::config::builder::ConfigBuilder;
 use crate::config::default_config_path;
 use crate::inventory::default_inventory_path;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -45,21 +45,18 @@ impl ConfigOpts {
 
     /// Read runtime config from a target path.
     pub fn from_file(path: Option<PathBuf>) -> Result<Option<Self>> {
-        if let Some(path) = path.or_else(default_config_path) {
-            if path.exists() {
-                debug!("configuration file found");
-                debug!("reading configuration path: '{}'", path.display());
-                let cfg_bytes =
-                    std::fs::read(path).context("reading config file")?;
-                let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
-                    .context("reading config file contents as TOML data")?;
-                Ok(Some(cfg.build()))
-            } else {
-                debug!("configuration file not found");
-                Ok(None)
-            }
+        let path = path.unwrap_or(default_config_path());
+        if path.exists() {
+            debug!("configuration file found");
+            debug!("reading configuration path: '{}'", path.display());
+            let cfg_bytes =
+                std::fs::read(path).context("reading config file")?;
+            let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
+                .context("reading config file contents as TOML data")?;
+            Ok(Some(cfg.build()))
         } else {
-            bail!("no default configuration file path");
+            debug!("configuration file not found");
+            Ok(None)
         }
     }
 

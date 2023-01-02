@@ -7,21 +7,20 @@
 pub mod builder;
 pub mod models;
 
-/// Return the default configuration path, depending on the host OS. This may
-/// return None for unsupported operating systems.
+/// Return the default configuration path, depending on the host OS.
 ///
 /// - Linux: $XDG_CONFIG_HOME/cddns/config.toml or
 ///   $HOME/.config/cddns/config.toml
 /// - MacOS: $HOME/Library/Application Support/cddns/config.toml
 /// - Windows: {FOLDERID_RoamingAppData}/cddns/config.toml
-/// - Else: None
-pub fn default_config_path() -> Option<std::path::PathBuf> {
+/// - Else: ./config.toml
+pub fn default_config_path() -> std::path::PathBuf {
     if let Some(base_dirs) = directories::BaseDirs::new() {
         let mut config_path = base_dirs.config_dir().to_owned();
         config_path.push("cddns");
         config_path.push("config.toml");
-        Some(config_path)
+        config_path
     } else {
-        None
+        std::path::PathBuf::from("config.toml")
     }
 }
