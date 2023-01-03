@@ -4,7 +4,7 @@ This changelog follows the patterns described here: https://keepachangelog.com/e
 
 Subheadings to categorize changes are `added, changed, deprecated, removed, fixed, security`.
 
-## Unreleased
+## 0.4.0
 ### changed
 - cddns now falls back to `./config.toml` for configuration for unsupported architectures
 - cddns now checks the OS configuration directory for inventory, and falls back to `./inventory.yml` for unsupported architectures
