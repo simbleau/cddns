@@ -364,7 +364,7 @@ services:
             - CDDNS_VERIFY_TOKEN
             - CDDNS_INVENTORY_PATH='/inventory.yml'
         volumes:
-            -  $CDDNS_INVENTORY_PATH:/inventory.yml'
+            - /host/path/to/inventory.yml:/inventory.yml
         image: 'simbleau/cddns:latest'
 ```
 ```bash
