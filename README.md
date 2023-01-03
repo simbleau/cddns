@@ -15,7 +15,7 @@
   - [1.1 Supported Platforms](#11-supported-platforms)
   - [1.2 Requirements](#12-requirements)
   - [1.3 Local Installation](#13-local-installation)
-    - [Option A: Cargo](#option-a-cargo)
+    - [Option A: Cargo (Recommended)](#option-a-cargo-recommended)
     - [Option B: Binary](#option-b-binary)
   - [1.4 Docker](#14-docker)
 - [2 Quickstart](#2-quickstart)
@@ -23,13 +23,23 @@
   - [3.1 Overview](#31-overview)
     - [3.1.1 API Tokens](#311-api-tokens)
     - [3.1.2 Inventory](#312-inventory)
-    - [3.1.2 Configuration (Optional)](#312-configuration-optional)
+    - [3.1.3 Configuration (Optional)](#313-configuration-optional)
     - [3.1.4 Environment Variables](#314-environment-variables)
   - [3.2 Subcommands](#32-subcommands)
     - [3.2.1 Verify](#321-verify)
     - [3.2.2 Config](#322-config)
+      - [3.2.2.1 Show](#3221-show)
+      - [3.2.2.2 Build](#3222-build)
     - [3.2.3 List](#323-list)
+      - [3.2.3.1 Zones](#3231-zones)
+      - [3.2.3.2 Records](#3232-records)
     - [3.2.4 Inventory](#324-inventory)
+      - [3.2.4.1 Build](#3241-build)
+      - [3.2.4.2 Show](#3242-show)
+      - [3.2.4.3 Check](#3243-check)
+      - [3.2.4.4 Update](#3244-update)
+      - [3.2.4.5 Prune](#3245-prune)
+      - [3.2.4.6 Watch](#3246-watch)
   - [3.3 Service Deployment](#33-service-deployment)
     - [3.3.1 Docker](#331-docker)
     - [3.3.2 Docker Compose](#332-docker-compose)
@@ -52,12 +62,11 @@
 ## 1.2 Requirements
 - Cloudflare Account ([Help](https://developers.cloudflare.com/fundamentals/account-and-billing/account-setup/create-account/))
 - Cloudflare API Token with **Edit DNS** permissions ([Help](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/))
-- A/AAAA DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/))
 
 ## 1.3 Local Installation
-Installing the cddns CLI will provide the means to test your configuration locally and run interactive builders on your local machine.
+Installing the cddns CLI is a convenient way to test your configuration and build the necessary files for service deployment.
 
-### Option A: Cargo
+### Option A: Cargo (Recommended)
 Cargo is the recommended way to install CDDNS as a CLI ([What is Cargo?](https://doc.rust-lang.org/cargo/)).
 - `cargo +nightly install cddns`
 ### Option B: Binary
@@ -80,18 +89,18 @@ cddns --token <YOUR_CLOUDFLARE_TOKEN> verify
 
 Next, generate an inventory file ([Help](#312-inventory)) and save it:
 
-*Note: You can use --stdout to redirect the inventory file to the terminal*
+*Note: You can add --stdout to redirect the inventory file to the terminal*
 ```bash
 cddns \
   --token <YOUR_CLOUDFLARE_TOKEN> \
-  inventory build [--stdout]`
+  inventory build
 ```
 
 Check your inventory:
 ```bash
 cddns \
-  --token <YOUR_CLOUDFLARE_TOKEN>
-  inventory --path '/path/to/inventory.yml'
+  --token <YOUR_CLOUDFLARE_TOKEN> \
+  inventory --path '/path/to/inventory.yml' \
   check
 ```
 
@@ -105,7 +114,7 @@ If the following works, continue to your OS-specific service instructions:
 ## 3.1 Overview
 **cddns** is a non-complicated DDNS tool for Cloudflare, only needing a Cloudflare API token and inventory file. cddns can be run in a container or installed locally as a CLI.
 
-To operate, cddns needs an inventory file, which can be generated or written manually. For configuration, cddns takes the typical layered configuration approach: The config file is the base, which is superseded by environment variables, which are superseded by CLI arguments.
+To operate, cddns needs an inventory file containing your DNS records ([What is a DNS record?](https://www.cloudflare.com/learning/dns/dns-records/)), which can be generated or written manually. For configuration, cddns takes the typical layered configuration approach: The config file is the base, which is superseded by environment variables, which are superseded by CLI arguments.
 
 ### 3.1.1 API Tokens
 cddns will need a valid Cloudflare API token to function ([How do I create an API token?](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)).
@@ -115,7 +124,7 @@ You can test an API token with the following command:
 
 On success, you may see "`This API Token is valid and active`"
 
-To avoid using `--token ...` for every command, you can write it in a [config file](#312-configuration-optional) or set the **CDDNS_VERIFY_TOKEN** environment variable to manually specify your token. [Click here](#313-environment-variables) for more environment variables.
+To avoid using `--token` in every command, you can save a [configuration file](#313-configuration-optional) or set the **CDDNS_VERIFY_TOKEN** environment variable to manually specify your token. [Click here](#314-environment-variables) for more environment variables.
 
 ### 3.1.2 Inventory
 cddns also needs an inventory file in [YAML format](https://yaml.org/) containing the DNS records you want to watch.
@@ -136,9 +145,9 @@ To see DNS records managed by your API token, the CLI also offers a list command
 
 You can visit [`inventory.yml`](inventory.yml) for an annotated example.
 
-You can set the **CDDNS_INVENTORY_PATH** environment variable to manually specify the location of this file. [Click here](#313-environment-variables) for more environment variables.
+You can set the **CDDNS_INVENTORY_PATH** environment variable to manually specify the location of this file. [Click here](#314-environment-variables) for more environment variables.
 
-### 3.1.2 Configuration (Optional)
+### 3.1.3 Configuration (Optional)
 You may optionally use a [TOML file](https://toml.io/en/) to save configuration, such as your API key. **You should restrict the permissions on this file if storing your API token.**
 
 By default, we check your local configuration directory for your configuration file.
@@ -151,24 +160,24 @@ To quickly get setup, the CLI offers an interactive configuration file builder.
 
 You can also visit [`config.toml`](config.toml) for an annotated example.
 
-You can set the **CDDNS_CONFIG** environment variable to manually specify the location of this file. [Click here](#313-environment-variables) for more environment variables.
+You can set the **CDDNS_CONFIG** environment variable to manually specify the location of this file. [Click here](#314-environment-variables) for more environment variables.
 
 ### 3.1.4 Environment Variables
-Every value which can be stored in a [configuration file](#312-configuration) can be superseded or provided as an environment variable.
+Every value which can be stored in a [configuration file](#313-configuration-optional) can be superseded or provided as an environment variable.
 
-| Variable Name                      | Description                                                                                                                                                                                                                          | Default                            | Example                          |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- | -------------------------------- |
-| **RUST_LOG**                       | [Log filtering directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directiveshttps://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) | `info`                             | `trace` (everything, unfiltered) |
-| **CDDNS_CONFIG**                   | The path to your configuration file                                                                                                                                                                                                  | [Varies by OS](#312-configuration) | `/etc/cddns/config.toml`         |
-| **CDDNS_VERIFY_TOKEN**             | The default Cloudflare API Token to use                                                                                                                                                                                              | None                               | `GAWnixPCAADXRAjoK...`           |
-| **CDDNS_LIST_INCLUDE_ZONES**       | Regex filters for zones to include in CLI usage                                                                                                                                                                                      | `.*` (Match all)                   | `imbleau.com,.*\.dev`            |
-| **CDDNS_LIST_IGNORE_ZONES**        | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                               | `imbleau.com`                    |
-| **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                   | `.*\.imbleau.com`                |
-| **CDDNS_LIST_IGNORE_RECORDS**      | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                               | `shop\..+\.com`                  |
-| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | [Varies by OS](#314-inventory)     | `MyInventory.yml`                |
-| **CDDNS_INVENTORY_FORCE_UPDATE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                            | `true`                           |
-| **CDDNS_INVENTORY_FORCE_PRUNE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                            | `true`                           |
-| **CDDNS_INVENTORY_WATCH_INTERVAL** | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                      | `60000` (60s)                    |
+| Variable Name                      | Description                                                                                                                                                                                                                          | Default                                     | Example                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- | ------------------------ |
+| **RUST_LOG**                       | [Log filtering directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directiveshttps://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) | `info,cddns=trace`                          | `debug`                  |
+| **CDDNS_CONFIG**                   | The path to your configuration file                                                                                                                                                                                                  | [Varies by OS](#313-configuration-optional) | `/etc/cddns/config.toml` |
+| **CDDNS_VERIFY_TOKEN**             | The default Cloudflare API Token to use                                                                                                                                                                                              | None                                        | `GAWnixPCAADXRAjoK...`   |
+| **CDDNS_LIST_INCLUDE_ZONES**       | Regex filters for zones to include in CLI usage                                                                                                                                                                                      | `.*` (Match all)                            | `imbleau.com,.*\.dev`    |
+| **CDDNS_LIST_IGNORE_ZONES**        | Regex filters for zones to ignore in CLI usage                                                                                                                                                                                       | None                                        | `imbleau.com`            |
+| **CDDNS_LIST_INCLUDE_RECORDS**     | Regex filters for records to include in CLI usage                                                                                                                                                                                    | `.*` (Match all)                            | `.*\.imbleau.com`        |
+| **CDDNS_LIST_IGNORE_RECORDS**      | Regex filters for records to ignore in CLI usage                                                                                                                                                                                     | None                                        | `shop\..+\.com`          |
+| **CDDNS_INVENTORY_PATH**           | The path to your inventory file                                                                                                                                                                                                      | [Varies by OS](#312-inventory)              | `MyInventory.yml`        |
+| **CDDNS_INVENTORY_FORCE_UPDATE**   | Skip all prompts (force) for `inventory update`                                                                                                                                                                                      | `false`                                     | `true`                   |
+| **CDDNS_INVENTORY_FORCE_PRUNE**    | Skip all prompts (force) for `inventory prune`                                                                                                                                                                                       | `false`                                     | `true`                   |
+| **CDDNS_INVENTORY_WATCH_INTERVAL** | The milliseconds between checking DNS records                                                                                                                                                                                        | `30000` (30s)                               | `60000` (60s)            |
 
 
 ## 3.2 Subcommands
@@ -186,25 +195,29 @@ The `verify` command will validate your Cloudflare API token.
 cddns verify [--token '<YOUR_CLOUDFLARE_TOKEN>']
 ```
 
-If you do not provide `--token ...`, the token will be obtained from your [configuration file](#312-configuration) or the [**CDDNS_VERIFY_TOKEN**](#313-environment-variables) environment variable.
+If you do not provide `--token ...`, the token will be obtained from your [configuration file](#313-configuration-optional) or the [**CDDNS_VERIFY_TOKEN**](#314-environment-variables) environment variable.
 
 ### 3.2.2 Config
 **Help: `cddns config --help`**
 
-The `config` command will help you build or manage your configuration ([Configuration help](#312-configuration)). cddns takes the typical layered configuration approach. There are 3 layers. The config file is the base, which is then superseded by environment variables, which are finally superseded by CLI arguments and options.
+The `config` command will help you build or manage your configuration ([Help](#313-configuration-optional)). cddns takes the typical layered configuration approach; there are 3 layers. The config file is the base, which is superseded by environment variables, which are superseded by CLI arguments.
 
-To show your configuration:
-*`-c` or `--config` will show the config at the given path*
+By default, cddns checks your [local configuration folder](#313-configuration-optional) for saved configuration.
+
+#### 3.2.2.1 Show
+To show your current configuration:
+
+*`-c` or `--config` will show the inventory at the given path*
 ```bash
 cddns config show
 ```
 
+#### 3.2.2.2 Build
 To build a configuration file:
+
 ```bash
 cddns config build
 ```
-
-By default, cddns checks your [local configuration folder](#312-configuration) for saved configuration.
 
 ### 3.2.3 List
 **Help: `cddns list --help`**
@@ -224,13 +237,17 @@ To list your zones AND records:
 cddns list
 ```
 
+#### 3.2.3.1 Zones
 To list only zones:
+
 *`-z` or `--zone` will only show the zone matching the given name or id.*
 ```bash
 cddns list zones
 ```
 
+#### 3.2.3.2 Records
 To list only records:
+
 *`-z` or `--zone` will only show the records matching the given zone's name or id.*
 *`-r` or `--record` will only show the records matching the given name or id.*
 ```bash
@@ -242,6 +259,9 @@ cddns list records
 
 The `inventory` command has several subcommands to build and control inventory.
 
+*`-p` or `--path` will show the inventory at the given path*
+
+#### 3.2.4.1 Build
 To build an inventory:
 
 *`--stdout` will output the inventory to stdout*\
@@ -250,18 +270,21 @@ To build an inventory:
 cddns inventory build
 ```
 
+#### 3.2.4.2 Show
 To show your inventory:
 
-*`-p` or `--path` will show the inventory at the given path*
+*`--clean` will output without post-processing*
 ```bash
 cddns inventory show
 ```
 
+#### 3.2.4.3 Check
 To check your DNS records, without making any changes:
 ```bash
 cddns inventory check
 ```
 
+#### 3.2.4.4 Update
 To update all outdated DNS records found in `inventory check`:
 
 *`--force-update true` will attempt to skip prompts*
@@ -269,6 +292,7 @@ To update all outdated DNS records found in `inventory check`:
 cddns inventory update
 ```
 
+#### 3.2.4.5 Prune
 To prune all invalid DNS records found in `inventory check`:
 
 *`--force-prune true` will attempt to skip prompts*
@@ -276,6 +300,7 @@ To prune all invalid DNS records found in `inventory check`:
 cddns inventory prune
 ```
 
+#### 3.2.4.6 Watch
 To continuously update erroneous records:
 
 *`-w` or `--watch-interval` will change the **milliseconds** between DNS refresh*
@@ -284,14 +309,12 @@ cddns inventory watch
 ```
 
 ## 3.3 Service Deployment
-cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 5 seconds.
+cddns will work as a service daemon to keep DNS records up to date. The default check interval is every 30 seconds.
 
 ### 3.3.1 Docker
 Currently supported architectures: `amd64`, `arm64`
 
 Running cddns on Docker is an easy 3 step process.
-
-*Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*
 
 1. Test your Cloudflare API token: ([Help](#311-api-tokens))
 ```bash
@@ -303,7 +326,7 @@ docker run  \
   simbleau/cddns:latest verify
 ```
 
-2. Test your inventory ([Help](#314-inventory)).
+1. Test your inventory ([Help](#312-inventory)).
 ```bash
 export CDDNS_INVENTORY_PATH='/to/your/inventory.yml'
 ```
@@ -315,9 +338,9 @@ docker run \
   simbleau/cddns:latest inventory check
 ```
 
-3. Deploy
+1. Deploy
 
-*All [environment variables](#313-environment-variables) can be used for additional configuration.*
+*All [environment variables](#314-environment-variables) can be used for additional configuration.*
 ```bash
 docker run \
   -e CDDNS_VERIFY_TOKEN \
@@ -327,13 +350,11 @@ docker run \
 ```
 
 ### 3.3.2 Docker Compose
-*Tip: The [CLI](#13-cli-download) is useful for testing and building inventory files locally, which can then be used for your service.*
-
 1. Validate your configuration with the [Docker instructions](#331-docker) (above)
 
 2. Deploy Compose file[[?](https://docs.docker.com/compose/compose-file/)]
 
-*All [environment variables](#313-environment-variables) can be used for additional configuration.*
+*All [environment variables](#314-environment-variables) can be used for additional configuration.*
 ```yaml
 # docker-compose.yaml
 version: '3.3'
@@ -351,33 +372,23 @@ docker compose up
 ```
 
 ### 3.3.3 Kubernetes
-We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps with the help of the cddns [CLI](#13-cli-download):
+We will eventually support standard installation techniques such as Helm. You may try a custom setup or you may follow our imperative steps with the help of the cddns CLI:
 
-1. Test your Cloudflare API token: ([Help](#311-getting-started))
-```bash
-cddns verify --token '<YOUR_CLOUDFLARE_TOKEN>'
-```
-
-2. Test your inventory ([Help](#314-inventory)).
-```bash
-cddns inventory --path '/to/your/inventory.yml' show
-```
-
-3. Create a Secret[[?](https://kubernetes.io/docs/concepts/configuration/secret/)] for your API token:
+1. Create a Secret[[?](https://kubernetes.io/docs/concepts/configuration/secret/)] for your API token:
 ```
 kubectl create secret generic cddns-api-token \
   --from-literal=token='YOUR_CLOUDFLARE_API_TOKEN'
 ```
 
-4. Create a ConfigMap[[?](https://kubernetes.io/docs/concepts/configuration/configmap/)] for your inventory:
+2. Create a ConfigMap[[?](https://kubernetes.io/docs/concepts/configuration/configmap/)] for your inventory:
 ```
 kubectl create configmap cddns-inventory \
   --from-file '/to/your/inventory.yml'
 ```
 
-5. Create a Deployment[[?](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)]:
+3. Create a Deployment[[?](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)]:
 
-*All [environment variables](#313-environment-variables) can be used for additional configuration.*
+*All [environment variables](#314-environment-variables) can be used for additional configuration.*
 ```yaml
 # deployment.yaml
 apiVersion: apps/v1
@@ -425,7 +436,7 @@ kubectl apply -f deployment.yaml
 cddns verify
 ```
 
-1. Test your inventory ([Help](#314-inventory)).
+1. Test your inventory ([Help](#312-inventory)).
 ```bash
 cddns inventory show
 ```
@@ -437,7 +448,7 @@ sudo crontab -e
 
 1. Add crontab entry (e.g. every 10 minutes)
 ```
-*/10 * * * * "cfddns inventory commit --force"
+*/10 * * * * "cfddns inventory --force-update true update"
 ```
 
 ---
