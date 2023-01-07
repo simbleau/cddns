@@ -80,16 +80,12 @@ docker run simbleau/cddns <SUBCOMMAND>
 ```
 
 # 2 Quickstart
-**Docker users: Replace "`cddns`" with "`docker run simbleau/cddns`"**
-
 First, test your Cloudflare API token ([Help](#311-api-tokens)) with the following command:
 ```bash
 cddns --token <YOUR_CLOUDFLARE_TOKEN> verify
 ```
 
-Next, generate an inventory file ([Help](#312-inventory)) and save it:
-
-*Note: You can add --stdout to redirect the inventory file to the terminal*
+Next, generate an inventory file ([Help](#312-inventory)):
 ```bash
 cddns \
   --token <YOUR_CLOUDFLARE_TOKEN> \
