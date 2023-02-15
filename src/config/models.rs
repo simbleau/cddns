@@ -92,7 +92,7 @@ where
 
 impl Display for ConfigOpts {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let result = try {
+        try {
             // Verify
             writeln!(f, "Token: {}", __display(self.verify.token.as_ref()))?;
 
@@ -139,8 +139,7 @@ impl Display for ConfigOpts {
                 "Watch interval: {}",
                 __display(self.inventory.watch_interval.as_ref())
             )?;
-        };
-        result
+        }
     }
 }
 
