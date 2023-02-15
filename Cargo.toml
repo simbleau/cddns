@@ -11,7 +11,6 @@ keywords = ["cloudflare", "ddns", "dns"]
 categories = ["command-line-utilities", "network-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 clap = { version = "4.1.4", features = ["derive", "env"] }
 tokio = { version = "1.25.0", features = ["full"] }
@@ -20,13 +19,13 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 ansi_term = "0.12.1"
 reqwest = { version = "0.11.14", features = ["json"] }
-toml = "0.7.0"
-anyhow = "1.0.68"
-envy = "0.4"
+toml = "0.7.2"
+anyhow = "1.0.69"
+envy = "0.4.2"
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.91"
+serde_json = "1.0.93"
 serde_yaml = "0.9.17"
-ron = "0.8"
+ron = "0.8.0"
 regex = "1.7.1"
 public-ip = "0.2.2"
 directories = "4.0.1"
