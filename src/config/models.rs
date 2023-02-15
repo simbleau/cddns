@@ -50,8 +50,8 @@ impl ConfigOpts {
             debug!("configuration file found");
             debug!("reading configuration path: '{}'", path.display());
             let cfg_bytes =
-                std::fs::read(path).context("reading config file")?;
-            let cfg: ConfigBuilder = toml::from_slice(&cfg_bytes)
+                std::fs::read_to_string(path).context("reading config file")?;
+            let cfg: ConfigBuilder = toml::from_str(&cfg_bytes)
                 .context("reading config file contents as TOML data")?;
             Ok(Some(cfg.build()))
         } else {
