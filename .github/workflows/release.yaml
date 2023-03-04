@@ -93,14 +93,10 @@ jobs:
       - name: Setup | Checksums
         run: for file in cddns-*/cddns-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
-      - name: Setup | Create Release Log
-        run: cat CHANGELOG.md | tail -n +7 > RELEASE_LOG.md
-
       - name: Build | Publish Pre-Release
         uses: softprops/action-gh-release@v1
         with:
           files: cddns-*/cddns-*
-          body_path: RELEASE_LOG.md
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

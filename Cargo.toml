@@ -12,21 +12,21 @@ categories = ["command-line-utilities", "network-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-clap = { version = "4.1.6", features = ["derive", "env"] }
-tokio = { version = "1.25.0", features = ["full"] }
-crossterm = "0.26.1"
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-ansi_term = "0.12.1"
-reqwest = { version = "0.11.14", features = ["json"] }
-toml = "0.7.2"
-anyhow = "1.0.69"
-envy = "0.4.2"
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.93"
-serde_yaml = "0.9.17"
-ron = "0.8.0"
-regex = "1.7.1"
-public-ip = "0.2.2"
-directories = "4.0.1"
-chrono = "0.4.23"
+clap = { version = "4.1", features = ["derive", "env"] }
+tokio = { version = "1.25", features = ["full"] }
+crossterm = "0.26"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ansi_term = "0.12"
+reqwest = { version = "0.11", features = ["json"] }
+toml = "0.7"
+anyhow = "1.0"
+envy = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+ron = "0.8"
+regex = "1.7"
+public-ip = "0.2"
+directories = "4.0"
+chrono = "0.4"

@@ -15,11 +15,11 @@ jobs:
           default: true
           components: clippy
 
-      - name: Build | Clippy
-        uses: actions-rs/clippy-check@v1
+      - name: Build | clippy
+        uses: actions-rs/cargo@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets -- -D warnings
+          command: clippy
+          args: -- -D warnings
 
       - name: Setup | Toolchain (rustfmt)
         uses: actions-rs/toolchain@v1
@@ -28,8 +28,11 @@ jobs:
           default: true
           components: rustfmt
 
-      - name: Build | Rustfmt
-        run: cargo fmt -- --check
+      - name: Build | fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
 
   check:
     runs-on: ubuntu-latest
@@ -82,7 +85,7 @@ jobs:
       - name: Setup | Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Setup | Build Docker Image
+      - name: Setup | Build Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
